@@ -8,17 +8,29 @@ repos:
       - id: check-json
       - id: check-added-large-files
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
-    hooks:
-      - id: ruff
-        args: [--fix]
-        files: ^services/orchestrator/
-      - id: ruff-format
-        files: ^services/orchestrator/
-
   - repo: local
     hooks:
+      - id: orchestrator-ruff-format
+        name: orchestrator ruff format
+        entry: bash -c 'cd services/orchestrator && uv run ruff format src tests'
+        language: system
+        pass_filenames: false
+        files: ^services/orchestrator/.*\.py$
+
+      - id: orchestrator-ruff
+        name: orchestrator ruff check
+        entry: bash -c 'cd services/orchestrator && uv run ruff check src tests'
+        language: system
+        pass_filenames: false
+        files: ^services/orchestrator/.*\.py$
+
+      - id: frontend-vitest
+        name: pnpm frontend vitest
+        entry: bash -c 'pnpm --filter @voicebridge/contracts test && pnpm --filter @voicebridge/db test'
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$
+
       - id: pnpm-lint
         name: pnpm lint
         entry: pnpm -r lint
