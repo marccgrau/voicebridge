@@ -1,0 +1,34 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+        files: ^services/orchestrator/
+      - id: ruff-format
+        files: ^services/orchestrator/
+
+  - repo: local
+    hooks:
+      - id: pnpm-lint
+        name: pnpm lint
+        entry: pnpm -r lint
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$
+
+      - id: pnpm-typecheck
+        name: pnpm typecheck
+        entry: pnpm -r typecheck
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx)$

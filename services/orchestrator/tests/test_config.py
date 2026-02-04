@@ -1,0 +1,236 @@
+"""Tests for configuration settings."""
+
+import pytest
+from pydantic import ValidationError
+
+from src.config import Settings
+
+
+class TestSettings:
+    """Tests for the Settings class."""
+
+    def test_loads_all_required_fields(self, monkeypatch):
+        """Test that all required environment variables can be loaded."""
+        # Set all required env vars
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+
+        settings = Settings()
+
+        assert settings.supabase_url == "https://test.supabase.co"
+        assert settings.supabase_service_role_key == "test-key"
+        assert settings.deepgram_api_key == "dg-key"
+        assert settings.anthropic_api_key == "an-key"
+        assert settings.daily_api_key == "daily-key"
+
+    def test_default_values_applied(self, monkeypatch):
+        """Test that default values are applied for optional fields."""
+        # Set only required env vars
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+
+        settings = Settings()
+
+        # Check default values
+        assert settings.host == "0.0.0.0"
+        assert settings.port == 8000
+        assert settings.debug is False
+        assert settings.stt_language == "en"
+        assert settings.llm_model == "claude-sonnet-4-20250514"
+        assert settings.process_lookup_limit == 5
+
+    def test_optional_fields_can_be_overridden(self, monkeypatch):
+        """Test that optional fields can be overridden via env vars."""
+        # Set required + optional env vars
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+        monkeypatch.setenv("HOST", "127.0.0.1")
+        monkeypatch.setenv("PORT", "9000")
+        monkeypatch.setenv("DEBUG", "true")
+        monkeypatch.setenv("STT_LANGUAGE", "es")
+        monkeypatch.setenv("LLM_MODEL", "claude-opus-4")
+        monkeypatch.setenv("PROCESS_LOOKUP_LIMIT", "10")
+
+        settings = Settings()
+
+        assert settings.host == "127.0.0.1"
+        assert settings.port == 9000
+        assert settings.debug is True
+        assert settings.stt_language == "es"
+        assert settings.llm_model == "claude-opus-4"
+        assert settings.process_lookup_limit == 10
+
+    def test_missing_supabase_url_raises_validation_error(self, monkeypatch):
+        """Test that missing required field raises validation error."""
+        # Disable .env file loading for this test
+        monkeypatch.delenv("SUPABASE_URL", raising=False)
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+
+        # Create Settings with _env_file=None to prevent loading from .env
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(_env_file=None)
+
+        errors = exc_info.value.errors()
+        assert any(error["loc"] == ("supabase_url",) for error in errors)
+
+    def test_missing_supabase_service_role_key_raises_error(self, monkeypatch):
+        """Test that missing service role key raises validation error."""
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(_env_file=None)
+
+        errors = exc_info.value.errors()
+        assert any(error["loc"] == ("supabase_service_role_key",) for error in errors)
+
+    def test_missing_deepgram_api_key_raises_error(self, monkeypatch):
+        """Test that missing Deepgram API key raises validation error."""
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.delenv("DEEPGRAM_API_KEY", raising=False)
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(_env_file=None)
+
+        errors = exc_info.value.errors()
+        assert any(error["loc"] == ("deepgram_api_key",) for error in errors)
+
+    def test_missing_anthropic_api_key_raises_error(self, monkeypatch):
+        """Test that missing Anthropic API key raises validation error."""
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(_env_file=None)
+
+        errors = exc_info.value.errors()
+        assert any(error["loc"] == ("anthropic_api_key",) for error in errors)
+
+    def test_missing_daily_api_key_raises_error(self, monkeypatch):
+        """Test that missing Daily API key raises validation error."""
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.delenv("DAILY_API_KEY", raising=False)
+
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(_env_file=None)
+
+        errors = exc_info.value.errors()
+        assert any(error["loc"] == ("daily_api_key",) for error in errors)
+
+    def test_port_type_validation(self, monkeypatch):
+        """Test that port must be an integer."""
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+        monkeypatch.setenv("PORT", "not-a-number")
+
+        with pytest.raises(ValidationError) as exc_info:
+            Settings()
+
+        errors = exc_info.value.errors()
+        assert any(error["loc"] == ("port",) for error in errors)
+
+    def test_debug_boolean_conversion(self, monkeypatch):
+        """Test that debug accepts various boolean representations."""
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+
+        # Test various truthy values
+        for value in ["1", "true", "True", "TRUE", "yes", "Yes"]:
+            monkeypatch.setenv("DEBUG", value)
+            settings = Settings()
+            assert settings.debug is True, f"Failed for value: {value}"
+
+        # Test various falsy values
+        for value in ["0", "false", "False", "FALSE", "no", "No"]:
+            monkeypatch.setenv("DEBUG", value)
+            settings = Settings()
+            assert settings.debug is False, f"Failed for value: {value}"
+
+    def test_process_lookup_limit_type_validation(self, monkeypatch):
+        """Test that process_lookup_limit must be an integer."""
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+        monkeypatch.setenv("PROCESS_LOOKUP_LIMIT", "invalid")
+
+        with pytest.raises(ValidationError) as exc_info:
+            Settings()
+
+        errors = exc_info.value.errors()
+        assert any(error["loc"] == ("process_lookup_limit",) for error in errors)
+
+    def test_extra_fields_ignored(self, monkeypatch):
+        """Test that extra environment variables are ignored."""
+        monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+        monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.setenv("DAILY_API_KEY", "daily-key")
+        monkeypatch.setenv("UNKNOWN_FIELD", "some-value")
+        monkeypatch.setenv("ANOTHER_RANDOM_VAR", "another-value")
+
+        # Should not raise error due to model_config with extra="ignore"
+        settings = Settings()
+
+        # Unknown fields should not be set
+        assert not hasattr(settings, "unknown_field")
+        assert not hasattr(settings, "another_random_var")
+
+
+class TestSettingsModuleLevel:
+    """Tests for module-level settings instance."""
+
+    def test_module_settings_is_settings_instance(self):
+        """Test that module-level settings is a Settings instance."""
+        from src.config import settings
+
+        assert isinstance(settings, Settings)
+
+    def test_module_settings_has_all_fields(self):
+        """Test that module-level settings has all required fields."""
+        from src.config import settings
+
+        # Should have all fields (may be loaded from actual .env)
+        assert hasattr(settings, "supabase_url")
+        assert hasattr(settings, "supabase_service_role_key")
+        assert hasattr(settings, "deepgram_api_key")
+        assert hasattr(settings, "anthropic_api_key")
+        assert hasattr(settings, "daily_api_key")
+        assert hasattr(settings, "host")
+        assert hasattr(settings, "port")
+        assert hasattr(settings, "debug")
+        assert hasattr(settings, "stt_language")
+        assert hasattr(settings, "llm_model")
+        assert hasattr(settings, "process_lookup_limit")

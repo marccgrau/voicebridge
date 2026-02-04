@@ -1,0 +1,131 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-orchestrator:
+    name: Python Orchestrator Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        working-directory: services/orchestrator
+        run: uv sync --dev
+
+      - name: Run tests with coverage
+        working-directory: services/orchestrator
+        run: |
+          uv run pytest --cov=src --cov-report=term-missing --cov-report=xml
+          echo "## Python Test Coverage" >> $GITHUB_STEP_SUMMARY
+          uv run pytest --cov=src --cov-report=term-missing | tail -20 >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: github.event_name == 'pull_request'
+        with:
+          file: services/orchestrator/coverage.xml
+          flags: orchestrator
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  test-typescript:
+    name: TypeScript Package Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Test contracts package
+        run: pnpm --filter @voicebridge/contracts test
+
+      - name: Test database package with coverage
+        run: |
+          pnpm --filter @voicebridge/db test --coverage
+          echo "## TypeScript Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "Database package: 55 tests" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: github.event_name == 'pull_request'
+        with:
+          directory: packages/db/coverage
+          flags: typescript
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pnpm install
+          pip install uv
+
+      - name: Lint TypeScript
+        run: pnpm lint
+
+      - name: Type check TypeScript
+        run: pnpm typecheck
+
+      - name: Lint Python
+        working-directory: services/orchestrator
+        run: |
+          uv sync --dev
+          uv run ruff check .
+
+      - name: Format check Python
+        working-directory: services/orchestrator
+        run: uv run ruff format --check .

@@ -1,0 +1,524 @@
+"""Tests for FastAPI endpoints."""
+
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import httpx
+import pytest
+import respx
+from fastapi.testclient import TestClient
+
+from src.main import active_pipelines, app
+
+
+@pytest.fixture
+def client():
+    """Create a FastAPI test client."""
+    return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def clear_active_pipelines():
+    """Clear active pipelines before each test."""
+    active_pipelines.clear()
+    yield
+    active_pipelines.clear()
+
+
+@pytest.fixture
+def mock_supabase_operations(mock_supabase_client):
+    """Mock common Supabase operations."""
+    # Mock insert
+    mock_insert = MagicMock()
+    mock_insert.execute.return_value = MagicMock(
+        data={"id": "test-session-123"},
+        error=None,
+    )
+
+    # Mock update
+    mock_update = MagicMock()
+    mock_update.eq.return_value = mock_update
+    mock_update.execute.return_value = MagicMock(data={}, error=None)
+
+    # Mock select
+    mock_select = MagicMock()
+    mock_select.eq.return_value = mock_select
+    mock_select.single.return_value = mock_select
+    mock_select.limit.return_value = mock_select
+    mock_select.execute.return_value = MagicMock(
+        data={
+            "id": "test-session-123",
+            "status": "active",
+            "process_key": None,
+            "created_at": datetime.now(UTC).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
+        },
+        error=None,
+    )
+
+    # Mock table
+    mock_table = MagicMock()
+    mock_table.insert.return_value = mock_insert
+    mock_table.update.return_value = mock_update
+    mock_table.select.return_value = mock_select
+
+    mock_supabase_client.table.return_value = mock_table
+
+    return mock_supabase_client
+
+
+class TestSessionStartEndpoint:
+    """Tests for POST /sessions/start endpoint."""
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    @patch("src.main.run_pipeline")
+    def test_creates_session_successfully(
+        self, mock_run_pipeline, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test successful session creation."""
+        mock_get_client.return_value = mock_supabase_operations
+        mock_run_pipeline.return_value = AsyncMock()
+
+        # Mock Daily.co API responses
+        respx.post("https://api.daily.co/v1/rooms").mock(
+            return_value=httpx.Response(
+                200,
+                json={
+                    "url": "https://test.daily.co/test-room",
+                    "name": "test-room",
+                },
+            )
+        )
+        respx.post("https://api.daily.co/v1/meeting-tokens").mock(
+            return_value=httpx.Response(
+                200,
+                json={"token": "test-token-123"},
+            )
+        )
+
+        response = client.post(
+            "/sessions/start",
+            json={"locale": "en", "domain": "billing"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "session_id" in data
+        assert data["room_url"] == "https://test.daily.co/test-room"
+        assert data["room_token"] == "test-token-123"
+        assert "created_at" in data
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    @patch("src.main.run_pipeline")
+    def test_uses_custom_session_id(
+        self, mock_run_pipeline, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test that custom session ID is used if provided."""
+        mock_get_client.return_value = mock_supabase_operations
+        mock_run_pipeline.return_value = AsyncMock()
+
+        respx.post("https://api.daily.co/v1/rooms").mock(
+            return_value=httpx.Response(
+                200,
+                json={"url": "https://test.daily.co/test-room", "name": "test-room"},
+            )
+        )
+        respx.post("https://api.daily.co/v1/meeting-tokens").mock(
+            return_value=httpx.Response(200, json={"token": "test-token"})
+        )
+
+        custom_id = "my-custom-session-id"
+        response = client.post(
+            "/sessions/start",
+            json={"session_id": custom_id},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["session_id"] == custom_id
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    def test_rejects_duplicate_session_id(
+        self, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test that duplicate session ID is rejected."""
+        mock_get_client.return_value = mock_supabase_operations
+
+        # Add a fake active pipeline
+        active_pipelines["existing-session"] = MagicMock()
+
+        response = client.post(
+            "/sessions/start",
+            json={"session_id": "existing-session"},
+        )
+
+        assert response.status_code == 400
+        assert "already active" in response.json()["detail"]
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    def test_handles_daily_api_failure(
+        self, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test handling of Daily.co API failures."""
+        mock_get_client.return_value = mock_supabase_operations
+
+        # Mock Daily.co API error
+        respx.post("https://api.daily.co/v1/rooms").mock(
+            return_value=httpx.Response(503, json={"error": "Service unavailable"})
+        )
+
+        response = client.post(
+            "/sessions/start",
+            json={"locale": "en"},
+        )
+
+        assert response.status_code == 502
+        assert "Failed to create voice room" in response.json()["detail"]
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    def test_handles_database_failure(self, mock_get_client, client):
+        """Test handling of database failures."""
+        # Mock database error
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_insert = MagicMock()
+        mock_insert.execute.side_effect = Exception("Database error")
+        mock_table.insert.return_value = mock_insert
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        # Mock successful Daily.co responses
+        respx.post("https://api.daily.co/v1/rooms").mock(
+            return_value=httpx.Response(
+                200,
+                json={"url": "https://test.daily.co/test-room", "name": "test-room"},
+            )
+        )
+        respx.post("https://api.daily.co/v1/meeting-tokens").mock(
+            return_value=httpx.Response(200, json={"token": "test-token"})
+        )
+
+        response = client.post(
+            "/sessions/start",
+            json={"locale": "en"},
+        )
+
+        assert response.status_code == 500
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    @patch("src.main.run_pipeline")
+    def test_creates_database_record_with_correct_structure(
+        self, mock_run_pipeline, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test that database record is created with correct structure."""
+        mock_get_client.return_value = mock_supabase_operations
+        mock_run_pipeline.return_value = AsyncMock()
+
+        respx.post("https://api.daily.co/v1/rooms").mock(
+            return_value=httpx.Response(
+                200,
+                json={"url": "https://test.daily.co/test-room", "name": "test-room"},
+            )
+        )
+        respx.post("https://api.daily.co/v1/meeting-tokens").mock(
+            return_value=httpx.Response(200, json={"token": "test-token"})
+        )
+
+        response = client.post(
+            "/sessions/start",
+            json={
+                "locale": "es",
+                "domain": "account",
+                "queue_tag": "premium",
+                "metadata": {"customer_id": "123"},
+            },
+        )
+
+        assert response.status_code == 200
+
+        # Verify database insert was called
+        mock_supabase_operations.table.assert_called()
+        insert_call = mock_supabase_operations.table.return_value.insert
+        assert insert_call.called
+
+        # Check the data structure passed to insert
+        insert_data = insert_call.call_args[0][0]
+        assert insert_data["status"] == "active"
+        assert insert_data["state"]["locale"] == "es"
+        assert insert_data["state"]["domain"] == "account"
+        assert insert_data["state"]["queueTag"] == "premium"
+        assert insert_data["state"]["metadata"]["customer_id"] == "123"
+        assert insert_data["state"]["slots"] == {}
+        assert insert_data["state"]["steps"] == []
+
+
+class TestSessionStopEndpoint:
+    """Tests for POST /sessions/stop endpoint."""
+
+    @patch("src.main.get_supabase_client")
+    def test_stops_active_session(self, mock_get_client, client, mock_supabase_operations):
+        """Test stopping an active session."""
+        mock_get_client.return_value = mock_supabase_operations
+
+        # Add mock pipeline
+        mock_pipeline = MagicMock()
+        mock_pipeline.stop = AsyncMock()
+        active_pipelines["test-session"] = mock_pipeline
+
+        response = client.post(
+            "/sessions/stop",
+            json={"session_id": "test-session"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["session_id"] == "test-session"
+        assert data["status"] == "completed"
+        assert "stopped_at" in data
+
+        # Verify pipeline was stopped
+        mock_pipeline.stop.assert_called_once()
+
+        # Verify session removed from active pipelines
+        assert "test-session" not in active_pipelines
+
+    @patch("src.main.get_supabase_client")
+    def test_updates_database_status(
+        self, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test that database is updated when session stops."""
+        mock_get_client.return_value = mock_supabase_operations
+
+        mock_pipeline = MagicMock()
+        mock_pipeline.stop = AsyncMock()
+        active_pipelines["test-session"] = mock_pipeline
+
+        response = client.post(
+            "/sessions/stop",
+            json={"session_id": "test-session"},
+        )
+
+        assert response.status_code == 200
+
+        # Verify database update was called
+        mock_supabase_operations.table.assert_called_with("sessions")
+        update_call = mock_supabase_operations.table.return_value.update
+        assert update_call.called
+
+        update_data = update_call.call_args[0][0]
+        assert update_data["status"] == "completed"
+        assert "updated_at" in update_data
+
+    def test_returns_404_for_nonexistent_session(self, client):
+        """Test that 404 is returned for non-existent session."""
+        response = client.post(
+            "/sessions/stop",
+            json={"session_id": "nonexistent-session"},
+        )
+
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()
+
+    @patch("src.main.get_supabase_client")
+    def test_handles_pipeline_stop_error(
+        self, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test handling of errors during pipeline stop."""
+        mock_get_client.return_value = mock_supabase_operations
+
+        mock_pipeline = MagicMock()
+        mock_pipeline.stop = AsyncMock(side_effect=Exception("Stop failed"))
+        active_pipelines["test-session"] = mock_pipeline
+
+        response = client.post(
+            "/sessions/stop",
+            json={"session_id": "test-session"},
+        )
+
+        assert response.status_code == 500
+
+
+class TestHealthCheckEndpoint:
+    """Tests for GET /healthz endpoint."""
+
+    @patch("src.main.get_supabase_client")
+    @patch("src.main.settings")
+    def test_all_services_healthy(self, mock_settings, mock_get_client, client):
+        """Test health check when all services are up."""
+        # Mock successful database query
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.limit.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(data=[])
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        # Mock settings
+        mock_settings.deepgram_api_key = "test-key"
+        mock_settings.anthropic_api_key = "test-key"
+        mock_settings.daily_api_key = "test-key"
+
+        response = client.get("/healthz")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert data["version"] == "0.1.0"
+        assert data["services"]["database"] == "up"
+        assert data["services"]["stt"] == "up"
+        assert data["services"]["llm"] == "up"
+        assert data["services"]["daily"] == "up"
+
+    @patch("src.main.get_supabase_client")
+    @patch("src.main.settings")
+    def test_degraded_state(self, mock_settings, mock_get_client, client):
+        """Test health check in degraded state (some services down)."""
+        # Mock database failure
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.limit.return_value = mock_select
+        mock_select.execute.side_effect = Exception("Database error")
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        # Mock settings (other services OK)
+        mock_settings.deepgram_api_key = "test-key"
+        mock_settings.anthropic_api_key = "test-key"
+        mock_settings.daily_api_key = "test-key"
+
+        response = client.get("/healthz")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "degraded"
+        assert data["services"]["database"] == "down"
+        assert data["services"]["stt"] == "up"
+        assert data["services"]["llm"] == "up"
+        assert data["services"]["daily"] == "up"
+
+    @patch("src.main.get_supabase_client")
+    @patch("src.main.settings")
+    def test_unhealthy_state(self, mock_settings, mock_get_client, client):
+        """Test health check in unhealthy state (all services down)."""
+        # Mock database failure
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.limit.return_value = mock_select
+        mock_select.execute.side_effect = Exception("Database error")
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        # Mock missing API keys
+        mock_settings.deepgram_api_key = None
+        mock_settings.anthropic_api_key = None
+        mock_settings.daily_api_key = None
+
+        response = client.get("/healthz")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "unhealthy"
+        assert data["services"]["database"] == "down"
+        assert data["services"]["stt"] == "down"
+        assert data["services"]["llm"] == "down"
+        assert data["services"]["daily"] == "down"
+
+
+class TestGetSessionStatus:
+    """Tests for GET /sessions/{session_id}/status endpoint."""
+
+    @patch("src.main.get_supabase_client")
+    def test_returns_active_session_status(self, mock_get_client, client):
+        """Test getting status of an active session."""
+        # Mock database response
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(
+            data={
+                "id": "test-session",
+                "status": "active",
+                "process_key": "billing-dispute",
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:05:00Z",
+            }
+        )
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        # Add to active pipelines
+        active_pipelines["test-session"] = MagicMock()
+
+        response = client.get("/sessions/test-session/status")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["session_id"] == "test-session"
+        assert data["is_active"] is True
+        assert data["status"] == "active"
+        assert data["process_key"] == "billing-dispute"
+        assert "created_at" in data
+        assert "updated_at" in data
+
+    @patch("src.main.get_supabase_client")
+    def test_returns_completed_session_status(self, mock_get_client, client):
+        """Test getting status of a completed session."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(
+            data={
+                "id": "completed-session",
+                "status": "completed",
+                "process_key": "account-support",
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:30:00Z",
+            }
+        )
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        # Not in active pipelines
+        response = client.get("/sessions/completed-session/status")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["session_id"] == "completed-session"
+        assert data["is_active"] is False
+        assert data["status"] == "completed"
+
+    @patch("src.main.get_supabase_client")
+    def test_returns_404_for_missing_session(self, mock_get_client, client):
+        """Test that 404 is returned for missing session."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.side_effect = Exception("Not found")
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        response = client.get("/sessions/missing-session/status")
+
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()

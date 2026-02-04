@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@voicebridge/contracts": ["../../packages/contracts/src/index.ts"]
+    }
+  }
+}
