@@ -6,19 +6,16 @@ import { SuggestionsPanel } from "@/components/workspace/SuggestionsPanel";
 import { ProcessStatusPanel } from "@/components/workspace/ProcessStatusPanel";
 import { HistoryPanel } from "@/components/workspace/HistoryPanel";
 import { useSession } from "@/lib/session";
-import { useSupabaseSubscription } from "@/lib/supabase";
+import { useSupabaseSubscription, type TranscriptSegment } from "@/lib/supabase";
+import { useRTVI } from "@/lib/rtvi";
 import type {
-  TranscriptSegmentEvent,
-  ProcessSelectionEvent,
-  SuggestionEvent,
-  SessionStateEvent,
   TranscriptEntry,
   Suggestion,
   ProcessStep,
 } from "@voicebridge/contracts";
 
 export default function WorkspacePage() {
-  const { sessionId, isConnected, startSession, stopSession } = useSession();
+  const { sessionId, isConnected, roomUrl, roomToken, startSession, stopSession } = useSession();
 
   return (
     <div className="flex h-screen flex-col">
@@ -57,7 +54,13 @@ export default function WorkspacePage() {
         </div>
       </header>
 
-      <WorkspacePanels key={sessionId ?? "no-session"} sessionId={sessionId} isConnected={isConnected} />
+      <WorkspacePanels
+        key={sessionId ?? "no-session"}
+        sessionId={sessionId}
+        isConnected={isConnected}
+        roomUrl={roomUrl}
+        roomToken={roomToken}
+      />
     </div>
   );
 }
@@ -65,9 +68,13 @@ export default function WorkspacePage() {
 function WorkspacePanels({
   sessionId,
   isConnected,
+  roomUrl,
+  roomToken,
 }: {
   sessionId: string | null;
   isConnected: boolean;
+  roomUrl: string | null;
+  roomToken: string | null;
 }) {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -75,36 +82,44 @@ function WorkspacePanels({
   const [processName, setProcessName] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
   const [steps, setSteps] = useState<ProcessStep[]>([]);
-  const [slots, setSlots] = useState<Record<string, string>>({});
 
+  // Subscribe to transcript updates via Supabase
   useSupabaseSubscription(sessionId, {
-    onTranscriptSegment: (event: TranscriptSegmentEvent) => {
-      if (event.isFinal) {
-        setTranscript((prev) => [
-          ...prev,
-          {
-            id: event.eventId,
-            speaker: event.speaker,
-            text: event.text,
-            timestamp: event.timestamp,
-            isFinal: event.isFinal,
-          },
-        ]);
-      }
+    onTranscriptSegment: (segment: TranscriptSegment) => {
+      setTranscript((prev) => [
+        ...prev,
+        {
+          id: segment.id,
+          speaker: segment.speaker,
+          text: segment.text,
+          timestamp: segment.ts,
+          isFinal: segment.is_final,
+        },
+      ]);
     },
-    onProcessSelection: (event: ProcessSelectionEvent) => {
-      setProcessKey(event.processKey);
-      setProcessName(event.processName);
+  });
+
+  // Subscribe to RTVI messages via WebRTC data channel
+  useRTVI(roomUrl, roomToken, {
+    onSuggestion: (message) => {
+      setSuggestions(message.data.suggestions);
     },
-    onSuggestion: (event: SuggestionEvent) => {
-      setSuggestions(event.suggestions);
-    },
-    onSessionState: (event: SessionStateEvent) => {
-      setProcessKey(event.processKey);
-      setProcessName(event.processName);
-      setCurrentStep(event.currentStep);
-      setSteps(event.steps);
-      setSlots(event.slots);
+    onProcessIllustration: (message) => {
+      const processSteps = message.data.steps.map((step) => ({
+        key: step.key,
+        label: step.label,
+        status: step.status,
+      }));
+
+      setProcessKey(message.data.processKey);
+      setProcessName(message.data.processName);
+      setSteps(processSteps);
+      // Convert step index to step key
+      setCurrentStep(
+        message.data.currentStep >= 0 && message.data.currentStep < processSteps.length
+          ? processSteps[message.data.currentStep]?.key ?? null
+          : null
+      );
     },
   });
 
@@ -131,7 +146,7 @@ function WorkspacePanels({
           processName={processName}
           currentStep={currentStep}
           steps={steps}
-          slots={slots}
+          slots={{}}
         />
       </div>
 

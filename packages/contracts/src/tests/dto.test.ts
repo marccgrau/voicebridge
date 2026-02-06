@@ -92,6 +92,11 @@ describe("DTO Schemas", () => {
         roomUrl: "https://daily.co/room123",
         roomToken: "token123",
         createdAt: "2024-01-15T10:30:00.000Z",
+        rtviUrl: "https://daily.co/room123",
+        services: {
+          suggestionService: "simple_turn" as const,
+          processIllustrationEnabled: true,
+        },
       };
       const result = SessionStartResponseSchema.safeParse(response);
       expect(result.success).toBe(true);

@@ -68,6 +68,26 @@ class SessionStartRequest(BaseModel):
     domain: str | None = Field(default=None, description="Optional domain filter")
     queue_tag: str | None = Field(default=None, description="Optional queue tag filter")
     metadata: dict[str, Any] | None = Field(default=None, description="Optional metadata")
+    enable_process_flow: bool = Field(
+        default=True,
+        description="Enable process detection and step tracking",
+    )
+    enable_suggestion_flow: bool = Field(
+        default=True,
+        description="Enable agent suggestion generation",
+    )
+    process_flow_model: str = Field(
+        default="claude-3-5-haiku-20241022",
+        description="Model for process flow (fast/cheap for infrequent calls)",
+    )
+    suggestion_flow_model: str = Field(
+        default="claude-sonnet-4-20250514",
+        description="Model for suggestion flow (quality for frequent calls)",
+    )
+    process_content_path: str | None = Field(
+        default=None,
+        description="Path to process markdown files",
+    )
 
 
 class SessionStartResponse(BaseModel):
@@ -77,6 +97,8 @@ class SessionStartResponse(BaseModel):
     room_url: str
     room_token: str
     created_at: str
+    rtvi_url: str
+    services: dict[str, Any]
 
 
 class SessionStopRequest(BaseModel):
@@ -146,13 +168,27 @@ async def create_daily_room() -> dict[str, str]:
         }
 
 
-async def run_pipeline(session_id: str, room_url: str, room_token: str) -> None:
+async def run_pipeline(
+    session_id: str,
+    room_url: str,
+    room_token: str,
+    enable_process_flow: bool,
+    enable_suggestion_flow: bool,
+    process_flow_model: str,
+    suggestion_flow_model: str,
+    process_content_path: str | None,
+) -> None:
     """Run the pipeline in the background.
 
     Args:
         session_id: Session identifier
         room_url: Daily room URL
         room_token: Daily room token
+        enable_process_flow: Enable process flow
+        enable_suggestion_flow: Enable suggestion flow
+        process_flow_model: Model for process flow
+        suggestion_flow_model: Model for suggestion flow
+        process_content_path: Path to process markdown files
     """
     anthropic_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
@@ -161,6 +197,11 @@ async def run_pipeline(session_id: str, room_url: str, room_token: str) -> None:
         room_url=room_url,
         room_token=room_token,
         anthropic_client=anthropic_client,
+        enable_process_flow=enable_process_flow,
+        enable_suggestion_flow=enable_suggestion_flow,
+        process_flow_model=process_flow_model,
+        suggestion_flow_model=suggestion_flow_model,
+        process_content_path=process_content_path or "process_content/",
     )
 
     active_pipelines[session_id] = pipeline
@@ -209,6 +250,8 @@ async def start_session(
                     "steps": [],
                 },
                 "status": "active",
+                "suggestion_service": "split_flows",  # New architecture
+                "process_illustration_enabled": request.enable_process_flow,
             }
         ).execute()
 
@@ -218,13 +261,30 @@ async def start_session(
             session_id,
             room["room_url"],
             room["room_token"],
+            request.enable_process_flow,
+            request.enable_suggestion_flow,
+            request.process_flow_model,
+            request.suggestion_flow_model,
+            request.process_content_path,
         )
+
+        # RTVI URL (WebSocket connection)
+        # For now, use the Daily room URL as RTVI endpoint
+        # In production, this could be a separate WebSocket server
+        rtvi_url = f"wss://api.daily.co/v1/rooms/{room['room_url'].split('/')[-1]}/rtvi"
 
         return SessionStartResponse(
             session_id=session_id,
             room_url=room["room_url"],
             room_token=room["room_token"],
             created_at=datetime.now(UTC).isoformat(),
+            rtvi_url=rtvi_url,
+            services={
+                "processFlowEnabled": request.enable_process_flow,
+                "suggestionFlowEnabled": request.enable_suggestion_flow,
+                "processFlowModel": request.process_flow_model,
+                "suggestionFlowModel": request.suggestion_flow_model,
+            },
         )
 
     except httpx.HTTPError as e:

@@ -1,5 +1,18 @@
 import { z } from "zod";
-import { ProcessCandidateSchema, ProcessStepSchema } from "./events.js";
+import { ProcessStepSchema } from "./events.js";
+
+/**
+ * Process candidate returned from lookup
+ */
+export const ProcessCandidateSchema = z.object({
+  processKey: z.string(),
+  name: z.string(),
+  domain: z.string(),
+  score: z.number(),
+  snippet: z.string().optional(),
+});
+
+export type ProcessCandidate = z.infer<typeof ProcessCandidateSchema>;
 
 /**
  * Process lookup input for the skill
@@ -58,6 +71,10 @@ export const SessionConfigSchema = z.object({
   agentId: z.string().optional(),
   customerId: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
+  // NEW: Service selection
+  suggestionService: z.enum(["simple_turn", "tool_agent"]).default("simple_turn"),
+  processIllustrationEnabled: z.boolean().default(true),
+  processContentPath: z.string().optional(),
 });
 
 export type SessionConfig = z.infer<typeof SessionConfigSchema>;
@@ -70,6 +87,12 @@ export const SessionStartResponseSchema = z.object({
   roomUrl: z.string().url(),
   roomToken: z.string(),
   createdAt: z.string().datetime(),
+  // NEW: RTVI connection info
+  rtviUrl: z.string().url(),
+  services: z.object({
+    suggestionService: z.enum(["simple_turn", "tool_agent"]),
+    processIllustrationEnabled: z.boolean(),
+  }),
 });
 
 export type SessionStartResponse = z.infer<typeof SessionStartResponseSchema>;

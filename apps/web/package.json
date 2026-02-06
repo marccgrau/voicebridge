@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "dependencies": {
+    "@daily-co/daily-js": "^0.87.0",
+    "@pipecat-ai/client-js": "^1.5.0",
     "@supabase/supabase-js": "^2.47.0",
     "@voicebridge/contracts": "workspace:*",
     "@voicebridge/db": "workspace:*",

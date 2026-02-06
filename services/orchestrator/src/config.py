@@ -10,8 +10,10 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_service_role_key: str
 
-    # Deepgram
-    deepgram_api_key: str
+    # Speechmatics
+    speechmatics_api_key: str
+    speechmatics_url: str = "wss://eu2.rt.speechmatics.com/v2"
+    first_speaker_role: str = "customer"
 
     # Anthropic
     anthropic_api_key: str

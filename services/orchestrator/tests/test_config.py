@@ -14,7 +14,7 @@ class TestSettings:
         # Set all required env vars
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
@@ -22,7 +22,9 @@ class TestSettings:
 
         assert settings.supabase_url == "https://test.supabase.co"
         assert settings.supabase_service_role_key == "test-key"
-        assert settings.deepgram_api_key == "dg-key"
+        assert settings.speechmatics_api_key == "sm-key"
+        assert settings.speechmatics_url == "wss://eu2.rt.speechmatics.com/v2"
+        assert settings.first_speaker_role == "customer"
         assert settings.anthropic_api_key == "an-key"
         assert settings.daily_api_key == "daily-key"
 
@@ -31,7 +33,7 @@ class TestSettings:
         # Set only required env vars
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
@@ -50,7 +52,7 @@ class TestSettings:
         # Set required + optional env vars
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
         monkeypatch.setenv("HOST", "127.0.0.1")
@@ -74,7 +76,7 @@ class TestSettings:
         # Disable .env file loading for this test
         monkeypatch.delenv("SUPABASE_URL", raising=False)
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
@@ -89,7 +91,7 @@ class TestSettings:
         """Test that missing service role key raises validation error."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
@@ -99,11 +101,11 @@ class TestSettings:
         errors = exc_info.value.errors()
         assert any(error["loc"] == ("supabase_service_role_key",) for error in errors)
 
-    def test_missing_deepgram_api_key_raises_error(self, monkeypatch):
-        """Test that missing Deepgram API key raises validation error."""
+    def test_missing_speechmatics_api_key_raises_error(self, monkeypatch):
+        """Test that missing Speechmatics API key raises validation error."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.delenv("DEEPGRAM_API_KEY", raising=False)
+        monkeypatch.delenv("SPEECHMATICS_API_KEY", raising=False)
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
@@ -111,13 +113,13 @@ class TestSettings:
             Settings(_env_file=None)
 
         errors = exc_info.value.errors()
-        assert any(error["loc"] == ("deepgram_api_key",) for error in errors)
+        assert any(error["loc"] == ("speechmatics_api_key",) for error in errors)
 
     def test_missing_anthropic_api_key_raises_error(self, monkeypatch):
         """Test that missing Anthropic API key raises validation error."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
@@ -131,7 +133,7 @@ class TestSettings:
         """Test that missing Daily API key raises validation error."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.delenv("DAILY_API_KEY", raising=False)
 
@@ -145,7 +147,7 @@ class TestSettings:
         """Test that port must be an integer."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
         monkeypatch.setenv("PORT", "not-a-number")
@@ -160,7 +162,7 @@ class TestSettings:
         """Test that debug accepts various boolean representations."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
@@ -180,7 +182,7 @@ class TestSettings:
         """Test that process_lookup_limit must be an integer."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
         monkeypatch.setenv("PROCESS_LOOKUP_LIMIT", "invalid")
@@ -195,7 +197,7 @@ class TestSettings:
         """Test that extra environment variables are ignored."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("DEEPGRAM_API_KEY", "dg-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
         monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
         monkeypatch.setenv("UNKNOWN_FIELD", "some-value")
@@ -225,7 +227,9 @@ class TestSettingsModuleLevel:
         # Should have all fields (may be loaded from actual .env)
         assert hasattr(settings, "supabase_url")
         assert hasattr(settings, "supabase_service_role_key")
-        assert hasattr(settings, "deepgram_api_key")
+        assert hasattr(settings, "speechmatics_api_key")
+        assert hasattr(settings, "speechmatics_url")
+        assert hasattr(settings, "first_speaker_role")
         assert hasattr(settings, "anthropic_api_key")
         assert hasattr(settings, "daily_api_key")
         assert hasattr(settings, "host")

@@ -2,34 +2,26 @@
 export {
   BaseEventSchema,
   TranscriptSegmentEventSchema,
-  ProcessCandidateSchema,
-  ProcessSelectionEventSchema,
-  ExtractedSlotSchema,
-  SlotExtractionEventSchema,
   SuggestionSchema,
-  SuggestionEventSchema,
   ProcessStepSchema,
-  SessionStateEventSchema,
-  VoiceBridgeEventSchema,
-  EVENT_TYPES,
+  RTVISuggestionMessageSchema,
+  RTVIProcessIllustrationMessageSchema,
+  RTVIMessageSchema,
 } from "./events.js";
 
 export type {
   BaseEvent,
   TranscriptSegmentEvent,
-  ProcessCandidate,
-  ProcessSelectionEvent,
-  ExtractedSlot,
-  SlotExtractionEvent,
   Suggestion,
-  SuggestionEvent,
   ProcessStep,
-  SessionStateEvent,
-  VoiceBridgeEvent,
+  RTVISuggestionMessage,
+  RTVIProcessIllustrationMessage,
+  RTVIMessage,
 } from "./events.js";
 
 // DTOs
 export {
+  ProcessCandidateSchema,
   ProcessLookupInputSchema,
   ProcessLookupOutputSchema,
   ProcessSelectionResultSchema,
@@ -46,6 +38,7 @@ export {
 } from "./dto.js";
 
 export type {
+  ProcessCandidate,
   ProcessLookupInput,
   ProcessLookupOutput,
   ProcessSelectionResult,

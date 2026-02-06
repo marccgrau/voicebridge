@@ -46,6 +46,9 @@ export function createSessionConfig(
     agentId: overrides?.agentId,
     customerId: overrides?.customerId,
     metadata: overrides?.metadata,
+    suggestionService: overrides?.suggestionService ?? "simple_turn",
+    processIllustrationEnabled: overrides?.processIllustrationEnabled ?? true,
+    processContentPath: overrides?.processContentPath,
   };
 }
 

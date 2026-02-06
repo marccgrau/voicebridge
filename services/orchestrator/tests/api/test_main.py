@@ -141,9 +141,7 @@ class TestSessionStartEndpoint:
 
     @respx.mock
     @patch("src.main.get_supabase_client")
-    def test_rejects_duplicate_session_id(
-        self, mock_get_client, client, mock_supabase_operations
-    ):
+    def test_rejects_duplicate_session_id(self, mock_get_client, client, mock_supabase_operations):
         """Test that duplicate session ID is rejected."""
         mock_get_client.return_value = mock_supabase_operations
 
@@ -160,9 +158,7 @@ class TestSessionStartEndpoint:
 
     @respx.mock
     @patch("src.main.get_supabase_client")
-    def test_handles_daily_api_failure(
-        self, mock_get_client, client, mock_supabase_operations
-    ):
+    def test_handles_daily_api_failure(self, mock_get_client, client, mock_supabase_operations):
         """Test handling of Daily.co API failures."""
         mock_get_client.return_value = mock_supabase_operations
 
@@ -289,9 +285,7 @@ class TestSessionStopEndpoint:
         assert "test-session" not in active_pipelines
 
     @patch("src.main.get_supabase_client")
-    def test_updates_database_status(
-        self, mock_get_client, client, mock_supabase_operations
-    ):
+    def test_updates_database_status(self, mock_get_client, client, mock_supabase_operations):
         """Test that database is updated when session stops."""
         mock_get_client.return_value = mock_supabase_operations
 
@@ -326,9 +320,7 @@ class TestSessionStopEndpoint:
         assert "not found" in response.json()["detail"].lower()
 
     @patch("src.main.get_supabase_client")
-    def test_handles_pipeline_stop_error(
-        self, mock_get_client, client, mock_supabase_operations
-    ):
+    def test_handles_pipeline_stop_error(self, mock_get_client, client, mock_supabase_operations):
         """Test handling of errors during pipeline stop."""
         mock_get_client.return_value = mock_supabase_operations
 

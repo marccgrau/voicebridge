@@ -2,31 +2,28 @@
 
 import { createClient, RealtimeChannel } from "@supabase/supabase-js";
 import { useEffect, useRef } from "react";
-import type {
-  TranscriptSegmentEvent,
-  ProcessSelectionEvent,
-  SlotExtractionEvent,
-  SuggestionEvent,
-  SessionStateEvent,
-  VoiceBridgeEvent,
-} from "@voicebridge/contracts";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+export interface TranscriptSegment {
+  id: string;
+  session_id: string;
+  speaker: "agent" | "customer";
+  text: string;
+  is_final: boolean;
+  ts: string;
+  confidence?: number;
+}
+
 export interface SubscriptionHandlers {
-  onTranscriptSegment?: (event: TranscriptSegmentEvent) => void;
-  onProcessSelection?: (event: ProcessSelectionEvent) => void;
-  onSlotExtraction?: (event: SlotExtractionEvent) => void;
-  onSuggestion?: (event: SuggestionEvent) => void;
-  onSessionState?: (event: SessionStateEvent) => void;
-  onAnyEvent?: (event: VoiceBridgeEvent) => void;
+  onTranscriptSegment?: (segment: TranscriptSegment) => void;
 }
 
 /**
- * Hook to subscribe to real-time events for a session
+ * Hook to subscribe to real-time transcript updates for a session
  */
 export function useSupabaseSubscription(
   sessionId: string | null,
@@ -50,39 +47,31 @@ export function useSupabaseSubscription(
       return;
     }
 
-    const channelName = `session:${sessionId}:events`;
+    const channelName = `session:${sessionId}:transcript`;
 
-    // Create channel and subscribe
-    const channel = supabase.channel(channelName);
+    // Create channel and subscribe to transcript_segments table
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "transcript_segments",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        (payload) => {
+          const segment = payload.new as TranscriptSegment;
+          const h = handlersRef.current;
 
-    channel.on("broadcast", { event: "event" }, ({ payload }) => {
-      const event = payload as VoiceBridgeEvent;
-      const h = handlersRef.current;
+          // Only notify on final transcripts
+          if (segment.is_final) {
+            h.onTranscriptSegment?.(segment);
+          }
+        }
+      )
+      .subscribe();
 
-      // Call type-specific handler
-      switch (event.type) {
-        case "transcript_segment":
-          h.onTranscriptSegment?.(event);
-          break;
-        case "process_selection":
-          h.onProcessSelection?.(event);
-          break;
-        case "slot_extraction":
-          h.onSlotExtraction?.(event);
-          break;
-        case "suggestion":
-          h.onSuggestion?.(event);
-          break;
-        case "session_state":
-          h.onSessionState?.(event);
-          break;
-      }
-
-      // Call generic handler
-      h.onAnyEvent?.(event);
-    });
-
-    channel.subscribe();
     channelRef.current = channel;
 
     // Cleanup on unmount or session change
