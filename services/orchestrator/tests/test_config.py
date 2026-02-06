@@ -23,7 +23,7 @@ class TestSettings:
         assert settings.supabase_url == "https://test.supabase.co"
         assert settings.supabase_service_role_key == "test-key"
         assert settings.speechmatics_api_key == "sm-key"
-        assert settings.speechmatics_url == "wss://eu2.rt.speechmatics.com/v2"
+        assert settings.speechmatics_url == "wss://neu.rt.speechmatics.com/v2"
         assert settings.first_speaker_role == "customer"
         assert settings.anthropic_api_key == "an-key"
         assert settings.daily_api_key == "daily-key"
@@ -44,7 +44,7 @@ class TestSettings:
         assert settings.port == 8000
         assert settings.debug is False
         assert settings.stt_language == "en"
-        assert settings.llm_model == "claude-sonnet-4-20250514"
+        assert settings.llm_model == "claude-sonnet-4-5-20250929"
         assert settings.process_lookup_limit == 5
 
     def test_optional_fields_can_be_overridden(self, monkeypatch):

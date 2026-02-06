@@ -7,9 +7,26 @@ repos:
       - id: check-yaml
       - id: check-json
       - id: check-added-large-files
+      - id: detect-private-key
+      - id: detect-aws-credentials
+        args: [--allow-missing-credentials]
 
   - repo: local
     hooks:
+      - id: block-env-files
+        name: block .env files
+        entry: .env files should not be committed (use .env.example instead)
+        language: fail
+        files: '(^|/)\.env(\..+)?$'
+        exclude: '\.env\.example$'
+
+      - id: prettier-format
+        name: prettier format
+        entry: pnpm -r format
+        language: system
+        pass_filenames: false
+        files: \.(ts|tsx|json|md)$
+
       - id: orchestrator-ruff-format
         name: orchestrator ruff format
         entry: bash -c 'cd services/orchestrator && uv run ruff format src tests'

@@ -8,6 +8,7 @@ Handles:
 Communicates via ProcessIllustrationFrame (decoupled from SuggestionFlow).
 """
 
+import asyncio
 import logging
 import re
 from dataclasses import dataclass
@@ -16,12 +17,11 @@ from pathlib import Path
 import frontmatter
 from pipecat.frames.frames import Frame, TranscriptionFrame
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
-from pipecat_flows import FlowArgs, FlowManager, FlowResult, NodeConfig
+from pipecat_flows import FlowArgs, FlowManager, FlowResult, FlowsFunctionSchema, NodeConfig
 
+from src.config import settings
 from src.frames import ProcessIllustrationFrame
-
-logger = logging.getLogger(__name__)
-
+from src.utils.logging import get_session_logger
 
 # ============================================================================
 # Data Models
@@ -81,7 +81,9 @@ def extract_steps_from_markdown(content: str) -> list[ProcessStep]:
     return steps
 
 
-async def load_process_catalog(process_path: Path) -> dict[str, ProcessDefinition]:
+async def load_process_catalog(
+    process_path: Path, logger: logging.Logger | logging.LoggerAdapter
+) -> dict[str, ProcessDefinition]:
     """Load process definitions from markdown files."""
     processes = {}
 
@@ -115,80 +117,6 @@ async def load_process_catalog(process_path: Path) -> dict[str, ProcessDefinitio
 
 
 # ============================================================================
-# Flow Function Schemas
-# ============================================================================
-
-
-select_process_schema = {
-    "type": "function",
-    "function": {
-        "name": "select_process",
-        "description": "Select the matching process based on customer intent",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "process_key": {
-                    "type": "string",
-                    "description": "Key of the selected process",
-                },
-                "confidence": {
-                    "type": "number",
-                    "description": "Confidence score (0-1)",
-                },
-                "rationale": {
-                    "type": "string",
-                    "description": "Why this process was selected",
-                },
-            },
-            "required": ["process_key", "confidence"],
-        },
-    },
-}
-
-
-update_step_schema = {
-    "type": "function",
-    "function": {
-        "name": "update_step",
-        "description": "Update current step based on conversation progress",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "step_number": {
-                    "type": "number",
-                    "description": "New step number (1-indexed)",
-                },
-                "rationale": {
-                    "type": "string",
-                    "description": "Why this step was selected",
-                },
-            },
-            "required": ["step_number"],
-        },
-    },
-}
-
-
-need_more_context_schema = {
-    "type": "function",
-    "function": {
-        "name": "need_more_context",
-        "description": "Return to listening if no confident process match found",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "reason": {
-                    "type": "string",
-                    "description": "Why more context is needed",
-                }
-            },
-            "required": ["reason"],
-        },
-    },
-}
-
-
-# ============================================================================
 # Node Creation Functions
 # ============================================================================
 
@@ -211,6 +139,8 @@ def create_idle_node() -> NodeConfig:
 def create_detecting_node(
     conversation_buffer: list[str],
     available_processes: dict[str, ProcessDefinition],
+    select_process_fn: FlowsFunctionSchema,
+    need_more_context_fn: FlowsFunctionSchema,
 ) -> NodeConfig:
     """Create DETECTING node (process detection)."""
     process_list = "\n".join(
@@ -243,7 +173,7 @@ Call need_more_context if you need more conversation to make a decision.""",
                 "content": f"Conversation:\n{chr(10).join(conversation_buffer)}\n\nWhich process matches?",
             }
         ],
-        "functions": [select_process_schema, need_more_context_schema],
+        "functions": [select_process_fn, need_more_context_fn],
     }
 
 
@@ -251,6 +181,7 @@ def create_tracking_node(
     current_process: ProcessDefinition,
     conversation_buffer: list[str],
     current_step: int,
+    update_step_fn: FlowsFunctionSchema,
 ) -> NodeConfig:
     """Create TRACKING node (step progress tracking)."""
     step_list = "\n".join(
@@ -281,7 +212,7 @@ Call update_step when you detect the conversation has moved to a new step.""",
                 "content": "\n".join(conversation_buffer[-5:]),  # Last 5 messages
             }
         ],
-        "functions": [update_step_schema],
+        "functions": [update_step_fn],
     }
 
 
@@ -320,17 +251,65 @@ class ProcessFlow(FrameProcessor):
         self.flow_manager = flow_manager
         self.process_path = Path(process_content_path)
 
-        # Register function handlers
-        self.flow_manager.register_function("select_process", self._handle_select_process)
-        self.flow_manager.register_function("need_more_context", self._handle_need_more_context)
-        self.flow_manager.register_function("update_step", self._handle_update_step)
+        # Session-scoped logger
+        self.logger = get_session_logger(__name__, session_id)
+
+        # Create function schemas with handlers bound to this instance
+        self.select_process_schema = FlowsFunctionSchema(
+            name="select_process",
+            description="Select the matching process based on customer intent",
+            properties={
+                "process_key": {
+                    "type": "string",
+                    "description": "Key of the selected process",
+                },
+                "confidence": {
+                    "type": "number",
+                    "description": "Confidence score (0-1)",
+                },
+                "rationale": {
+                    "type": "string",
+                    "description": "Why this process was selected",
+                },
+            },
+            required=["process_key", "confidence"],
+            handler=self._handle_select_process,
+        )
+        self.need_more_context_schema = FlowsFunctionSchema(
+            name="need_more_context",
+            description="Return to listening if no confident process match found",
+            properties={
+                "reason": {
+                    "type": "string",
+                    "description": "Why more context is needed",
+                },
+            },
+            required=["reason"],
+            handler=self._handle_need_more_context,
+        )
+        self.update_step_schema = FlowsFunctionSchema(
+            name="update_step",
+            description="Update current step based on conversation progress",
+            properties={
+                "step_number": {
+                    "type": "number",
+                    "description": "New step number (1-indexed)",
+                },
+                "rationale": {
+                    "type": "string",
+                    "description": "Why this step was selected",
+                },
+            },
+            required=["step_number"],
+            handler=self._handle_update_step,
+        )
 
     async def start(self) -> None:
         """Start the flow."""
-        logger.info("Starting ProcessFlow for session %s", self.session_id)
+        self.logger.info("Starting ProcessFlow")
 
         # Load processes
-        processes = await load_process_catalog(self.process_path)
+        processes = await load_process_catalog(self.process_path, self.logger)
 
         # Initialize state
         self.flow_manager.state.update(
@@ -346,11 +325,11 @@ class ProcessFlow(FrameProcessor):
         # Initialize to IDLE
         await self.flow_manager.initialize(create_idle_node())
 
-        logger.info("ProcessFlow loaded %d processes", len(processes))
+        self.logger.info("ProcessFlow loaded %d processes", len(processes))
 
     async def stop(self) -> None:
         """Stop the flow."""
-        logger.info("Stopping ProcessFlow for session %s", self.session_id)
+        self.logger.info("Stopping ProcessFlow")
 
     async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
         """Process transcription frames.
@@ -359,8 +338,10 @@ class ProcessFlow(FrameProcessor):
             frame: The frame to process
             direction: Frame direction
         """
+        await super().process_frame(frame, direction)
+
         if isinstance(frame, TranscriptionFrame) and frame.finalized:
-            logger.debug("ProcessFlow processing: %s", frame.text)
+            self.logger.debug("ProcessFlow processing: %s", frame.text)
 
             try:
                 # Update conversation buffer with speaker tag
@@ -372,28 +353,41 @@ class ProcessFlow(FrameProcessor):
                 current_process = self.flow_manager.state.get("detected_process")
 
                 # State transitions
-                if current_node["name"] == "idle":
+                if current_node == "idle":
                     # Wait for 3+ utterances before detecting
                     if self.flow_manager.state["utterance_count"] >= 3:
-                        await self.flow_manager.set_node(
-                            create_detecting_node(
+                        try:
+                            node = create_detecting_node(
                                 self.flow_manager.state["conversation_buffer"],
                                 self.flow_manager.state["processes"],
+                                self.select_process_schema,
+                                self.need_more_context_schema,
                             )
-                        )
+                            await asyncio.wait_for(
+                                self.flow_manager.set_node_from_config(node),
+                                timeout=settings.llm_timeout,
+                            )
+                        except TimeoutError:
+                            self.logger.error("ProcessFlow LLM timeout (detecting)")
 
-                elif current_node["name"] == "tracking" and current_process:
+                elif current_node == "tracking" and current_process:
                     # Update tracking node with new conversation
-                    await self.flow_manager.set_node(
-                        create_tracking_node(
+                    try:
+                        node = create_tracking_node(
                             current_process,
                             self.flow_manager.state["conversation_buffer"],
                             self.flow_manager.state["current_step"],
+                            self.update_step_schema,
                         )
-                    )
+                        await asyncio.wait_for(
+                            self.flow_manager.set_node_from_config(node),
+                            timeout=settings.llm_timeout,
+                        )
+                    except TimeoutError:
+                        self.logger.error("ProcessFlow LLM timeout (tracking)")
 
             except Exception as e:
-                logger.error("Error in ProcessFlow: %s", e)
+                self.logger.error("Error in ProcessFlow: %s", e)
 
         # Always push frame downstream
         await self.push_frame(frame, direction)
@@ -408,8 +402,8 @@ class ProcessFlow(FrameProcessor):
         confidence = args["confidence"]
         rationale = args.get("rationale", "")
 
-        logger.info(
-            "ProcessFlow: Selected %s (confidence: %.2f) - %s",
+        self.logger.info(
+            "Selected %s (confidence: %.2f) - %s",
             process_key,
             confidence,
             rationale,
@@ -417,14 +411,14 @@ class ProcessFlow(FrameProcessor):
 
         # Check confidence
         if confidence < 0.6:
-            logger.debug("ProcessFlow: Confidence too low (%.2f)", confidence)
+            self.logger.debug("Confidence too low (%.2f)", confidence)
             next_node = create_idle_node()
             return {"status": "low_confidence"}, next_node
 
         # Get process
         process = self.flow_manager.state["processes"].get(process_key)
         if not process:
-            logger.warning("ProcessFlow: Process not found: %s", process_key)
+            self.logger.warning("Process not found: %s", process_key)
             next_node = create_idle_node()
             return {"status": "not_found"}, next_node
 
@@ -455,6 +449,7 @@ class ProcessFlow(FrameProcessor):
             process,
             self.flow_manager.state["conversation_buffer"],
             0,
+            self.update_step_schema,
         )
 
         return {"status": "selected", "process_key": process_key}, next_node
@@ -462,7 +457,7 @@ class ProcessFlow(FrameProcessor):
     async def _handle_need_more_context(self, args: FlowArgs) -> tuple[FlowResult, NodeConfig]:
         """Handle need more context."""
         reason = args.get("reason", "")
-        logger.info("ProcessFlow: Need more context - %s", reason)
+        self.logger.info("Need more context - %s", reason)
 
         # Stay in idle
         next_node = create_idle_node()
@@ -476,7 +471,7 @@ class ProcessFlow(FrameProcessor):
 
         current_process = self.flow_manager.state.get("detected_process")
         if not current_process:
-            logger.warning("ProcessFlow: No process detected, cannot update step")
+            self.logger.warning("No process detected, cannot update step")
             next_node = create_idle_node()
             return {"status": "no_process"}, next_node
 
@@ -484,19 +479,20 @@ class ProcessFlow(FrameProcessor):
         step_index = step_number - 1
 
         if step_index < 0 or step_index >= len(current_process.steps):
-            logger.warning("ProcessFlow: Invalid step number: %d", step_number)
+            self.logger.warning("Invalid step number: %d", step_number)
             next_node = create_tracking_node(
                 current_process,
                 self.flow_manager.state["conversation_buffer"],
                 self.flow_manager.state["current_step"],
+                self.update_step_schema,
             )
             return {"status": "invalid_step"}, next_node
 
         # Update state
         self.flow_manager.state["current_step"] = step_index
 
-        logger.info(
-            "ProcessFlow: Updated to step %d: %s - %s",
+        self.logger.info(
+            "Updated to step %d: %s - %s",
             step_number,
             current_process.steps[step_index].label,
             rationale,
@@ -531,6 +527,7 @@ class ProcessFlow(FrameProcessor):
             current_process,
             self.flow_manager.state["conversation_buffer"],
             step_index,
+            self.update_step_schema,
         )
 
         return {

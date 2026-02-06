@@ -24,7 +24,9 @@ export const TranscriptSegmentEventSchema = BaseEventSchema.extend({
   endTime: z.number().optional(),
 });
 
-export type TranscriptSegmentEvent = z.infer<typeof TranscriptSegmentEventSchema>;
+export type TranscriptSegmentEvent = z.infer<
+  typeof TranscriptSegmentEventSchema
+>;
 
 /**
  * Individual suggestion (used in RTVI messages)
@@ -60,11 +62,10 @@ export type ProcessStep = z.infer<typeof ProcessStepSchema>;
  * RTVI suggestion message
  */
 export const RTVISuggestionMessageSchema = z.object({
-  type: z.literal("bot-action"),
   action: z.literal("agent_guidance"),
   data: z.object({
     suggestions: z.array(SuggestionSchema),
-    serviceType: z.enum(["simple_turn", "tool_agent"]),
+    serviceType: z.enum(["simple_turn", "tool_agent", "split_flows"]),
     triggerTurn: z.string().optional(),
     latencyMs: z.number().optional(),
     processKey: z.string().optional(),
@@ -78,7 +79,6 @@ export type RTVISuggestionMessage = z.infer<typeof RTVISuggestionMessageSchema>;
  * RTVI process illustration message
  */
 export const RTVIProcessIllustrationMessageSchema = z.object({
-  type: z.literal("bot-action"),
   action: z.literal("process_illustration"),
   data: z.object({
     processKey: z.string(),
@@ -95,7 +95,27 @@ export const RTVIProcessIllustrationMessageSchema = z.object({
   }),
 });
 
-export type RTVIProcessIllustrationMessage = z.infer<typeof RTVIProcessIllustrationMessageSchema>;
+export type RTVIProcessIllustrationMessage = z.infer<
+  typeof RTVIProcessIllustrationMessageSchema
+>;
+
+/**
+ * RTVI transcript segment message
+ */
+export const RTVITranscriptSegmentMessageSchema = z.object({
+  action: z.literal("transcript_segment"),
+  data: z.object({
+    sessionId: z.string().uuid(),
+    speaker: z.enum(["agent", "customer"]),
+    text: z.string(),
+    timestamp: z.string(),
+    isFinal: z.boolean(),
+  }),
+});
+
+export type RTVITranscriptSegmentMessage = z.infer<
+  typeof RTVITranscriptSegmentMessageSchema
+>;
 
 /**
  * Union of all RTVI message types
@@ -103,6 +123,7 @@ export type RTVIProcessIllustrationMessage = z.infer<typeof RTVIProcessIllustrat
 export const RTVIMessageSchema = z.discriminatedUnion("action", [
   RTVISuggestionMessageSchema,
   RTVIProcessIllustrationMessageSchema,
+  RTVITranscriptSegmentMessageSchema,
 ]);
 
 export type RTVIMessage = z.infer<typeof RTVIMessageSchema>;

@@ -86,7 +86,6 @@ describe("Event Schemas", () => {
   describe("RTVISuggestionMessageSchema", () => {
     it("validates a valid RTVI suggestion message", () => {
       const message = {
-        type: "bot-action" as const,
         action: "agent_guidance" as const,
         data: {
           suggestions: [
@@ -109,7 +108,6 @@ describe("Event Schemas", () => {
   describe("RTVIProcessIllustrationMessageSchema", () => {
     it("validates a valid RTVI process illustration message", () => {
       const message = {
-        type: "bot-action" as const,
         action: "process_illustration" as const,
         data: {
           processKey: "billing-dispute",
@@ -139,7 +137,6 @@ describe("Event Schemas", () => {
   describe("RTVIMessageSchema (discriminated union)", () => {
     it("correctly identifies RTVI message types", () => {
       const suggestionMessage = {
-        type: "bot-action" as const,
         action: "agent_guidance" as const,
         data: {
           suggestions: [

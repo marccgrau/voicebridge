@@ -6,6 +6,7 @@ export {
   ProcessStepSchema,
   RTVISuggestionMessageSchema,
   RTVIProcessIllustrationMessageSchema,
+  RTVITranscriptSegmentMessageSchema,
   RTVIMessageSchema,
 } from "./events.js";
 
@@ -16,6 +17,7 @@ export type {
   ProcessStep,
   RTVISuggestionMessage,
   RTVIProcessIllustrationMessage,
+  RTVITranscriptSegmentMessage,
   RTVIMessage,
 } from "./events.js";
 
@@ -35,6 +37,10 @@ export {
   HealthCheckResponseSchema,
   KBSnippetSchema,
   ProcessDefinitionSchema,
+  SessionCreateRequestSchema,
+  SessionCreateResponseSchema,
+  SessionAcceptRequestSchema,
+  SessionAcceptResponseSchema,
 } from "./dto.js";
 
 export type {
@@ -52,4 +58,8 @@ export type {
   HealthCheckResponse,
   KBSnippet,
   ProcessDefinition,
+  SessionCreateRequest,
+  SessionCreateResponse,
+  SessionAcceptRequest,
+  SessionAcceptResponse,
 } from "./dto.js";

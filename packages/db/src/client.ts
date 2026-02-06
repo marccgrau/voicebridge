@@ -16,7 +16,10 @@ export function getSupabaseClient(config?: DatabaseConfig): SupabaseClient {
     return supabaseClient;
   }
 
-  const url = config?.url ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const url =
+    config?.url ??
+    process.env.NEXT_PUBLIC_SUPABASE_URL ??
+    process.env.SUPABASE_URL;
   const key =
     config?.serviceRoleKey ??
     config?.anonKey ??
@@ -24,7 +27,9 @@ export function getSupabaseClient(config?: DatabaseConfig): SupabaseClient {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
-    throw new Error("Missing Supabase URL or key. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.");
+    throw new Error(
+      "Missing Supabase URL or key. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables."
+    );
   }
 
   supabaseClient = createClient(url, key, {

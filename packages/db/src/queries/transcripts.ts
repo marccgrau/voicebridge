@@ -80,7 +80,9 @@ export async function getTranscriptSegments(
 /**
  * Convert database row to TranscriptEntry
  */
-export function rowToTranscriptEntry(row: TranscriptSegmentRow): TranscriptEntry {
+export function rowToTranscriptEntry(
+  row: TranscriptSegmentRow
+): TranscriptEntry {
   return {
     id: row.id,
     speaker: row.speaker as "agent" | "customer",

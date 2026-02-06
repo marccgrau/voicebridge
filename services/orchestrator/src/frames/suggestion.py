@@ -27,3 +27,14 @@ class ProcessIllustrationFrame(Frame):
     steps: list[dict[str, Any]]
     current_step: int
     content: str
+
+
+@dataclass
+class TranscriptSegmentFrame(Frame):
+    """Frame containing transcript segment for RTVI delivery."""
+
+    session_id: str
+    speaker: str  # "agent" | "customer"
+    text: str
+    timestamp: str
+    is_final: bool = True

@@ -23,6 +23,10 @@ __pycache__/
 **/.env
 **/.env.*
 
+# Supabase
+supabase/.temp
+supabase/.branches
+
 # IDE
 .idea/
 .vscode/

@@ -8,9 +8,7 @@ import type { SessionRow } from "../queries/sessions.js";
 /**
  * Create a SessionRow for testing
  */
-export function createSessionRow(
-  overrides?: Partial<SessionRow>
-): SessionRow {
+export function createSessionRow(overrides?: Partial<SessionRow>): SessionRow {
   const now = new Date().toISOString();
   return {
     id: overrides?.id ?? crypto.randomUUID(),
@@ -68,9 +66,7 @@ export interface ProcessRow {
   updated_at: string;
 }
 
-export function createProcessRow(
-  overrides?: Partial<ProcessRow>
-): ProcessRow {
+export function createProcessRow(overrides?: Partial<ProcessRow>): ProcessRow {
   return {
     process_key: overrides?.process_key ?? "test-process",
     name: overrides?.name ?? "Test Process",

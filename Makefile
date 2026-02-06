@@ -1,4 +1,4 @@
-.PHONY: install dev build lint typecheck test clean db-migrate web-dev orchestrator-dev
+.PHONY: install dev build lint typecheck test clean db-migrate web-dev customer-dev orchestrator-dev
 
 # Install all dependencies
 install:
@@ -7,7 +7,7 @@ install:
 
 # Run all services in dev mode
 dev:
-	$(MAKE) -j2 web-dev orchestrator-dev
+	$(MAKE) -j3 web-dev customer-dev orchestrator-dev
 
 # Build all packages
 build:
@@ -40,9 +40,13 @@ db-migrate:
 db-reset:
 	supabase db reset
 
-# Web app dev server
+# Agent workspace dev server
 web-dev:
-	pnpm --filter @voicebridge/web dev
+	pnpm --filter @voicebridge/agent-workspace dev
+
+# Customer app dev server
+customer-dev:
+	pnpm --filter @voicebridge/customer dev --port 3001
 
 # Orchestrator dev server
 orchestrator-dev:

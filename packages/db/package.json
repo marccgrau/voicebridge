@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "clean": "rm -rf dist"
   },
   "dependencies": {

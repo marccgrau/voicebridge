@@ -1,7 +1,6 @@
 """VoiceBridge Pipecat pipeline."""
 
-import logging
-from typing import Any
+import asyncio
 
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.audio.vad.vad_analyzer import VADParams
@@ -9,23 +8,19 @@ from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.llm_context import LLMContext
-from pipecat.processors.aggregators.llm_response import (
-    LLMAssistantContextAggregator,
-    LLMUserContextAggregator,
-)
 from pipecat.processors.frameworks.rtvi import RTVIProcessor
 from pipecat.services.anthropic.llm import AnthropicLLMService
 from pipecat.services.speechmatics.stt import Language, SpeechmaticsSTTService, TurnDetectionMode
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
 from pipecat_flows import FlowManager
+from pipecat_flows.adapters import LLMContextAggregatorPair
 
 from src.config import settings
 from src.flows import ProcessFlow, SuggestionFlow
 from src.rtvi import VoiceBridgeRTVIObserver
+from src.utils.logging import get_session_logger
 
 from .processors import TranscriptWriter
-
-logger = logging.getLogger(__name__)
 
 
 class VoiceBridgePipeline:
@@ -43,11 +38,10 @@ class VoiceBridgePipeline:
         session_id: str,
         room_url: str,
         room_token: str,
-        anthropic_client: Any,
         enable_process_flow: bool = True,
         enable_suggestion_flow: bool = True,
-        process_flow_model: str = "claude-3-5-haiku-20241022",
-        suggestion_flow_model: str = "claude-sonnet-4-20250514",
+        process_flow_model: str = "claude-haiku-4-5-20251001",
+        suggestion_flow_model: str = "claude-sonnet-4-5-20250929",
         process_content_path: str = "process_content/",
     ):
         """Initialize the pipeline.
@@ -56,7 +50,6 @@ class VoiceBridgePipeline:
             session_id: Unique session identifier
             room_url: Daily.co room URL
             room_token: Daily.co room token
-            anthropic_client: Anthropic client for LLM operations
             enable_process_flow: Enable process detection and step tracking
             enable_suggestion_flow: Enable agent suggestion generation
             process_flow_model: Model for process flow (default: Haiku for speed)
@@ -66,7 +59,6 @@ class VoiceBridgePipeline:
         self.session_id = session_id
         self.room_url = room_url
         self.room_token = room_token
-        self.anthropic = anthropic_client
         self.enable_process_flow = enable_process_flow
         self.enable_suggestion_flow = enable_suggestion_flow
         self.process_flow_model = process_flow_model
@@ -80,11 +72,13 @@ class VoiceBridgePipeline:
         self._process_flow_manager: FlowManager | None = None
         self._suggestion_flow_manager: FlowManager | None = None
 
+        # Session-scoped logger
+        self.logger = get_session_logger(__name__, session_id)
+
     async def start(self) -> None:
         """Start the pipeline."""
-        logger.info(
-            "Starting VoiceBridge pipeline for session %s (process_flow=%s, suggestion_flow=%s)",
-            self.session_id,
+        self.logger.info(
+            "Starting VoiceBridge pipeline (process_flow=%s, suggestion_flow=%s)",
             self.enable_process_flow,
             self.enable_suggestion_flow,
         )
@@ -103,8 +97,8 @@ class VoiceBridgePipeline:
             params=DailyParams(
                 audio_in_enabled=True,
                 audio_out_enabled=False,  # Listen only
-                vad_enabled=True,
                 vad_analyzer=SileroVADAnalyzer(params=vad_params),
+                audio_in_filter=None,  # Accept audio from all participants
             ),
         )
 
@@ -137,7 +131,7 @@ class VoiceBridgePipeline:
 
         # Initialize ProcessFlow (optional)
         if self.enable_process_flow:
-            logger.info("Initializing ProcessFlow (model: %s)", self.process_flow_model)
+            self.logger.info("Initializing ProcessFlow (model: %s)", self.process_flow_model)
 
             # Create LLM service for ProcessFlow
             process_llm = AnthropicLLMService(
@@ -145,26 +139,28 @@ class VoiceBridgePipeline:
                 model=self.process_flow_model,
             )
 
-            # Create context aggregators for ProcessFlow
+            # Create context aggregator pair for ProcessFlow FlowManager
             process_context = LLMContext()
-            process_user_agg = LLMUserContextAggregator(process_context)
-            process_asst_agg = LLMAssistantContextAggregator(process_context)
+            process_agg_pair = LLMContextAggregatorPair(process_context)
 
             # Create task for ProcessFlow FlowManager
-            temp_pipeline = Pipeline([])
+            process_flow_pipeline = Pipeline(
+                [process_agg_pair.user(), process_llm, process_agg_pair.assistant()]
+            )
             process_task = PipelineTask(
-                temp_pipeline,
+                process_flow_pipeline,
                 params=PipelineParams(
                     allow_interruptions=False,
                     enable_metrics=True,
                 ),
+                enable_rtvi=False,
             )
 
             # Initialize ProcessFlow FlowManager
             self._process_flow_manager = FlowManager(
                 task=process_task,
                 llm=process_llm,
-                context_aggregator=process_user_agg,
+                context_aggregator=process_agg_pair,
             )
 
             # Initialize ProcessFlow
@@ -175,18 +171,14 @@ class VoiceBridgePipeline:
             )
             await self._process_flow.start()
 
-            # Add to processor chain
-            processors.extend(
-                [
-                    process_user_agg,
-                    self._process_flow,
-                    process_asst_agg,
-                ]
-            )
+            # Add ProcessFlow to main pipeline (no aggregators needed -
+            # ProcessFlow handles TranscriptionFrames directly and uses
+            # FlowManager's own pipeline for LLM calls)
+            processors.append(self._process_flow)
 
         # Initialize SuggestionFlow (optional)
         if self.enable_suggestion_flow:
-            logger.info("Initializing SuggestionFlow (model: %s)", self.suggestion_flow_model)
+            self.logger.info("Initializing SuggestionFlow (model: %s)", self.suggestion_flow_model)
 
             # Create LLM service for SuggestionFlow
             suggestion_llm = AnthropicLLMService(
@@ -194,26 +186,28 @@ class VoiceBridgePipeline:
                 model=self.suggestion_flow_model,
             )
 
-            # Create context aggregators for SuggestionFlow
+            # Create context aggregator pair for SuggestionFlow FlowManager
             suggestion_context = LLMContext()
-            suggestion_user_agg = LLMUserContextAggregator(suggestion_context)
-            suggestion_asst_agg = LLMAssistantContextAggregator(suggestion_context)
+            suggestion_agg_pair = LLMContextAggregatorPair(suggestion_context)
 
             # Create task for SuggestionFlow FlowManager
-            temp_pipeline = Pipeline([])
+            suggestion_flow_pipeline = Pipeline(
+                [suggestion_agg_pair.user(), suggestion_llm, suggestion_agg_pair.assistant()]
+            )
             suggestion_task = PipelineTask(
-                temp_pipeline,
+                suggestion_flow_pipeline,
                 params=PipelineParams(
                     allow_interruptions=False,
                     enable_metrics=True,
                 ),
+                enable_rtvi=False,
             )
 
             # Initialize SuggestionFlow FlowManager
             self._suggestion_flow_manager = FlowManager(
                 task=suggestion_task,
                 llm=suggestion_llm,
-                context_aggregator=suggestion_user_agg,
+                context_aggregator=suggestion_agg_pair,
             )
 
             # Initialize SuggestionFlow
@@ -223,63 +217,140 @@ class VoiceBridgePipeline:
             )
             await self._suggestion_flow.start()
 
-            # Add to processor chain
-            processors.extend(
-                [
-                    suggestion_user_agg,
-                    rtvi_processor,
-                    self._suggestion_flow,
-                    suggestion_asst_agg,
-                ]
-            )
+            # Add SuggestionFlow to main pipeline (no aggregators needed -
+            # SuggestionFlow handles frames directly and uses
+            # FlowManager's own pipeline for LLM calls)
+            processors.append(self._suggestion_flow)
 
-        # Add RTVI observer at the end
+        # Add RTVI observer and transport output at the end.
+        # transport.output() is needed even though audio_out is disabled —
+        # it handles the WebRTC data channel for RTVI messages.
         processors.append(rtvi_observer)
+        processors.append(transport.output())
 
         # Build final pipeline
         self._pipeline = Pipeline(processors)
 
-        # Create main task if not created by flows
-        if not self._task:
-            self._task = PipelineTask(
-                self._pipeline,
-                params=PipelineParams(
-                    allow_interruptions=False,
-                    enable_metrics=True,
-                ),
-            )
-        else:
-            # Update task pipeline if flows created it
-            self._task._pipeline = self._pipeline
+        # Create main task — pass rtvi_processor so PipelineTask uses our
+        # instance (the same one the observer sends messages through)
+        self._task = PipelineTask(
+            self._pipeline,
+            params=PipelineParams(
+                allow_interruptions=False,
+                enable_metrics=True,
+            ),
+            rtvi_processor=rtvi_processor,
+        )
 
         # RTVI event handlers
         @self._task.rtvi.event_handler("on_client_ready")
         async def on_client_ready(_rtvi):
-            logger.info("RTVI client connected for session %s", self.session_id)
+            self.logger.info("RTVI client connected")
 
-        # Create runner
+        # Start FlowManager pipeline tasks in background
+        # These tasks run the LLM pipelines that FlowManager queues frames into
+        self._flow_tasks: list[asyncio.Task] = []
+        if self._process_flow_manager:
+            process_runner = PipelineRunner(handle_sigint=False)
+            self._flow_tasks.append(
+                asyncio.create_task(process_runner.run(self._process_flow_manager.task))
+            )
+        if self._suggestion_flow_manager:
+            suggestion_runner = PipelineRunner(handle_sigint=False)
+            self._flow_tasks.append(
+                asyncio.create_task(suggestion_runner.run(self._suggestion_flow_manager.task))
+            )
+
+        # Create runner for main pipeline
         self._runner = PipelineRunner()
 
-        # Run pipeline
+        # Run main pipeline (blocks until pipeline completes)
         await self._runner.run(self._task)
 
     async def stop(self) -> None:
-        """Stop the pipeline."""
-        logger.info("Stopping VoiceBridge pipeline for session %s", self.session_id)
+        """Stop the pipeline gracefully.
 
-        # Stop flows
+        Each stop step is attempted independently with timeout.
+        All steps are always attempted regardless of earlier failures.
+        """
+        self.logger.info("Stopping VoiceBridge pipeline")
+
+        errors = []
+
+        # Stop ProcessFlow
         if self._process_flow:
-            await self._process_flow.stop()
+            try:
+                await asyncio.wait_for(self._process_flow.stop(), timeout=5.0)
+                self.logger.debug("ProcessFlow stopped successfully")
+            except TimeoutError:
+                msg = "ProcessFlow stop timed out"
+                self.logger.warning(msg)
+                errors.append(msg)
+            except Exception as e:
+                msg = f"ProcessFlow stop failed: {e}"
+                self.logger.warning(msg)
+                errors.append(msg)
 
+        # Stop SuggestionFlow
         if self._suggestion_flow:
-            await self._suggestion_flow.stop()
+            try:
+                await asyncio.wait_for(self._suggestion_flow.stop(), timeout=5.0)
+                self.logger.debug("SuggestionFlow stopped successfully")
+            except TimeoutError:
+                msg = "SuggestionFlow stop timed out"
+                self.logger.warning(msg)
+                errors.append(msg)
+            except Exception as e:
+                msg = f"SuggestionFlow stop failed: {e}"
+                self.logger.warning(msg)
+                errors.append(msg)
 
-        # Stop pipeline
+        # Cancel pipeline task
         if self._task:
-            await self._task.cancel()
+            try:
+                await asyncio.wait_for(self._task.cancel(), timeout=5.0)
+                self.logger.debug("Pipeline task cancelled successfully")
+            except TimeoutError:
+                msg = "Pipeline task cancel timed out"
+                self.logger.warning(msg)
+                errors.append(msg)
+            except Exception as e:
+                msg = f"Pipeline task cancel failed: {e}"
+                self.logger.warning(msg)
+                errors.append(msg)
 
-        if self._runner:
-            await self._runner.stop()
+        # Stop flow manager pipeline tasks
+        for name, fm in [
+            ("ProcessFlow", self._process_flow_manager),
+            ("SuggestionFlow", self._suggestion_flow_manager),
+        ]:
+            if fm and fm.task:
+                try:
+                    await asyncio.wait_for(fm.task.cancel(), timeout=5.0)
+                    self.logger.debug("%s FlowManager task cancelled successfully", name)
+                except TimeoutError:
+                    msg = f"{name} FlowManager task cancel timed out"
+                    self.logger.warning(msg)
+                    errors.append(msg)
+                except Exception as e:
+                    msg = f"{name} FlowManager task cancel failed: {e}"
+                    self.logger.warning(msg)
+                    errors.append(msg)
+
+        # Cancel background asyncio tasks for flow runners
+        for task in getattr(self, "_flow_tasks", []):
+            if not task.done():
+                task.cancel()
+
+        # Log summary
+        if errors:
+            self.logger.warning(
+                "Pipeline stop completed with %d errors: %s",
+                len(errors),
+                "; ".join(errors),
+            )
+        else:
+            self.logger.info("Pipeline stopped successfully")
 
     @property
     def is_running(self) -> bool:

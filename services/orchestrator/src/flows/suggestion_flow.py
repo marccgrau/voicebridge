@@ -8,53 +8,17 @@ Handles:
 Decoupled from ProcessFlow - listens for ProcessIllustrationFrame to get context.
 """
 
-import logging
+import asyncio
 import time
 from typing import Any
 
 from pipecat.frames.frames import Frame, TranscriptionFrame
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
-from pipecat_flows import FlowArgs, FlowManager, FlowResult, NodeConfig
+from pipecat_flows import FlowArgs, FlowManager, FlowResult, FlowsFunctionSchema, NodeConfig
 
+from src.config import settings
 from src.frames import ProcessIllustrationFrame, SuggestionFrame
-
-logger = logging.getLogger(__name__)
-
-
-# ============================================================================
-# Flow Function Schemas
-# ============================================================================
-
-
-publish_suggestions_schema = {
-    "type": "function",
-    "function": {
-        "name": "publish_suggestions",
-        "description": "Publish suggestions to agent UI",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "suggestions": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "text": {"type": "string"},
-                            "type": {
-                                "type": "string",
-                                "enum": ["response", "question", "action", "escalation"],
-                            },
-                        },
-                        "required": ["text", "type"],
-                    },
-                    "description": "List of suggestions for the agent",
-                }
-            },
-            "required": ["suggestions"],
-        },
-    },
-}
-
+from src.utils.logging import get_session_logger
 
 # ============================================================================
 # Node Creation Functions
@@ -94,6 +58,7 @@ def create_listening_node() -> NodeConfig:
 def create_suggesting_node(
     conversation_buffer: list[str],
     process_context: dict[str, Any] | None,
+    publish_suggestions_fn: FlowsFunctionSchema,
 ) -> NodeConfig:
     """Create SUGGESTING node.
 
@@ -114,40 +79,29 @@ def create_suggesting_node(
             [f"{i + 1}. {s['label']} [{s['status']}]" for i, s in enumerate(steps)]
         )
 
-        system_content = f"""You are an agent guidance assistant.
-Generate helpful suggestions for the agent based on the conversation.
+        system_content = f"""You are an agent guidance assistant. Generate exactly 3 concise suggestions for the agent.
 
-NOTE: Conversation lines are tagged with speaker labels like [customer] or [agent].
-Your suggestions should target the agent to help them respond to the customer.
+Conversation lines are tagged with [customer] or [agent].
 
-Current Process: {process_name}
-Current Step: {current_step + 1}
+Current Process: {process_name} (Step {current_step + 1})
+Steps: {step_list}
 
-Process Steps:
-{step_list}
+Rules:
+- Exactly 3 suggestions, each one short sentence
+- Reference the current process step when relevant
+- No preamble, just call publish_suggestions immediately
 
-Generate 3-5 specific, actionable suggestions:
-- Reference the current process step
-- Provide clear next actions
-- Be professional and empathetic
-- Include relevant questions to ask
-
-Call publish_suggestions with your recommendations."""
+Call publish_suggestions with exactly 3 suggestions."""
     else:
-        # No process context available
-        system_content = """You are an agent guidance assistant.
-Generate helpful suggestions for the agent based on the conversation.
+        system_content = """You are an agent guidance assistant. Generate exactly 3 concise suggestions for the agent.
 
-NOTE: Conversation lines are tagged with speaker labels like [customer] or [agent].
-Your suggestions should target the agent to help them respond to the customer.
+Conversation lines are tagged with [customer] or [agent].
 
-Generate 3-5 specific, actionable suggestions:
-- Provide clear next actions
-- Be professional and empathetic
-- Include relevant questions to ask
-- Help the agent understand customer needs
+Rules:
+- Exactly 3 suggestions, each one short sentence
+- No preamble, just call publish_suggestions immediately
 
-Call publish_suggestions with your recommendations."""
+Call publish_suggestions with exactly 3 suggestions."""
 
     return {
         "name": "suggesting",
@@ -163,7 +117,7 @@ Call publish_suggestions with your recommendations."""
                 "content": f"Latest customer message:\n{conversation_buffer[-1] if conversation_buffer else '(waiting)'}",
             }
         ],
-        "functions": [publish_suggestions_schema],
+        "functions": [publish_suggestions_fn],
     }
 
 
@@ -200,12 +154,39 @@ class SuggestionFlow(FrameProcessor):
         self.flow_manager = flow_manager
         self._turn_start_time: float | None = None
 
-        # Register function handlers
-        self.flow_manager.register_function("publish_suggestions", self._handle_publish_suggestions)
+        # Session-scoped logger
+        self.logger = get_session_logger(__name__, session_id)
+
+        # Create function schema with handler bound to this instance
+        self.publish_suggestions_schema = FlowsFunctionSchema(
+            name="publish_suggestions",
+            description="Publish suggestions to agent UI",
+            properties={
+                "suggestions": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "text": {"type": "string", "description": "One concise sentence"},
+                            "type": {
+                                "type": "string",
+                                "enum": ["response", "question", "action", "escalation"],
+                            },
+                        },
+                        "required": ["text", "type"],
+                    },
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "description": "Exactly 3 concise suggestions",
+                },
+            },
+            required=["suggestions"],
+            handler=self._handle_publish_suggestions,
+        )
 
     async def start(self) -> None:
         """Start the flow."""
-        logger.info("Starting SuggestionFlow for session %s", self.session_id)
+        self.logger.info("Starting SuggestionFlow")
 
         # Initialize state
         self.flow_manager.state.update(
@@ -218,11 +199,11 @@ class SuggestionFlow(FrameProcessor):
         # Initialize to START
         await self.flow_manager.initialize(create_start_node())
 
-        logger.info("SuggestionFlow initialized")
+        self.logger.info("SuggestionFlow initialized")
 
     async def stop(self) -> None:
         """Stop the flow."""
-        logger.info("Stopping SuggestionFlow for session %s", self.session_id)
+        self.logger.info("Stopping SuggestionFlow")
 
     async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
         """Process frames.
@@ -231,9 +212,11 @@ class SuggestionFlow(FrameProcessor):
             frame: The frame to process
             direction: Frame direction
         """
+        await super().process_frame(frame, direction)
+
         # Listen for ProcessIllustrationFrame (from ProcessFlow)
         if isinstance(frame, ProcessIllustrationFrame):
-            logger.debug("SuggestionFlow received process context: %s", frame.process_name)
+            self.logger.debug("Received process context: %s", frame.process_name)
 
             # Update process context (decoupled communication!)
             self.flow_manager.state["process_context"] = {
@@ -247,7 +230,7 @@ class SuggestionFlow(FrameProcessor):
         # Process transcription frames
         elif isinstance(frame, TranscriptionFrame) and frame.finalized:
             self._turn_start_time = time.time()
-            logger.debug("SuggestionFlow processing: %s", frame.text)
+            self.logger.debug("Processing: %s", frame.text)
 
             try:
                 # Update conversation buffer with speaker tag
@@ -257,25 +240,34 @@ class SuggestionFlow(FrameProcessor):
                 current_node = self.flow_manager.current_node
 
                 # State transitions
-                if current_node["name"] == "start":
+                if current_node == "start":
                     # First utterance - move to listening
-                    await self.flow_manager.set_node(create_listening_node())
+                    await self.flow_manager.set_node_from_config(create_listening_node())
 
-                elif current_node["name"] == "listening":
+                elif current_node == "listening":
                     # Generate suggestions for every customer utterance
-                    await self.flow_manager.set_node(
-                        create_suggesting_node(
-                            self.flow_manager.state["conversation_buffer"],
-                            self.flow_manager.state.get("process_context"),
+                    try:
+                        await asyncio.wait_for(
+                            self.flow_manager.set_node_from_config(
+                                create_suggesting_node(
+                                    self.flow_manager.state["conversation_buffer"],
+                                    self.flow_manager.state.get("process_context"),
+                                    self.publish_suggestions_schema,
+                                )
+                            ),
+                            timeout=settings.llm_timeout,
                         )
-                    )
+                    except TimeoutError:
+                        self.logger.error("LLM timeout (suggesting)")
+                        # Return to listening on timeout
+                        await self.flow_manager.set_node_from_config(create_listening_node())
 
-                elif current_node["name"] == "suggesting":
+                elif current_node == "suggesting":
                     # After publishing, go back to listening
-                    await self.flow_manager.set_node(create_listening_node())
+                    await self.flow_manager.set_node_from_config(create_listening_node())
 
             except Exception as e:
-                logger.error("Error in SuggestionFlow: %s", e)
+                self.logger.error("Error in SuggestionFlow: %s", e)
 
         # Always push frame downstream
         await self.push_frame(frame, direction)
@@ -290,8 +282,8 @@ class SuggestionFlow(FrameProcessor):
 
         latency_ms = (time.time() - self._turn_start_time) * 1000 if self._turn_start_time else 0
 
-        logger.info(
-            "SuggestionFlow: Generated %d suggestions (latency: %.1fms)",
+        self.logger.info(
+            "Generated %d suggestions (latency: %.1fms)",
             len(suggestions),
             latency_ms,
         )

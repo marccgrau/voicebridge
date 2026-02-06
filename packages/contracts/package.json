@@ -18,6 +18,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "clean": "rm -rf dist"
   },
   "dependencies": {

@@ -459,9 +459,9 @@ describe("listProcessesByDomain", () => {
 
     mockClient.from = mockFrom;
 
-    await expect(
-      listProcessesByDomain(mockClient, "billing")
-    ).rejects.toThrow("Failed to list processes: Query failed");
+    await expect(listProcessesByDomain(mockClient, "billing")).rejects.toThrow(
+      "Failed to list processes: Query failed"
+    );
   });
 });
 

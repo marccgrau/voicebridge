@@ -58,7 +58,9 @@ export const ProcessSelectionResultSchema = z.object({
   candidates: z.array(ProcessCandidateSchema),
 });
 
-export type ProcessSelectionResult = z.infer<typeof ProcessSelectionResultSchema>;
+export type ProcessSelectionResult = z.infer<
+  typeof ProcessSelectionResultSchema
+>;
 
 /**
  * Session configuration for starting a new session
@@ -72,7 +74,9 @@ export const SessionConfigSchema = z.object({
   customerId: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
   // NEW: Service selection
-  suggestionService: z.enum(["simple_turn", "tool_agent"]).default("simple_turn"),
+  suggestionService: z
+    .enum(["simple_turn", "tool_agent", "split_flows"])
+    .default("split_flows"),
   processIllustrationEnabled: z.boolean().default(true),
   processContentPath: z.string().optional(),
 });
@@ -104,7 +108,7 @@ export const SessionStopResponseSchema = z.object({
   sessionId: z.string().uuid(),
   stoppedAt: z.string().datetime(),
   duration: z.number(),
-  status: z.enum(["completed", "abandoned", "escalated"]),
+  status: z.enum(["completed", "abandoned", "escalated", "pending", "error"]),
 });
 
 export type SessionStopResponse = z.infer<typeof SessionStopResponseSchema>;
@@ -119,7 +123,14 @@ export const SessionStateSchema = z.object({
   currentStep: z.string().nullable(),
   steps: z.array(ProcessStepSchema),
   slots: z.record(z.string()),
-  status: z.enum(["active", "completed", "abandoned", "escalated"]),
+  status: z.enum([
+    "pending",
+    "active",
+    "completed",
+    "abandoned",
+    "escalated",
+    "error",
+  ]),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -208,15 +219,69 @@ export const ProcessDefinitionSchema = z.object({
   version: z.string(),
   status: z.enum(["active", "inactive"]),
   processText: z.string(),
-  stepsJson: z.array(
-    z.object({
-      key: z.string(),
-      label: z.string(),
-      description: z.string().optional(),
-      requiredSlots: z.array(z.string()).optional(),
-    })
-  ).optional(),
+  stepsJson: z
+    .array(
+      z.object({
+        key: z.string(),
+        label: z.string(),
+        description: z.string().optional(),
+        requiredSlots: z.array(z.string()).optional(),
+      })
+    )
+    .optional(),
   updatedAt: z.string().datetime(),
 });
 
 export type ProcessDefinition = z.infer<typeof ProcessDefinitionSchema>;
+
+/**
+ * Customer-initiated session creation request
+ */
+export const SessionCreateRequestSchema = z.object({
+  locale: z.string().default("en"),
+  domain: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export type SessionCreateRequest = z.infer<typeof SessionCreateRequestSchema>;
+
+/**
+ * Customer-initiated session creation response
+ */
+export const SessionCreateResponseSchema = z.object({
+  sessionId: z.string().uuid(),
+  roomUrl: z.string().url(),
+  customerToken: z.string(),
+});
+
+export type SessionCreateResponse = z.infer<typeof SessionCreateResponseSchema>;
+
+/**
+ * Agent accepts a pending session
+ */
+export const SessionAcceptRequestSchema = z.object({
+  sessionId: z.string().uuid(),
+  enableProcessFlow: z.boolean().default(true),
+  enableSuggestionFlow: z.boolean().default(true),
+  processFlowModel: z.string().default("claude-3-5-haiku-20241022"),
+  suggestionFlowModel: z.string().default("claude-sonnet-4-20250514"),
+  processContentPath: z.string().optional(),
+});
+
+export type SessionAcceptRequest = z.infer<typeof SessionAcceptRequestSchema>;
+
+/**
+ * Agent accept session response
+ */
+export const SessionAcceptResponseSchema = z.object({
+  sessionId: z.string().uuid(),
+  roomUrl: z.string().url(),
+  agentToken: z.string(),
+  rtviUrl: z.string().url(),
+  services: z.object({
+    processFlowEnabled: z.boolean(),
+    suggestionFlowEnabled: z.boolean(),
+  }),
+});
+
+export type SessionAcceptResponse = z.infer<typeof SessionAcceptResponseSchema>;

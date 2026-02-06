@@ -10,6 +10,13 @@ from fastapi.testclient import TestClient
 
 from src.main import active_pipelines, app
 
+# ---------------------------------------------------------------------------
+# Shared Daily.co mock helpers
+# ---------------------------------------------------------------------------
+
+DAILY_ROOM_JSON = {"url": "https://test.daily.co/test-room", "name": "test-room"}
+DAILY_TOKEN_JSON = {"token": "test-token-123"}
+
 
 @pytest.fixture
 def client():
@@ -333,12 +340,15 @@ class TestSessionStopEndpoint:
             json={"session_id": "test-session"},
         )
 
-        assert response.status_code == 500
+        # Now returns 200 with graceful error handling
+        assert response.status_code == 200
+        assert response.json()["status"] == "completed"
 
 
 class TestHealthCheckEndpoint:
     """Tests for GET /healthz endpoint."""
 
+    @respx.mock
     @patch("src.main.get_supabase_client")
     @patch("src.main.settings")
     def test_all_services_healthy(self, mock_settings, mock_get_client, client):
@@ -354,9 +364,14 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock settings
-        mock_settings.deepgram_api_key = "test-key"
+        mock_settings.speechmatics_api_key = "test-key"
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.daily_api_key = "test-key"
+
+        # Mock Daily.co health check
+        respx.get("https://api.daily.co/v1").mock(
+            return_value=httpx.Response(200, json={"version": "test"})
+        )
 
         response = client.get("/healthz")
 
@@ -369,6 +384,7 @@ class TestHealthCheckEndpoint:
         assert data["services"]["llm"] == "up"
         assert data["services"]["daily"] == "up"
 
+    @respx.mock
     @patch("src.main.get_supabase_client")
     @patch("src.main.settings")
     def test_degraded_state(self, mock_settings, mock_get_client, client):
@@ -384,9 +400,14 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock settings (other services OK)
-        mock_settings.deepgram_api_key = "test-key"
+        mock_settings.speechmatics_api_key = "test-key"
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.daily_api_key = "test-key"
+
+        # Mock Daily.co health check (success)
+        respx.get("https://api.daily.co/v1").mock(
+            return_value=httpx.Response(200, json={"version": "test"})
+        )
 
         response = client.get("/healthz")
 
@@ -398,6 +419,7 @@ class TestHealthCheckEndpoint:
         assert data["services"]["llm"] == "up"
         assert data["services"]["daily"] == "up"
 
+    @respx.mock
     @patch("src.main.get_supabase_client")
     @patch("src.main.settings")
     def test_unhealthy_state(self, mock_settings, mock_get_client, client):
@@ -413,9 +435,14 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock missing API keys
-        mock_settings.deepgram_api_key = None
+        mock_settings.speechmatics_api_key = None
         mock_settings.anthropic_api_key = None
         mock_settings.daily_api_key = None
+
+        # Mock Daily.co health check failure (will fail without API key)
+        respx.get("https://api.daily.co/v1").mock(
+            return_value=httpx.Response(401, json={"error": "Unauthorized"})
+        )
 
         response = client.get("/healthz")
 
@@ -514,3 +541,126 @@ class TestGetSessionStatus:
 
         assert response.status_code == 404
         assert "not found" in response.json()["detail"].lower()
+
+
+class TestSessionCreateEndpoint:
+    """Tests for POST /sessions/create (customer-initiated) endpoint."""
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    @patch("src.main.run_pipeline")
+    def test_creates_pending_session(
+        self, mock_run_pipeline, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test successful customer-initiated session creation."""
+        mock_get_client.return_value = mock_supabase_operations
+        mock_run_pipeline.return_value = AsyncMock()
+
+        respx.post("https://api.daily.co/v1/rooms").mock(
+            return_value=httpx.Response(200, json=DAILY_ROOM_JSON)
+        )
+        # Two token calls: owner (bot) + customer
+        respx.post("https://api.daily.co/v1/meeting-tokens").mock(
+            return_value=httpx.Response(200, json=DAILY_TOKEN_JSON)
+        )
+
+        response = client.post(
+            "/sessions/create",
+            json={"locale": "en", "domain": "billing"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "session_id" in data
+        assert data["room_url"] == "https://test.daily.co/test-room"
+        assert "customer_token" in data
+
+        # Verify database insert has status=pending
+        insert_call = mock_supabase_operations.table.return_value.insert
+        assert insert_call.called
+        insert_data = insert_call.call_args[0][0]
+        assert insert_data["status"] == "pending"
+        assert insert_data["room_url"] == "https://test.daily.co/test-room"
+        assert insert_data["room_name"] == "test-room"
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    def test_handles_daily_failure(self, mock_get_client, client, mock_supabase_operations):
+        """Test handling of Daily.co API failure during create."""
+        mock_get_client.return_value = mock_supabase_operations
+
+        respx.post("https://api.daily.co/v1/rooms").mock(
+            return_value=httpx.Response(503, json={"error": "Service unavailable"})
+        )
+
+        response = client.post("/sessions/create", json={})
+
+        assert response.status_code == 502
+        assert "Failed to create voice room" in response.json()["detail"]
+
+
+class TestSessionAcceptEndpoint:
+    """Tests for POST /sessions/accept (agent accepts pending session) endpoint."""
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    def test_accepts_pending_session(self, mock_get_client, client):
+        """Test successful session acceptance."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+
+        # Atomic update returns the updated row
+        mock_update = MagicMock()
+        mock_update.eq.return_value = mock_update
+        mock_update.execute.return_value = MagicMock(
+            data=[
+                {
+                    "id": "123e4567-e89b-12d3-a456-426614174000",
+                    "status": "active",
+                    "room_url": "https://test.daily.co/test-room",
+                    "room_name": "test-room",
+                }
+            ]
+        )
+        mock_table.update.return_value = mock_update
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        # Mock token creation
+        respx.post("https://api.daily.co/v1/meeting-tokens").mock(
+            return_value=httpx.Response(200, json={"token": "agent-token-abc"})
+        )
+
+        response = client.post(
+            "/sessions/accept",
+            json={"session_id": "123e4567-e89b-12d3-a456-426614174000"},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["session_id"] == "123e4567-e89b-12d3-a456-426614174000"
+        assert data["room_url"] == "https://test.daily.co/test-room"
+        assert data["agent_token"] == "agent-token-abc"
+        assert "rtvi_url" in data
+
+    @patch("src.main.get_supabase_client")
+    def test_rejects_already_accepted_session(self, mock_get_client, client):
+        """Test that accepting an already-active session returns 409."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+
+        # Atomic update returns empty (no rows matched pending status)
+        mock_update = MagicMock()
+        mock_update.eq.return_value = mock_update
+        mock_update.execute.return_value = MagicMock(data=[])
+        mock_table.update.return_value = mock_update
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        response = client.post(
+            "/sessions/accept",
+            json={"session_id": "123e4567-e89b-12d3-a456-426614174000"},
+        )
+
+        assert response.status_code == 409
+        assert "not pending" in response.json()["detail"].lower()

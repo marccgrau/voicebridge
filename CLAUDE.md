@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLM to identify processes, extract information, and provide real-time suggestions to agents.
+VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes, track step progress, and provide real-time suggestions to agents. The system consists of a Customer App, an Agent Workspace, and a Backend Orchestrator connected through Daily.co WebRTC rooms.
 
 ## Development Commands
 
@@ -16,14 +16,15 @@ make db-migrate          # Run Supabase migrations
 
 ### Development
 ```bash
-make dev                 # Run all services (web + orchestrator)
-make web-dev            # Run only Next.js web app
-make orchestrator-dev   # Run only Python orchestrator service
+make dev                 # Run all services (agent-workspace + customer + orchestrator)
+make web-dev             # Agent workspace only (port 3000)
+make customer-dev        # Customer app only (port 3001)
+make orchestrator-dev    # Orchestrator only (port 8000)
 ```
 
 ### Testing & Quality
 ```bash
-make test               # Run all tests (pnpm test + pytest)
+make test               # Run all tests (vitest + pytest)
 make lint               # Lint TypeScript (eslint) and Python (ruff)
 make typecheck          # TypeScript type checking
 make format             # Format code (prettier + ruff)
@@ -41,7 +42,7 @@ uv run ruff format .                           # Format Python code
 ### Database
 ```bash
 make db-reset           # Reset database to clean state
-supabase db push        # Push migrations
+make db-migrate         # Push migrations (supabase db push)
 ```
 
 ## Development Practices
@@ -62,12 +63,12 @@ After implementing a feature:
 
 For the Python orchestrator, tests should cover:
 - Pipeline processor logic (mocking LLM calls and database writes)
-- API endpoint behavior
-- Event publishing to Supabase
+- API endpoint behavior (session lifecycle: create, accept, start, stop)
+- RTVI message delivery
 
-For the Next.js web app, tests should cover:
+For the Next.js apps, tests should cover:
 - Component rendering and state management
-- Event handling and realtime subscription logic
+- RTVI message handling and Supabase Realtime subscription logic
 - Schema validation with Zod
 
 ## Architecture
@@ -75,30 +76,45 @@ For the Next.js web app, tests should cover:
 ### High-Level Data Flow
 
 ```
-Daily.co WebRTC → Silero VAD → Deepgram STT → Pipecat Pipeline Processors → Supabase Realtime → Next.js UI
+Daily.co WebRTC → Silero VAD → Speechmatics STT → Pipecat Pipeline → RTVI / Supabase Realtime → Next.js UI
 ```
 
-The system operates as a **listen-only voice pipeline** that processes audio without responding verbally.
+The system operates as a **listen-only voice pipeline** that processes audio without responding verbally. All real-time data is delivered to the agent workspace via two channels:
+- **RTVI (WebRTC data channel)**: Suggestions, process illustrations, and transcript segments (low latency)
+- **Supabase Realtime**: Session state changes and pending session notifications
 
 ### Component Responsibilities
 
-**Next.js Web App** (`apps/web/`)
-- 4-panel workspace: Interaction, Suggestions, ProcessStatus, History
-- Subscribes to Supabase Realtime events for live updates
-- Uses `@voicebridge/contracts` for type-safe event schemas
+**Agent Workspace** (`apps/agent-workspace/`)
+- 4-panel workspace: Interaction (transcript), Suggestions, ProcessStatus, History
+- Incoming call notification via Supabase Realtime subscription on `sessions` table (pending status)
+- Connects to Daily.co room via `@pipecat-ai/client-js` RTVI client
+- Receives RTVI messages: `agent_guidance`, `process_illustration`, `transcript_segment`
+- Session management: accept pending sessions, stop active sessions
+
+**Customer App** (`apps/customer/`)
+- Customer-facing call interface (idle → calling → connected → ended)
+- Creates pending sessions via `POST /sessions/create`
+- Connects to Daily.co room with audio via `@daily-co/daily-js`
 
 **Python Orchestrator** (`services/orchestrator/`)
 - FastAPI service managing voice session lifecycle
-- Pipecat pipeline with custom processors that run sequentially:
-  1. **TranscriptWriter**: Saves STT output to database
-  2. **ProcessSelectionProcessor**: LLM identifies which process is relevant
-  3. **SlotExtractionProcessor**: LLM extracts slot values from conversation
-  4. **KBLookupProcessor**: Fetches relevant KB snippets
-  5. **SuggestionComposer**: LLM generates agent suggestions
-- Each processor publishes events to Supabase for UI consumption
+- API endpoints:
+  - `POST /sessions/create` - Customer-initiated session (creates room, bot joins, status=pending)
+  - `POST /sessions/accept` - Agent accepts pending session (atomic status update, returns agent token)
+  - `POST /sessions/start` - Agent-initiated session (creates room, bot joins, status=active)
+  - `POST /sessions/stop` - Stop session (stops pipeline, status=completed)
+  - `GET /sessions/{id}/status` - Session status
+  - `GET /healthz` - Health check (checks DB, Daily.co, STT, LLM)
+- Pipecat pipeline with custom FrameProcessors:
+  1. **TranscriptWriter**: Saves finalized STT output to Supabase with speaker role mapping; emits `TranscriptSegmentFrame`
+  2. **ProcessFlow**: LLM-driven process detection and step tracking using `pipecat_flows.FlowManager` with Claude Haiku; emits `ProcessIllustrationFrame`
+  3. **SuggestionFlow**: LLM-driven suggestion generation using `pipecat_flows.FlowManager` with Claude Sonnet; listens for `ProcessIllustrationFrame` to inject process context; emits `SuggestionFrame`
+  4. **VoiceBridgeRTVIObserver**: Intercepts custom frames and publishes them to the frontend via RTVI `bot-action` messages with retry logic
 
 **Shared Contracts** (`packages/contracts/`)
-- Zod schemas for events (transcript_segment, process_selection, slot_extraction, suggestion, session_state)
+- Zod schemas for RTVI messages: `RTVISuggestionMessageSchema`, `RTVIProcessIllustrationMessageSchema`, `RTVITranscriptSegmentMessageSchema`
+- Discriminated union: `RTVIMessageSchema` (on `action` field)
 - Zod schemas for DTOs (session config, process lookup, etc.)
 - Single source of truth for TypeScript types
 
@@ -108,61 +124,95 @@ The system operates as a **listen-only voice pipeline** that processes audio wit
 
 ### Database Schema
 
+Single migration: `001_initial_schema.sql`
+
 Key tables:
-- `sessions`: Session state with JSONB for slots/steps
-- `transcript_segments`: STT output segments by speaker
-- `process_selection_events`: Audit log of process selections
-- `suggestions`: Agent suggestions generated by LLM
-- `suggestion_feedback`: Tracks if agent used/modified/dismissed suggestions
-- `process_catalog`: Process definitions with embeddings for semantic search (migration 002)
+- `sessions`: Session state (JSONB), status, room URL/name, timestamps, error tracking
+- `transcript_segments`: STT output segments by speaker (agent/customer)
+- `process_catalog`: Process definitions with full-text search via `pg_trgm` (seeded with 5 processes)
 
-All tables have Row Level Security (RLS) enabled with permissive policies for authenticated users.
+Session statuses: `pending` → `active` → `completed` / `abandoned` / `escalated` / `error`
 
-### Event System
+Supabase Realtime enabled on `sessions` and `transcript_segments`.
 
-The orchestrator publishes typed events to Supabase tables. The web UI subscribes to these via Supabase Realtime channels. Event types are defined in `packages/contracts/src/events.ts` with discriminated unions.
+### Custom Frames
 
-### Process Pipeline Architecture
+Three custom Pipecat frames carry domain data through the pipeline:
+- `SuggestionFrame`: suggestions array, service_type, latency_ms, process_key, tools_used
+- `ProcessIllustrationFrame`: process_key, process_name, steps (with status), current_step, content
+- `TranscriptSegmentFrame`: session_id, speaker, text, timestamp, is_final
 
-The Pipecat pipeline is **sequential** - each processor in the chain receives output from the previous one:
-- Audio frames → VAD → STT produces transcript events
-- Transcript events trigger process selection (first time or on topic change)
-- Once process selected, slot extraction runs on each turn
-- Slots + process context trigger KB lookup for relevant templates
-- KB snippets + conversation context → LLM generates suggestions
+### Process Catalog
 
-Processors use **Anthropic Claude** for LLM operations. All processors publish their outputs as events to Supabase for the UI to consume.
+Process definitions are loaded from markdown files in `process_content/`. Each file uses YAML frontmatter (`process_key`, `name`, `domain`, `intents`) and `## Step N: Label` headings for step extraction.
 
 ## Key Design Patterns
 
-### Monorepo Structure
-- Uses pnpm workspaces for TypeScript packages
-- Python orchestrator uses uv for dependency management
-- Makefile coordinates cross-language operations
-
 ### Listen-Only Bot
-The Pipecat pipeline is configured as listen-only (`audio_out_enabled=False`). It does not respond verbally - only publishes events to guide human agents.
+The Pipecat pipeline is configured as listen-only (`audio_out_enabled=False`). It does not respond verbally — only publishes events to guide human agents.
 
-### Realtime Events
-Rather than REST polling, the system uses Supabase Realtime subscriptions for sub-second latency updates in the UI.
+### Decoupled Flows
+ProcessFlow and SuggestionFlow communicate only via frames in the pipeline. SuggestionFlow listens for `ProcessIllustrationFrame` to get process context, but has no direct reference to ProcessFlow.
+
+### Isolated LLM Pipelines
+Each FlowManager (ProcessFlow and SuggestionFlow) has its own LLM pipeline running in a background `asyncio.Task` via `PipelineRunner`. This prevents LLM calls from blocking the main audio pipeline.
+
+### RTVI Over Supabase Realtime
+Suggestions, process illustrations, and transcript segments are delivered via RTVI (WebRTC data channel) for sub-second latency. Supabase Realtime is used only for session state changes and pending session notifications.
 
 ### Type Safety Across Languages
-TypeScript Zod schemas in `packages/contracts` define the contract. Python code should maintain compatible JSON structures (not type-checked, validated at runtime).
+TypeScript Zod schemas in `packages/contracts` define the contract. Python code maintains compatible JSON structures (validated at runtime, not type-checked).
+
+### Monorepo Structure
+- pnpm workspaces for TypeScript packages
+- uv for Python dependency management
+- Makefile coordinates cross-language operations
+
+## Pipecat Framework Reference
+
+### Core Concepts
+- **Frames**: Units of data flowing through the pipeline (audio, text, custom). Custom frames carry domain-specific data.
+- **FrameProcessors**: Transform or react to frames. Must call `super().__init__()`, `await super().process_frame()`, and always `push_frame()` to avoid blocking the pipeline.
+- **Pipeline / PipelineTask / PipelineRunner**: Pipeline defines processor chain; PipelineTask wraps it for execution; PipelineRunner manages the event loop.
+
+### Pipecat Flows (FlowManager)
+- `FlowManager` manages node-based conversation state for LLM-driven processors.
+- Nodes have `role_messages`, `task_messages`, `functions`, `pre_actions`, and `post_actions`.
+- Function handlers return `(result, next_node)` to drive state transitions.
+- Shared state is available via `flow_manager.state` — used to pass context between nodes.
+- Both `ProcessFlow` and `SuggestionFlow` use this pattern.
+
+### RTVI
+- `RTVIProcessor` + `RTVIObserver` are registered on the PipelineTask.
+- Custom messages are sent via `rtvi_processor.send_server_message()` as `bot-action` events.
+- `VoiceBridgeRTVIObserver` intercepts `SuggestionFrame` (action=`agent_guidance`), `ProcessIllustrationFrame` (action=`process_illustration`), and `TranscriptSegmentFrame` (action=`transcript_segment`) and delivers them to the frontend.
+- Messages include retry logic (configurable max retries, 0.2s base delay).
+
+### Design Principle
+Always prefer Pipecat abstractions (frames, processors, RTVI) over custom transport. Suggestions, process illustrations, and transcripts flow through the pipeline as custom frames and are sent to the client via RTVI — not written to Supabase for realtime pickup. Supabase Realtime is reserved for session state changes.
 
 ## Environment Variables
 
-### Required for Web App
+### Required for Agent Workspace
 ```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
+NEXT_PUBLIC_ORCHESTRATOR_URL          # default: http://localhost:8000
+```
+
+### Required for Customer App
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+NEXT_PUBLIC_ORCHESTRATOR_URL          # default: http://localhost:8000
 ```
 
 ### Required for Orchestrator
 ```
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
-DEEPGRAM_API_KEY
+SPEECHMATICS_API_KEY
 ANTHROPIC_API_KEY
 DAILY_API_KEY
 ```
@@ -174,4 +224,6 @@ DAILY_API_KEY
 - **Supabase CLI**: Database migrations require Supabase CLI to be installed
 - **Daily.co rooms**: Sessions create ephemeral rooms with 1-hour expiry
 - **VAD tuning**: Silero VAD parameters (`start_secs`, `stop_secs`) affect responsiveness vs. false positives
-- **LLM model config**: Model selection is in `services/orchestrator/src/config.py` (defaults to claude-3-5-sonnet)
+- **LLM models**: Process detection uses Haiku (speed), suggestions use Sonnet (quality) — configured per-session via API request
+- **Speaker mapping**: TranscriptWriter assigns first speaker as `customer` by default; configurable via `first_speaker_role` setting
+- **Pipeline timeout**: Sessions have a 1-hour max lifetime (`pipeline_start_timeout=3600s`)

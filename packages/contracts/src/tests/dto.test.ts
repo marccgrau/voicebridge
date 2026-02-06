@@ -4,6 +4,12 @@ import {
   ProcessLookupOutputSchema,
   SessionConfigSchema,
   SessionStartResponseSchema,
+  SessionStopResponseSchema,
+  SessionStateSchema,
+  SessionCreateRequestSchema,
+  SessionCreateResponseSchema,
+  SessionAcceptRequestSchema,
+  SessionAcceptResponseSchema,
   UIPreferencesSchema,
 } from "../dto.js";
 
@@ -125,6 +131,114 @@ describe("DTO Schemas", () => {
         theme: "dark",
       };
       const result = UIPreferencesSchema.safeParse(prefs);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("SessionStateSchema", () => {
+    it("accepts pending status", () => {
+      const state = {
+        sessionId: "123e4567-e89b-12d3-a456-426614174000",
+        processKey: null,
+        processName: null,
+        currentStep: null,
+        steps: [],
+        slots: {},
+        status: "pending",
+        createdAt: "2024-01-15T10:30:00.000Z",
+        updatedAt: "2024-01-15T10:30:00.000Z",
+      };
+      const result = SessionStateSchema.safeParse(state);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("SessionStopResponseSchema", () => {
+    it("accepts pending status", () => {
+      const response = {
+        sessionId: "123e4567-e89b-12d3-a456-426614174000",
+        stoppedAt: "2024-01-15T10:30:00.000Z",
+        duration: 120,
+        status: "pending",
+      };
+      const result = SessionStopResponseSchema.safeParse(response);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("SessionCreateRequestSchema", () => {
+    it("validates with defaults", () => {
+      const result = SessionCreateRequestSchema.safeParse({});
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.locale).toBe("en");
+      }
+    });
+
+    it("validates with all fields", () => {
+      const request = {
+        locale: "es",
+        domain: "billing",
+        metadata: { source: "web" },
+      };
+      const result = SessionCreateRequestSchema.safeParse(request);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("SessionCreateResponseSchema", () => {
+    it("validates valid response", () => {
+      const response = {
+        sessionId: "123e4567-e89b-12d3-a456-426614174000",
+        roomUrl: "https://test.daily.co/room123",
+        customerToken: "token-abc",
+      };
+      const result = SessionCreateResponseSchema.safeParse(response);
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects missing fields", () => {
+      const result = SessionCreateResponseSchema.safeParse({
+        sessionId: "123e4567-e89b-12d3-a456-426614174000",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("SessionAcceptRequestSchema", () => {
+    it("validates with required fields", () => {
+      const request = {
+        sessionId: "123e4567-e89b-12d3-a456-426614174000",
+      };
+      const result = SessionAcceptRequestSchema.safeParse(request);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.enableProcessFlow).toBe(true);
+        expect(result.data.enableSuggestionFlow).toBe(true);
+      }
+    });
+
+    it("rejects invalid session ID", () => {
+      const result = SessionAcceptRequestSchema.safeParse({
+        sessionId: "not-a-uuid",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("SessionAcceptResponseSchema", () => {
+    it("validates valid response", () => {
+      const response = {
+        sessionId: "123e4567-e89b-12d3-a456-426614174000",
+        roomUrl: "https://test.daily.co/room123",
+        agentToken: "agent-token-abc",
+        rtviUrl: "https://test.daily.co/room123/rtvi",
+        services: {
+          processFlowEnabled: true,
+          suggestionFlowEnabled: true,
+        },
+      };
+      const result = SessionAcceptResponseSchema.safeParse(response);
       expect(result.success).toBe(true);
     });
   });

@@ -15,7 +15,9 @@ import { createSessionRow, createSessionConfig } from "../test/factories.js";
 function getFirstCallArg<T>(mockFn: ReturnType<typeof vi.fn>): T {
   const arg = mockFn.mock.calls[0]?.[0];
   if (arg === undefined) {
-    throw new Error("Expected mock function to be called with at least one argument");
+    throw new Error(
+      "Expected mock function to be called with at least one argument"
+    );
   }
   return arg as T;
 }
@@ -107,7 +109,9 @@ describe("createSession", () => {
 
     await createSession(mockClient, config);
 
-    const insertCall = getFirstCallArg<{ state: { slots: unknown; steps: unknown; currentStep: unknown } }>(mockInsert);
+    const insertCall = getFirstCallArg<{
+      state: { slots: unknown; steps: unknown; currentStep: unknown };
+    }>(mockInsert);
     expect(insertCall.state.slots).toEqual({});
     expect(insertCall.state.steps).toEqual([]);
     expect(insertCall.state.currentStep).toBeNull();
@@ -396,7 +400,9 @@ describe("updateSessionState", () => {
 
     await updateSessionState(mockClient, sessionId, updates);
 
-    const updateCall = getFirstCallArg<{ state: Record<string, unknown> }>(mockUpdate);
+    const updateCall = getFirstCallArg<{ state: Record<string, unknown> }>(
+      mockUpdate
+    );
     expect(updateCall.state).toEqual(updates.state);
   });
 
@@ -510,7 +516,9 @@ describe("rowToSessionState", () => {
       state: {
         processName: "Billing Dispute",
         currentStep: "verify",
-        steps: [{ key: "verify", label: "Verify Account", status: "completed" }],
+        steps: [
+          { key: "verify", label: "Verify Account", status: "completed" },
+        ],
         slots: { order_number: "12345" },
       },
       status: "active",

@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+build
+.next
+out
+
+# Python
+__pycache__
+*.pyc
+.venv
+.pytest_cache
+.ruff_cache
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# Misc
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+uv.lock

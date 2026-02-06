@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ProcessDefinition, ProcessLookupOutput } from "@voicebridge/contracts";
+import type {
+  ProcessDefinition,
+  ProcessLookupOutput,
+} from "@voicebridge/contracts";
 
 export interface ProcessCatalogRow {
   process_key: string;
@@ -87,7 +90,9 @@ export async function getProcess(
 /**
  * Convert database row to ProcessDefinition
  */
-export function rowToProcessDefinition(row: ProcessCatalogRow): ProcessDefinition {
+export function rowToProcessDefinition(
+  row: ProcessCatalogRow
+): ProcessDefinition {
   return {
     processKey: row.process_key,
     name: row.name,
@@ -113,10 +118,7 @@ export async function listProcessesByDomain(
     locale?: string;
   }
 ): Promise<ProcessCatalogRow[]> {
-  let query = client
-    .from("process_catalog")
-    .select("*")
-    .eq("domain", domain);
+  let query = client.from("process_catalog").select("*").eq("domain", domain);
 
   if (options?.status) {
     query = query.eq("status", options.status);

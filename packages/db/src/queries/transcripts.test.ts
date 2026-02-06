@@ -16,7 +16,9 @@ import { createTranscriptRow } from "../test/factories.js";
 function getFirstCallArg<T>(mockFn: ReturnType<typeof vi.fn>): T {
   const arg = mockFn.mock.calls[0]?.[0];
   if (arg === undefined) {
-    throw new Error("Expected mock function to be called with at least one argument");
+    throw new Error(
+      "Expected mock function to be called with at least one argument"
+    );
   }
   return arg as T;
 }
@@ -263,9 +265,7 @@ describe("getTranscriptSegments", () => {
 
   it("filters by is_final when finalOnly option is true", async () => {
     const sessionId = "session-123";
-    const mockRows = [
-      createTranscriptRow({ is_final: true }),
-    ];
+    const mockRows = [createTranscriptRow({ is_final: true })];
 
     // Create a chainable query object with all needed methods
     const mockQuery: {
@@ -373,9 +373,9 @@ describe("getTranscriptSegments", () => {
 
     mockClient.from = mockFrom;
 
-    await expect(
-      getTranscriptSegments(mockClient, sessionId)
-    ).rejects.toThrow("Failed to get transcript segments: Query failed");
+    await expect(getTranscriptSegments(mockClient, sessionId)).rejects.toThrow(
+      "Failed to get transcript segments: Query failed"
+    );
   });
 });
 
