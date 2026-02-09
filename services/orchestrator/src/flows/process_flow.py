@@ -157,8 +157,9 @@ def create_detecting_node(
                 "role": "system",
                 "content": f"""You are a process detection expert.
 Analyze the customer conversation and identify which process matches their needs.
+Below you find the conversation so far and the list of available processes you can choose from.
 
-NOTE: Conversation lines are tagged with speaker labels like [customer] or [agent].
+Conversation lines are tagged with speaker labels like [customer] or [agent].
 
 Available processes:
 {process_list}
@@ -195,7 +196,7 @@ def create_tracking_node(
                 "role": "system",
                 "content": f"""Track conversation progress through process steps.
 
-NOTE: Conversation lines are tagged with speaker labels like [customer] or [agent].
+Conversation lines are tagged with speaker labels like [customer] or [agent].
 
 Process: {current_process.name}
 Steps:

@@ -83,6 +83,9 @@ def create_suggesting_node(
 
 Conversation lines are tagged with [customer] or [agent].
 
+Make sure that the suggestions are relevant to the current process step.
+If the customer utterance indicates an issue or question related to the current step, tailor your suggestions to help the agent address it effectively.
+
 Current Process: {process_name} (Step {current_step + 1})
 Steps: {step_list}
 
@@ -91,17 +94,20 @@ Rules:
 - Reference the current process step when relevant
 - No preamble, just call publish_suggestions immediately
 
-Call publish_suggestions with exactly 3 suggestions."""
+Call publish_suggestions with exactly 3 suggestions."""  # noqa
     else:
         system_content = """You are an agent guidance assistant. Generate exactly 3 concise suggestions for the agent.
 
 Conversation lines are tagged with [customer] or [agent].
 
+The intent of the customer is not yet known.
+Make suggestions based on the latest customer utterance, and keep them general enough to be useful to identify the customer's intent and next steps.
+
 Rules:
 - Exactly 3 suggestions, each one short sentence
 - No preamble, just call publish_suggestions immediately
 
-Call publish_suggestions with exactly 3 suggestions."""
+Call publish_suggestions with exactly 3 suggestions."""  # noqa
 
     return {
         "name": "suggesting",
