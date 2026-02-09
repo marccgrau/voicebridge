@@ -71,7 +71,6 @@ apps/agent-workspace/
 │   │   └── workspace/     # Phase-based panels
 │   │       ├── InteractionPanel.tsx       # Transcript
 │   │       ├── SuggestionsPanel.tsx       # Agent guidance
-│   │       ├── ProcessStatusPanel.tsx     # Process steps (deprecated)
 │   │       ├── ProcessLayer.tsx           # Process visualization layer
 │   │       ├── CustomerInfoPanel.tsx      # Customer profile
 │   │       ├── IncomingCallNotification.tsx  # Call accept UI
