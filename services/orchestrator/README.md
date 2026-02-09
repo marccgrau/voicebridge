@@ -110,6 +110,44 @@ All frames are delivered to the agent workspace via RTVI (WebRTC data channel):
 - `process_illustration`: Process detection and step tracking
 - `agent_guidance`: Contextual agent suggestions
 
+## Project Structure
+
+```
+services/orchestrator/
+├── src/
+│   ├── main.py              # FastAPI app, session endpoints
+│   ├── config.py            # Settings (Supabase, LLM keys, etc.)
+│   ├── llm/                 # Multi-provider LLM support
+│   │   ├── factory.py       # LLMServiceFactory for provider creation
+│   │   └── __init__.py
+│   ├── pipeline/
+│   │   ├── pipeline.py      # VoiceBridgePipeline (main audio pipeline)
+│   │   └── __init__.py
+│   ├── flows/               # LLM-driven processors
+│   │   ├── process_flow.py  # Process detection with FlowManager
+│   │   ├── suggestion_flow.py # Suggestion generation with FlowManager
+│   │   └── __init__.py
+│   ├── processors/          # Custom FrameProcessors
+│   │   ├── transcript_writer.py   # Saves transcripts, emits frames
+│   │   ├── rtvi_observer.py       # Sends custom frames via RTVI
+│   │   └── __init__.py
+│   ├── db/
+│   │   ├── client.py        # Supabase client wrapper
+│   │   └── __init__.py
+│   └── utils/
+│       ├── retry.py         # Retry decorator
+│       └── __init__.py
+├── tests/
+│   ├── api/                 # FastAPI endpoint tests
+│   ├── pipeline/            # Pipeline processor tests
+│   ├── llm/                 # LLM factory tests
+│   ├── db/                  # Database client tests
+│   └── conftest.py          # Shared fixtures
+├── process_content/         # Process markdown definitions
+├── pyproject.toml           # Dependencies and project config
+└── uv.lock                  # Lockfile
+```
+
 ## Development
 
 ```bash
