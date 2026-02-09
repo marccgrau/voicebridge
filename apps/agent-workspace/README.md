@@ -1,19 +1,20 @@
-# VoiceBridge Web UI
+# VoiceBridge Agent Workspace
 
-Next.js workspace interface for real-time customer service call guidance.
+Next.js agent workspace with **phase-based procedural UI** for real-time customer service call guidance.
 
 ## Features
 
-- **4-Panel Workspace Layout**
-  - Live transcript stream with speaker identification
-  - AI-generated response suggestions
-  - Process status tracking with step checklist
-  - Session history browser
-
-- **Real-time Updates**: Supabase Realtime subscriptions for instant UI updates
-- **Session Management**: Start/stop voice sessions with one click
-- **Suggestion Feedback**: Track which suggestions agents use or dismiss
-- **Responsive Design**: Tailwind CSS v4 with custom theme
+- **Phase-Based UI**: Adaptive layout that shows only contextually relevant information for the current call state
+- **RTVI Integration**: Low-latency WebRTC data channel for real-time suggestions, transcripts, and process updates
+- **Multi-Phase Workflow**:
+  - **Idle**: Waiting screen for incoming calls
+  - **Incoming**: Customer info preview + accept/reject interface
+  - **Active (Pre-process)**: Customer info + transcript + suggestions (process detection in progress)
+  - **Active (In-process)**: Full 4-panel workspace with process visualization
+  - **Postcall Summary**: Transcript review + AI-generated summary editor
+- **Auto-Return to Idle**: After saving summary, workspace automatically returns to waiting state
+- **Real-time Updates**: Supabase Realtime for session state + RTVI for live data
+- **Incoming Call Notifications**: Toast-style notifications for pending customer calls
 
 ## Tech Stack
 
@@ -22,6 +23,7 @@ Next.js workspace interface for real-time customer service call guidance.
 - TypeScript 5.9
 - Tailwind CSS v4
 - Supabase (Database + Realtime)
+- @pipecat-ai/client-js (RTVI client)
 
 ## Requirements
 
@@ -61,44 +63,149 @@ NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
 ```
 apps/agent-workspace/
 ├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Main workspace page
-│   └── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout with theme
+│   ├── page.tsx           # Main workspace with phase logic
+│   └── globals.css        # Global styles + Tailwind
 ├── src/
 │   ├── components/
-│   │   └── workspace/     # 4 workspace panels
+│   │   └── workspace/     # Phase-based panels
+│   │       ├── InteractionPanel.tsx       # Transcript
+│   │       ├── SuggestionsPanel.tsx       # Agent guidance
+│   │       ├── ProcessStatusPanel.tsx     # Process steps (deprecated)
+│   │       ├── ProcessLayer.tsx           # Process visualization layer
+│   │       ├── CustomerInfoPanel.tsx      # Customer profile
+│   │       ├── IncomingCallNotification.tsx  # Call accept UI
+│   │       └── SummaryEditor.tsx          # Postcall notes
 │   └── lib/
-│       ├── supabase.ts    # Realtime subscriptions
-│       └── session.ts     # Session management
+│       ├── supabase.ts    # Supabase client
+│       ├── session.ts     # Session management hook
+│       ├── rtvi.ts        # RTVI message handling hook
+│       ├── pending-sessions.ts  # Incoming call subscription
+│       ├── use-phase.ts   # Phase detection logic
+│       └── use-summary.ts # Summary editor state
 └── package.json
 ```
 
-## Workspace Panels
+## UI Phases
 
-### 1. Interaction Panel (Top Left)
+### 1. Idle Phase
 
-- Live transcript with customer/agent turns
-- Auto-scroll to latest message
-- Final transcripts only (no interim updates)
+**When**: No active session, no pending calls
+**Shows**: Centered waiting message
 
-### 2. Suggestions Panel (Top Right)
+### 2. Incoming Phase
 
-- 3-6 AI-generated response suggestions
-- Click to copy to clipboard
-- Dismiss unwanted suggestions
-- Feedback tracking (used/modified/dismissed)
+**When**: Pending customer call waiting for agent acceptance
+**Shows**:
 
-### 3. Process Status Panel (Bottom Left)
+- Incoming call notification (customer info preview)
+- Accept/Reject buttons
+- Process layer (waiting state)
+- Customer info panel (expanded)
 
-- Current detected process
-- Step-by-step checklist with status
-- Extracted customer information (slots)
+### 3. Active (Pre-Process) Phase
 
-### 4. History Panel (Bottom Right)
+**When**: Call active, process not yet detected
+**Shows**:
 
-- Recent session list
-- Session status indicators
-- Quick navigation to past sessions
+- Process layer (detecting state)
+- Customer info (compact)
+- Live transcript (expanded)
+- Suggestions panel
+
+### 4. Active (In-Process) Phase
+
+**When**: Call active, process detected
+**Shows**:
+
+- Process layer (steps + progress)
+- Customer info (compact)
+- Live transcript (expanded)
+- Suggestions panel (process-aware)
+
+### 5. Postcall Summary Phase
+
+**When**: Call ended, agent reviewing
+**Shows**:
+
+- Process layer (final state)
+- Customer info (compact)
+- Transcript (read-only)
+- Summary editor with AI-generated summary
+- Auto-saves and returns to idle after submission
+
+## RTVI Message Types
+
+The workspace receives real-time updates via RTVI (WebRTC data channel):
+
+### `transcript_segment`
+
+```typescript
+{
+  action: "transcript_segment",
+  data: {
+    speaker: "customer" | "agent",
+    text: string,
+    timestamp: string,
+    isFinal: boolean
+  }
+}
+```
+
+### `agent_guidance`
+
+```typescript
+{
+  action: "agent_guidance",
+  data: {
+    suggestions: Array<{
+      text: string,
+      type: "response" | "question" | "action" | "escalation"
+    }>
+  }
+}
+```
+
+### `process_illustration`
+
+```typescript
+{
+  action: "process_illustration",
+  data: {
+    processKey: string,
+    processName: string,
+    steps: Array<{
+      key: string,
+      label: string,
+      status: "pending" | "in_progress" | "completed"
+    }>,
+    currentStep: number
+  }
+}
+```
+
+## Real-time Architecture
+
+```
+Backend Orchestrator (Pipecat Pipeline)
+    ↓ RTVI (WebRTC data channel)
+Agent Workspace (@pipecat-ai/client-js)
+    ↓ useRTVI hook
+React state updates
+    ↓
+Phase-based UI re-renders
+```
+
+**Supabase Realtime** is used only for:
+
+- Incoming call notifications (pending session inserts)
+- Session status changes (active → completed)
+
+**RTVI (WebRTC data channel)** is used for:
+
+- Live transcript updates
+- Real-time suggestions
+- Process detection and step tracking
 
 ## Development
 
@@ -114,28 +221,57 @@ pnpm lint
 
 # Type check
 pnpm typecheck
+
+# Run tests
+pnpm test
 ```
 
-## Real-time Event Flow
+## Key Hooks
+
+### `useSession()`
+
+Manages session lifecycle:
+
+- `acceptSession(id)` - Accept pending call
+- `stopSession()` - End active call
+- `clearSession()` - Return to idle state
+
+### `useRTVI(roomUrl, roomToken, callbacks)`
+
+Connects to RTVI and handles messages:
+
+- `onTranscript` - New transcript segment
+- `onSuggestion` - New agent guidance
+- `onProcessIllustration` - Process update
+
+### `usePendingSessions()`
+
+Subscribes to incoming calls via Supabase Realtime:
+
+- Returns array of pending sessions
+- Auto-updates on insert/update/delete
+
+### `usePhase({ sessionId, isConnected, processKey, pendingSessions, sessionStatus })`
+
+Determines current UI phase:
+
+- Returns: `"idle" | "incoming" | "active_preprocess" | "active_inprocess" | "postcall_summary"`
+
+### `useSummary(sessionId, { autoGenerate, onSaveComplete })`
+
+Manages postcall summary:
+
+- Auto-generates summary when entering postcall phase
+- Calls `onSaveComplete()` after successful save
+- Triggers return to idle state
+
+## Phase Transition Flow
 
 ```
-Customer speaks
-    ↓
-Orchestrator processes
-    ↓
-Events published to Supabase Realtime
-    ↓
-UI subscribes to session:{id}:events channel
-    ↓
-React state updates
-    ↓
-UI re-renders with new data
+idle
+  → (pending session arrives) → incoming
+  → (agent accepts) → active_preprocess
+  → (process detected) → active_inprocess
+  → (call ends) → postcall_summary
+  → (summary saved) → idle
 ```
-
-## Event Types
-
-- `transcript_segment` - New transcript from STT
-- `process_selection` - Process identified
-- `slot_extraction` - Customer data extracted
-- `suggestion` - New response suggestions
-- `session_state` - Full session state update

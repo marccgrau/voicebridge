@@ -4,9 +4,9 @@ Proactive guidance workspace for live human-human customer service calls. VoiceB
 
 ## Architecture
 
-- **Agent Workspace** (`apps/agent-workspace`) - 4-panel Next.js workspace for agents
+- **Agent Workspace** (`apps/agent-workspace`) - Phase-based Next.js workspace with procedural UI adapting to call state
 - **Customer App** (`apps/customer`) - Customer-facing call interface
-- **Python Orchestrator** (`services/orchestrator`) - Pipecat voice pipeline with LLM-driven flows
+- **Python Orchestrator** (`services/orchestrator`) - Pipecat voice pipeline with multi-provider LLM flows
 - **Shared Contracts** (`packages/contracts`) - Zod schemas for events and DTOs
 - **Database Package** (`packages/db`) - Supabase client and query helpers
 - **Supabase Postgres** - Database, realtime events, and process catalog
@@ -62,7 +62,12 @@ NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=xxx
 SPEECHMATICS_API_KEY=xxx
-ANTHROPIC_API_KEY=xxx
+
+# LLM Provider API Keys (at least one required)
+OPENAI_API_KEY=xxx          # Default provider
+GOOGLE_API_KEY=xxx          # Optional: Gemini provider
+ANTHROPIC_API_KEY=xxx       # Optional: Claude provider
+
 DAILY_API_KEY=xxx
 ```
 
@@ -112,7 +117,8 @@ make format           # Format code (prettier + ruff)
 | Service | Provider | Purpose |
 |---------|----------|---------|
 | STT | Speechmatics | Streaming speech-to-text with speaker diarization |
-| LLM | Anthropic Claude | Process detection (Haiku) and suggestions (Sonnet) |
+| LLM | OpenAI (default) | Process detection and suggestions (gpt-5-nano) |
+| LLM | Gemini, Anthropic | Alternative providers (configurable per session) |
 | Audio | Daily.co | WebRTC voice transport |
 | Database | Supabase | Postgres + Realtime subscriptions |
 
@@ -156,12 +162,12 @@ VoiceBridge is a three-component system: a **Customer App**, an **Agent Workspac
 │                                      │          │
 │                              ┌───────▼───────┐  │
 │                              │ ProcessFlow   │  │
-│                              │ (Haiku LLM)   │  │
+│                              │ (Multi-LLM)   │  │
 │                              └───────┬───────┘  │
 │                                      │          │
 │                              ┌───────▼───────┐  │
 │                              │SuggestionFlow │  │
-│                              │ (Sonnet LLM)  │  │
+│                              │ (Multi-LLM)   │  │
 │                              └───────┬───────┘  │
 │                                      │          │
 │                              ┌───────▼───────┐  │
@@ -181,6 +187,7 @@ VoiceBridge is a three-component system: a **Customer App**, an **Agent Workspac
 - Shows call status (idle, calling, connected, ended)
 
 **Agent Workspace** (`apps/agent-workspace/`)
+- **Phase-based UI** that adapts to the current call state, showing only contextually relevant information
 - Subscribes to Supabase Realtime for pending sessions (incoming call notifications)
 - Agent accepts a pending session via `POST /sessions/accept`, receives a Daily.co token
 - Connects to the room via `@pipecat-ai/client-js` (RTVI client)
@@ -189,7 +196,12 @@ VoiceBridge is a three-component system: a **Customer App**, an **Agent Workspac
   - `agent_guidance` - suggested responses/actions for the agent
   - `process_illustration` - detected process with step progress
 - Subscribes to Supabase Realtime for session state changes
-- 4-panel layout: Interaction (transcript), Suggestions, Process Status, History
+- **UI Phases**:
+  - **Idle**: Waiting screen for incoming calls
+  - **Incoming**: Customer info + accept/reject interface
+  - **Active (Pre-process)**: Customer info + transcript + suggestions (process detection in progress)
+  - **Active (In-process)**: Full 4-panel workspace - customer info, transcript, suggestions, process visualization
+  - **Postcall Summary**: Transcript review + AI-generated summary editor, auto-returns to idle after save
 
 **Backend Orchestrator** (`services/orchestrator/`)
 - FastAPI service managing session lifecycle
@@ -243,13 +255,15 @@ TranscriptionFrame → TranscriptWriter → Supabase + TranscriptSegmentFrame �
 ### Process Detection Flow (ProcessFlow)
 
 ```
-TranscriptionFrame → ProcessFlow (FlowManager + Haiku LLM) → ProcessIllustrationFrame
+TranscriptionFrame → ProcessFlow (FlowManager + Multi-Provider LLM) → ProcessIllustrationFrame
 ```
+
+**Multi-Provider LLM Support**: ProcessFlow can use OpenAI (default: gpt-5-nano), Gemini, or Anthropic models. Provider and model are configurable per-session via API request.
 
 ProcessFlow uses a `pipecat_flows.FlowManager` with three node states:
 
 1. **IDLE**: Waits until 3+ utterances have been collected before attempting detection
-2. **DETECTING**: Sends the conversation buffer to Claude Haiku along with the available process catalog. The LLM calls either:
+2. **DETECTING**: Sends the conversation buffer to the configured LLM (default: OpenAI gpt-5-nano) along with the available process catalog. The LLM calls either:
    - `select_process(process_key, confidence, rationale)` → transitions to TRACKING
    - `need_more_context(reason)` → returns to IDLE
 3. **TRACKING**: On each new utterance, sends the last 5 messages to the LLM with the current process steps. The LLM calls:
@@ -262,14 +276,16 @@ ProcessFlow uses a `pipecat_flows.FlowManager` with three node states:
 ### Suggestion Generation Flow (SuggestionFlow)
 
 ```
-TranscriptionFrame + ProcessIllustrationFrame → SuggestionFlow (FlowManager + Sonnet LLM) → SuggestionFrame
+TranscriptionFrame + ProcessIllustrationFrame → SuggestionFlow (FlowManager + Multi-Provider LLM) → SuggestionFrame
 ```
+
+**Multi-Provider LLM Support**: SuggestionFlow can use OpenAI (default: gpt-5-nano), Gemini, or Anthropic models. Provider and model are independently configurable from ProcessFlow.
 
 SuggestionFlow uses a `pipecat_flows.FlowManager` with three node states:
 
 1. **START**: Initial state, transitions to LISTENING on first utterance
 2. **LISTENING**: Accumulates conversation. On each customer utterance, transitions to SUGGESTING
-3. **SUGGESTING**: Sends the conversation and optional process context to Claude Sonnet. The LLM calls:
+3. **SUGGESTING**: Sends the conversation and optional process context to the configured LLM (default: OpenAI gpt-5-nano). The LLM calls:
    - `publish_suggestions(suggestions)` → emits a `SuggestionFrame` with exactly 3 suggestions, each typed as `response`, `question`, `action`, or `escalation`
 
 **Process context injection**: SuggestionFlow listens for `ProcessIllustrationFrame` objects from ProcessFlow (decoupled communication via the pipeline). When present, the LLM prompt includes the current process name, steps, and progress so suggestions are contextually relevant.

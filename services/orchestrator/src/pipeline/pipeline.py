@@ -9,7 +9,6 @@ from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.processors.frameworks.rtvi import RTVIProcessor
-from pipecat.services.anthropic.llm import AnthropicLLMService
 from pipecat.services.speechmatics.stt import Language, SpeechmaticsSTTService, TurnDetectionMode
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
 from pipecat_flows import FlowManager
@@ -17,6 +16,7 @@ from pipecat_flows.adapters import LLMContextAggregatorPair
 
 from src.config import settings
 from src.flows import ProcessFlow, SuggestionFlow
+from src.llm import LLMServiceFactory
 from src.rtvi import VoiceBridgeRTVIObserver
 from src.utils.logging import get_session_logger
 
@@ -40,8 +40,10 @@ class VoiceBridgePipeline:
         room_token: str,
         enable_process_flow: bool = True,
         enable_suggestion_flow: bool = True,
-        process_flow_model: str = "claude-haiku-4-5-20251001",
-        suggestion_flow_model: str = "claude-sonnet-4-5-20250929",
+        process_flow_provider: str = "openai",
+        process_flow_model: str = "gpt-5-nano",
+        suggestion_flow_provider: str = "openai",
+        suggestion_flow_model: str = "gpt-5-nano",
         process_content_path: str = "process_content/",
     ):
         """Initialize the pipeline.
@@ -52,8 +54,10 @@ class VoiceBridgePipeline:
             room_token: Daily.co room token
             enable_process_flow: Enable process detection and step tracking
             enable_suggestion_flow: Enable agent suggestion generation
-            process_flow_model: Model for process flow (default: Haiku for speed)
-            suggestion_flow_model: Model for suggestions (default: Sonnet for quality)
+            process_flow_provider: LLM provider for process flow
+            process_flow_model: Model for process flow
+            suggestion_flow_provider: LLM provider for suggestion flow
+            suggestion_flow_model: Model for suggestion flow
             process_content_path: Path to process markdown files
         """
         self.session_id = session_id
@@ -61,7 +65,9 @@ class VoiceBridgePipeline:
         self.room_token = room_token
         self.enable_process_flow = enable_process_flow
         self.enable_suggestion_flow = enable_suggestion_flow
+        self.process_flow_provider = process_flow_provider
         self.process_flow_model = process_flow_model
+        self.suggestion_flow_provider = suggestion_flow_provider
         self.suggestion_flow_model = suggestion_flow_model
         self.process_content_path = process_content_path
         self._pipeline: Pipeline | None = None
@@ -131,11 +137,15 @@ class VoiceBridgePipeline:
 
         # Initialize ProcessFlow (optional)
         if self.enable_process_flow:
-            self.logger.info("Initializing ProcessFlow (model: %s)", self.process_flow_model)
+            self.logger.info(
+                "Initializing ProcessFlow (provider: %s, model: %s)",
+                self.process_flow_provider,
+                self.process_flow_model,
+            )
 
-            # Create LLM service for ProcessFlow
-            process_llm = AnthropicLLMService(
-                api_key=settings.anthropic_api_key,
+            # Create LLM service for ProcessFlow using factory
+            process_llm = LLMServiceFactory.create_llm_service(
+                provider=self.process_flow_provider,
                 model=self.process_flow_model,
             )
 
@@ -178,11 +188,15 @@ class VoiceBridgePipeline:
 
         # Initialize SuggestionFlow (optional)
         if self.enable_suggestion_flow:
-            self.logger.info("Initializing SuggestionFlow (model: %s)", self.suggestion_flow_model)
+            self.logger.info(
+                "Initializing SuggestionFlow (provider: %s, model: %s)",
+                self.suggestion_flow_provider,
+                self.suggestion_flow_model,
+            )
 
-            # Create LLM service for SuggestionFlow
-            suggestion_llm = AnthropicLLMService(
-                api_key=settings.anthropic_api_key,
+            # Create LLM service for SuggestionFlow using factory
+            suggestion_llm = LLMServiceFactory.create_llm_service(
+                provider=self.suggestion_flow_provider,
                 model=self.suggestion_flow_model,
             )
 

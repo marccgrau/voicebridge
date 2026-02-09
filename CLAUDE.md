@@ -86,7 +86,12 @@ The system operates as a **listen-only voice pipeline** that processes audio wit
 ### Component Responsibilities
 
 **Agent Workspace** (`apps/agent-workspace/`)
-- 4-panel workspace: Interaction (transcript), Suggestions, ProcessStatus, History
+- **Phase-based procedural UI** that adapts to the current call state, showing only contextually relevant information:
+  - **Idle**: Waiting screen for incoming calls
+  - **Incoming**: Customer info + accept/reject interface
+  - **Active (Pre-process)**: Customer info + transcript + suggestions (process detection in progress)
+  - **Active (In-process)**: Full 4-panel workspace - customer info, transcript, suggestions, process visualization
+  - **Postcall Summary**: Transcript review + AI-generated summary editor, auto-returns to idle after save
 - Incoming call notification via Supabase Realtime subscription on `sessions` table (pending status)
 - Connects to Daily.co room via `@pipecat-ai/client-js` RTVI client
 - Receives RTVI messages: `agent_guidance`, `process_illustration`, `transcript_segment`
@@ -106,10 +111,11 @@ The system operates as a **listen-only voice pipeline** that processes audio wit
   - `POST /sessions/stop` - Stop session (stops pipeline, status=completed)
   - `GET /sessions/{id}/status` - Session status
   - `GET /healthz` - Health check (checks DB, Daily.co, STT, LLM)
+- **Multi-Provider LLM Support**: OpenAI (default), Gemini, Anthropic - configurable per-session for both ProcessFlow and SuggestionFlow independently
 - Pipecat pipeline with custom FrameProcessors:
   1. **TranscriptWriter**: Saves finalized STT output to Supabase with speaker role mapping; emits `TranscriptSegmentFrame`
-  2. **ProcessFlow**: LLM-driven process detection and step tracking using `pipecat_flows.FlowManager` with Claude Haiku; emits `ProcessIllustrationFrame`
-  3. **SuggestionFlow**: LLM-driven suggestion generation using `pipecat_flows.FlowManager` with Claude Sonnet; listens for `ProcessIllustrationFrame` to inject process context; emits `SuggestionFrame`
+  2. **ProcessFlow**: LLM-driven process detection and step tracking using `pipecat_flows.FlowManager` with multi-provider support (default: OpenAI gpt-5-nano); emits `ProcessIllustrationFrame`
+  3. **SuggestionFlow**: LLM-driven suggestion generation using `pipecat_flows.FlowManager` with multi-provider support (default: OpenAI gpt-5-nano); listens for `ProcessIllustrationFrame` to inject process context; emits `SuggestionFrame`
   4. **VoiceBridgeRTVIObserver**: Intercepts custom frames and publishes them to the frontend via RTVI `bot-action` messages with retry logic
 
 **Shared Contracts** (`packages/contracts/`)
@@ -213,8 +219,12 @@ NEXT_PUBLIC_ORCHESTRATOR_URL          # default: http://localhost:8000
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 SPEECHMATICS_API_KEY
-ANTHROPIC_API_KEY
 DAILY_API_KEY
+
+# LLM Provider API Keys (at least one required, OpenAI is default)
+OPENAI_API_KEY           # Default provider, used if not specified
+GOOGLE_API_KEY           # Optional: Gemini provider
+ANTHROPIC_API_KEY        # Optional: Claude provider
 ```
 
 ## Common Gotchas
@@ -224,6 +234,12 @@ DAILY_API_KEY
 - **Supabase CLI**: Database migrations require Supabase CLI to be installed
 - **Daily.co rooms**: Sessions create ephemeral rooms with 1-hour expiry
 - **VAD tuning**: Silero VAD parameters (`start_secs`, `stop_secs`) affect responsiveness vs. false positives
-- **LLM models**: Process detection uses Haiku (speed), suggestions use Sonnet (quality) — configured per-session via API request
+- **Multi-Provider LLM**:
+  - **Factory Pattern**: `LLMServiceFactory.create_llm_service(provider, model)` creates GoogleLLMService, AnthropicLLMService, or OpenAILLMService
+  - **Default**: OpenAI gpt-5-nano for both ProcessFlow and SuggestionFlow
+  - **Per-Session Configuration**: Provider and model can be set independently for each flow via API request
+  - **API Keys**: At least one provider API key must be configured; validation happens at runtime when creating services
+  - **All Pipecat abstractions preserved**: Only LLM service instantiation changes; LLMContext, LLMContextAggregatorPair, Pipeline, PipelineTask, FlowManager remain identical
 - **Speaker mapping**: TranscriptWriter assigns first speaker as `customer` by default; configurable via `first_speaker_role` setting
 - **Pipeline timeout**: Sessions have a 1-hour max lifetime (`pipeline_start_timeout=3600s`)
+- **Phase-based UI**: Agent workspace adapts its layout based on call state (idle → incoming → active-preprocess → active-inprocess → postcall), showing only relevant information for the current phase

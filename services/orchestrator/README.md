@@ -1,19 +1,22 @@
 # VoiceBridge Orchestrator
 
-Python voice pipeline orchestrator using Pipecat for customer service guidance.
+Python voice pipeline orchestrator using Pipecat for real-time customer service guidance.
 
 ## Features
 
-- **Pipecat Pipeline**: Voice processing with Deepgram STT and Daily.co transport
-- **LLM Integration**: Claude-powered process selection and slot extraction
-- **Real-time Events**: Publishes to Supabase Realtime for UI updates
-- **Process Catalog**: Full-text search for customer service processes
-- **Suggestion Engine**: Template-based with optional LLM rewriting
+- **Multi-Provider LLM Support**: OpenAI (default), Gemini, Anthropic - configurable per-session
+- **Pipecat Pipeline**: Voice processing with Speechmatics STT, Silero VAD, and Daily.co transport
+- **Process Detection**: LLM-driven process identification and step tracking (ProcessFlow)
+- **Suggestion Generation**: Context-aware agent guidance with process awareness (SuggestionFlow)
+- **RTVI Message Delivery**: Low-latency WebRTC data channel for real-time UI updates
+- **Process Catalog**: Full-text search for customer service processes loaded from markdown files
+- **Listen-Only Bot**: Processes audio without speaking, delivers guidance to human agents
 
 ## Requirements
 
 - Python 3.13+
 - uv package manager
+- At least one LLM provider API key (OpenAI, Google, or Anthropic)
 
 ## Setup
 
@@ -23,18 +26,89 @@ uv sync
 
 # Configure environment
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your API keys (at least OPENAI_API_KEY required)
 
 # Run server
 uv run uvicorn src.main:app --reload
 ```
 
+## Environment Variables
+
+```bash
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=xxx
+SPEECHMATICS_API_KEY=xxx
+DAILY_API_KEY=xxx
+
+# LLM Provider API Keys (at least one required)
+OPENAI_API_KEY=xxx          # Default provider
+GOOGLE_API_KEY=xxx          # Optional: Gemini
+ANTHROPIC_API_KEY=xxx       # Optional: Claude
+```
+
 ## API Endpoints
 
-- `POST /sessions/start` - Start a new voice session
-- `POST /sessions/stop` - Stop an active session
-- `GET /healthz` - Health check
-- `GET /sessions/{session_id}/status` - Get session status
+### Session Management
+- `POST /sessions/create` - Customer-initiated session (creates room, bot joins, status=pending)
+- `POST /sessions/accept` - Agent accepts pending session (atomic status update, returns agent token)
+- `POST /sessions/start` - Agent-initiated session (creates room, bot joins, status=active)
+- `POST /sessions/stop` - Stop session (stops pipeline, status=completed)
+- `GET /sessions/{id}/status` - Get session status
+
+### Postcall
+- `POST /sessions/summary` - Save agent's postcall summary
+- `POST /sessions/{id}/generate-summary` - Generate AI summary from transcript
+
+### Health
+- `GET /healthz` - Health check (validates DB, Daily.co, STT, LLM connectivity)
+
+## Multi-Provider LLM Configuration
+
+Both ProcessFlow and SuggestionFlow support independent provider configuration:
+
+```bash
+# Default (OpenAI gpt-5-nano for both)
+POST /sessions/start
+{}
+
+# Custom providers
+POST /sessions/start
+{
+  "processFlowProvider": "anthropic",
+  "processFlowModel": "claude-haiku-4-5-20251001",
+  "suggestionFlowProvider": "openai",
+  "suggestionFlowModel": "gpt-4"
+}
+```
+
+Provider options: `"openai"`, `"gemini"`, `"anthropic"`
+
+## Pipeline Architecture
+
+```
+Daily.co WebRTC (audio in)
+  → Silero VAD (voice activity detection)
+    → Speechmatics STT (streaming speech-to-text)
+      → TranscriptWriter (saves to Supabase, emits TranscriptSegmentFrame)
+        → ProcessFlow (detects process, tracks steps with multi-provider LLM)
+          → SuggestionFlow (generates suggestions with process context, multi-provider LLM)
+            → VoiceBridgeRTVIObserver (sends frames via RTVI)
+              → Daily.co WebRTC (data channel out)
+```
+
+### Custom Frames
+
+Three custom Pipecat frames carry domain data:
+- `TranscriptSegmentFrame`: Live transcript with speaker role
+- `ProcessIllustrationFrame`: Detected process with step progress
+- `SuggestionFrame`: Agent guidance suggestions
+
+### RTVI Messages
+
+All frames are delivered to the agent workspace via RTVI (WebRTC data channel):
+- `transcript_segment`: Live transcript updates
+- `process_illustration`: Process detection and step tracking
+- `agent_guidance`: Contextual agent suggestions
 
 ## Development
 
@@ -42,9 +116,52 @@ uv run uvicorn src.main:app --reload
 # Run tests
 uv run pytest
 
+# Run specific test file
+uv run pytest tests/llm/test_factory.py
+
 # Lint
 uv run ruff check .
 
 # Format
 uv run ruff format .
+
+# Type hints check (via pyright if installed)
+pyright src/
 ```
+
+## Testing
+
+Tests use:
+- `pytest` for test runner
+- `respx` for mocking HTTP calls (Daily.co API)
+- `pytest-asyncio` for async test support
+- Fixtures in `conftest.py`: `mock_supabase_client`, `mock_anthropic_client`, `mock_event_publisher`
+
+Test structure:
+- `tests/api/` - FastAPI endpoint tests
+- `tests/pipeline/` - Pipeline processor tests
+- `tests/llm/` - LLM factory tests
+- `tests/db/` - Database client tests
+
+## Process Definitions
+
+Process definitions are markdown files in `process_content/`:
+
+```markdown
+---
+process_key: billing_dispute
+name: Billing Dispute Resolution
+domain: billing
+intents:
+  - charge dispute
+  - incorrect bill
+---
+
+## Step 1: Verify Account
+Confirm customer identity...
+
+## Step 2: Review Charges
+Investigate disputed charges...
+```
+
+YAML frontmatter defines metadata, `## Step N:` headings define steps.

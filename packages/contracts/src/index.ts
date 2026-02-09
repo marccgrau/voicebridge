@@ -23,6 +23,7 @@ export type {
 
 // DTOs
 export {
+  LLMProviderSchema,
   ProcessCandidateSchema,
   ProcessLookupInputSchema,
   ProcessLookupOutputSchema,
@@ -37,6 +38,8 @@ export {
   HealthCheckResponseSchema,
   KBSnippetSchema,
   ProcessDefinitionSchema,
+  SessionSummaryUpdateRequestSchema,
+  SessionSummaryUpdateResponseSchema,
   SessionCreateRequestSchema,
   SessionCreateResponseSchema,
   SessionAcceptRequestSchema,
@@ -48,6 +51,7 @@ export {
 } from "./dto.js";
 
 export type {
+  LLMProvider,
   ProcessCandidate,
   ProcessLookupInput,
   ProcessLookupOutput,
@@ -62,6 +66,8 @@ export type {
   HealthCheckResponse,
   KBSnippet,
   ProcessDefinition,
+  SessionSummaryUpdateRequest,
+  SessionSummaryUpdateResponse,
   SessionCreateRequest,
   SessionCreateResponse,
   SessionAcceptRequest,

@@ -1,34 +1,40 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #6366f1;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #f1f5f9;
-  --color-secondary-foreground: #0f172a;
-  --color-muted: #f1f5f9;
-  --color-muted-foreground: #64748b;
-  --color-accent: #f1f5f9;
-  --color-accent-foreground: #0f172a;
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #ffffff;
-  --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #6366f1;
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-card: #ffffff;
-  --color-card-foreground: #0f172a;
-  --color-popover: #ffffff;
-  --color-popover-foreground: #0f172a;
+  /* Color System - Minimalist Modern */
+  --color-background: #FAFAFA;
+  --color-foreground: #0F172A;
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
+  --color-accent: #0052FF;
+  --color-accent-secondary: #4D7CFF;
+  --color-accent-foreground: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-input: #E2E8F0;
+  --color-ring: #0052FF;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F172A;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #0F172A;
 
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-info: #3b82f6;
+  /* Semantic Colors */
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-info: #0052FF;
 
+  /* Border Radius */
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  /* Font Families */
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-calistoga);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 @layer base {
@@ -39,4 +45,59 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+@layer utilities {
+  /* Typography Utilities */
+  .font-display {
+    font-family: var(--font-calistoga), serif;
+  }
+
+  .font-mono-ui {
+    font-family: var(--font-jetbrains-mono), monospace;
+  }
+
+  /* Gradient Utilities */
+  .gradient-accent {
+    background: linear-gradient(135deg, #0052FF 0%, #4D7CFF 100%);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #0052FF 0%, #4D7CFF 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Shadow Utilities */
+  .shadow-accent {
+    box-shadow: 0 4px 14px rgba(0, 82, 255, 0.25);
+  }
+
+  .shadow-accent-lg {
+    box-shadow: 0 8px 24px rgba(0, 82, 255, 0.35);
+  }
+}
+
+/* Panel morph transitions */
+.panel-morph {
+  transition-property: opacity, max-height, transform;
+  transition-duration: 250ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animations */
+@keyframes pulse-dot {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
