@@ -4,6 +4,10 @@
 
 import type { SessionConfig } from "@voicebridge/contracts";
 import type { SessionRow } from "../queries/sessions.js";
+import type {
+  CustomerRow,
+  CustomerInteractionRow,
+} from "../queries/customers.js";
 
 /**
  * Create a SessionRow for testing
@@ -103,5 +107,47 @@ export function createTranscriptRow(
     text: overrides?.text ?? "Sample transcript text",
     timestamp: overrides?.timestamp ?? new Date().toISOString(),
     is_final: overrides?.is_final ?? true,
+  };
+}
+
+/**
+ * Create a customer row for testing
+ */
+export function createCustomerRow(
+  overrides?: Partial<CustomerRow>
+): CustomerRow {
+  const now = new Date().toISOString();
+  return {
+    id: overrides?.id ?? crypto.randomUUID(),
+    name: overrides?.name ?? "Test Customer",
+    gender: overrides?.gender ?? "male",
+    email: overrides?.email ?? "test@example.com",
+    phone: overrides?.phone ?? "+41 79 123 4567",
+    customer_since: overrides?.customer_since ?? "2023-01-01",
+    classification: overrides?.classification ?? "basis",
+    products: overrides?.products ?? ["Savings Account"],
+    preferred_language: overrides?.preferred_language ?? "en",
+    notes: overrides?.notes ?? null,
+    created_at: overrides?.created_at ?? now,
+    updated_at: overrides?.updated_at ?? now,
+  };
+}
+
+/**
+ * Create a customer interaction row for testing
+ */
+export function createCustomerInteractionRow(
+  overrides?: Partial<CustomerInteractionRow>
+): CustomerInteractionRow {
+  return {
+    id: overrides?.id ?? crypto.randomUUID(),
+    customer_id: overrides?.customer_id ?? crypto.randomUUID(),
+    type: overrides?.type ?? "phone",
+    date: overrides?.date ?? new Date().toISOString(),
+    summary: overrides?.summary ?? "Test interaction summary",
+    outcome: overrides?.outcome ?? "Resolved",
+    agent_name: overrides?.agent_name ?? "Test Agent",
+    channel_detail: overrides?.channel_detail ?? null,
+    created_at: overrides?.created_at ?? new Date().toISOString(),
   };
 }

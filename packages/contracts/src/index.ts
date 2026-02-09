@@ -41,6 +41,10 @@ export {
   SessionCreateResponseSchema,
   SessionAcceptRequestSchema,
   SessionAcceptResponseSchema,
+  CustomerClassificationSchema,
+  CustomerSchema,
+  CustomerInteractionTypeSchema,
+  CustomerInteractionSchema,
 } from "./dto.js";
 
 export type {
@@ -62,4 +66,8 @@ export type {
   SessionCreateResponse,
   SessionAcceptRequest,
   SessionAcceptResponse,
+  CustomerClassification,
+  Customer,
+  CustomerInteractionType,
+  CustomerInteraction,
 } from "./dto.js";

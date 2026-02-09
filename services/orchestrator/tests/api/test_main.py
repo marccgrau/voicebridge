@@ -585,6 +585,40 @@ class TestSessionCreateEndpoint:
 
     @respx.mock
     @patch("src.main.get_supabase_client")
+    @patch("src.main.run_pipeline")
+    def test_creates_session_with_customer_id(
+        self, mock_run_pipeline, mock_get_client, client, mock_supabase_operations
+    ):
+        """Test session creation with customer_id."""
+        mock_get_client.return_value = mock_supabase_operations
+        mock_run_pipeline.return_value = AsyncMock()
+
+        respx.post("https://api.daily.co/v1/rooms").mock(
+            return_value=httpx.Response(200, json=DAILY_ROOM_JSON)
+        )
+        respx.post("https://api.daily.co/v1/meeting-tokens").mock(
+            return_value=httpx.Response(200, json=DAILY_TOKEN_JSON)
+        )
+
+        customer_id = "c1a1a1a1-1111-1111-1111-111111111111"
+        response = client.post(
+            "/sessions/create",
+            json={"locale": "de", "customer_id": customer_id},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "session_id" in data
+
+        # Verify customer_id is in database insert
+        insert_call = mock_supabase_operations.table.return_value.insert
+        assert insert_call.called
+        insert_data = insert_call.call_args[0][0]
+        assert insert_data["customer_id"] == customer_id
+        assert insert_data["status"] == "pending"
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
     def test_handles_daily_failure(self, mock_get_client, client, mock_supabase_operations):
         """Test handling of Daily.co API failure during create."""
         mock_get_client.return_value = mock_supabase_operations

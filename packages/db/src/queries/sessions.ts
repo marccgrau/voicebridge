@@ -69,6 +69,42 @@ export async function getSession(
 }
 
 /**
+ * Get all sessions with optional filters
+ */
+export async function getAllSessions(
+  client: SupabaseClient,
+  options?: { limit?: number; offset?: number; status?: string }
+): Promise<SessionRow[]> {
+  let query = client
+    .from("sessions")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (options?.status) {
+    query = query.eq("status", options.status);
+  }
+
+  if (options?.limit) {
+    query = query.limit(options.limit);
+  }
+
+  if (options?.offset) {
+    query = query.range(
+      options.offset,
+      options.offset + (options.limit ?? 10) - 1
+    );
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`Failed to get sessions: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+/**
  * Update session state
  */
 export async function updateSessionState(

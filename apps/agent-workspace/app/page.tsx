@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import { InteractionPanel } from "@/components/workspace/InteractionPanel";
 import { SuggestionsPanel } from "@/components/workspace/SuggestionsPanel";
 import { ProcessStatusPanel } from "@/components/workspace/ProcessStatusPanel";
-import { HistoryPanel } from "@/components/workspace/HistoryPanel";
+import { CustomerInfoPanel } from "@/components/workspace/CustomerInfoPanel";
 import { IncomingCallNotification } from "@/components/workspace/IncomingCallNotification";
 import { useSession } from "@/lib/session";
 import { usePendingSessions } from "@/lib/pending-sessions";
 import { useRTVI } from "@/lib/rtvi";
+import { supabase } from "@/lib/supabase";
 import type {
   TranscriptEntry,
   Suggestion,
@@ -41,6 +43,12 @@ export default function WorkspacePage() {
       <header className="flex h-14 items-center justify-between border-b border-border px-6">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-semibold">VoiceBridge</h1>
+          <Link
+            href={{ pathname: "/admin" }}
+            className="text-sm text-muted-foreground hover:text-foreground"
+          >
+            Admin
+          </Link>
           {sessionId && (
             <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
               Session: {sessionId.slice(0, 8)}...
@@ -105,6 +113,46 @@ function WorkspacePanels({
   const [processName, setProcessName] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
   const [steps, setSteps] = useState<ProcessStep[]>([]);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+
+  // Fetch customer_id from session
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchCustomerId() {
+      if (!sessionId) {
+        if (isMounted) {
+          setCustomerId(null);
+        }
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("sessions")
+          .select("customer_id")
+          .eq("id", sessionId)
+          .single();
+
+        if (error) {
+          console.error("Failed to fetch customer_id:", error);
+          return;
+        }
+
+        if (isMounted && data) {
+          setCustomerId(data.customer_id ?? null);
+        }
+      } catch (error) {
+        console.error("Error fetching customer_id:", error);
+      }
+    }
+
+    fetchCustomerId();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionId]);
 
   // Subscribe to RTVI messages via WebRTC data channel (transcripts, suggestions, process)
   useRTVI(
@@ -125,14 +173,14 @@ function WorkspacePanels({
       },
       onSuggestion: (message) => {
         setSuggestions(
-          message.data.suggestions.map((s, _i) => ({
+          message.data.suggestions.map((s: Suggestion, _i: number) => ({
             ...s,
             id: s.id ?? crypto.randomUUID(),
           }))
         );
       },
       onProcessIllustration: (message) => {
-        const processSteps = message.data.steps.map((step) => ({
+        const processSteps = message.data.steps.map((step: ProcessStep) => ({
           key: step.key,
           label: step.label,
           status: step.status,
@@ -180,9 +228,9 @@ function WorkspacePanels({
         />
       </div>
 
-      {/* Bottom Right - History Panel */}
+      {/* Bottom Right - Customer Info Panel */}
       <div className="overflow-hidden rounded-lg border border-border bg-card">
-        <HistoryPanel sessionId={sessionId} />
+        <CustomerInfoPanel customerId={customerId} isConnected={isConnected} />
       </div>
     </main>
   );

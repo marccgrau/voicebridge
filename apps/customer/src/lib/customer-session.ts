@@ -82,14 +82,14 @@ export function useCustomerSession() {
     };
   }, [state.sessionId, state.callState]);
 
-  const startCall = useCallback(async () => {
+  const startCall = useCallback(async (customerId?: string) => {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const response = await fetch(`${ORCHESTRATOR_URL}/sessions/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(customerId ? { customer_id: customerId } : {}),
       });
 
       if (!response.ok) {

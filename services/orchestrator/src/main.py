@@ -166,6 +166,7 @@ class SessionCreateRequest(BaseModel):
     locale: str = Field(default="en", description="Session locale")
     domain: str | None = Field(default=None, description="Optional domain filter")
     metadata: dict[str, Any] | None = Field(default=None, description="Optional metadata")
+    customer_id: str | None = Field(default=None, description="Optional customer UUID")
 
 
 class SessionCreateResponse(BaseModel):
@@ -470,6 +471,7 @@ async def create_session(
                 "status": "pending",
                 "room_url": room["room_url"],
                 "room_name": room["room_name"],
+                "customer_id": request.customer_id,
                 "customer_joined_at": datetime.now(UTC).isoformat(),
                 "suggestion_service": "split_flows",
                 "process_illustration_enabled": True,

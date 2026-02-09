@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useCustomerSession } from "@/lib/customer-session";
 import { useDailyAudio } from "@/lib/daily-audio";
+import { useCustomers } from "@/lib/use-customers";
 
 export default function CustomerCallPage() {
   const {
@@ -20,6 +22,13 @@ export default function CustomerCallPage() {
     customerToken
   );
 
+  const { customers, isLoading: isLoadingCustomers } = useCustomers();
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+
+  const handleStartCall = () => {
+    startCall(selectedCustomerId || undefined);
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-8 text-center">
@@ -36,11 +45,36 @@ export default function CustomerCallPage() {
         {callState === "idle" && (
           <div className="space-y-4">
             <p className="text-muted-foreground">
-              Click below to start a call with a support agent.
+              Select a customer profile and start a call with a support agent.
             </p>
+
+            {/* Customer selector */}
+            <div className="space-y-2 text-left">
+              <label
+                htmlFor="customer-select"
+                className="text-sm font-medium text-foreground"
+              >
+                Customer
+              </label>
+              <select
+                id="customer-select"
+                value={selectedCustomerId}
+                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                disabled={isLoadingCustomers}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+              >
+                <option value="">Select a customer...</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name} ({customer.classification})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <button
-              onClick={startCall}
-              disabled={isLoading}
+              onClick={handleStartCall}
+              disabled={isLoading || isLoadingCustomers}
               className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
               {isLoading ? "Connecting..." : "Start Call"}

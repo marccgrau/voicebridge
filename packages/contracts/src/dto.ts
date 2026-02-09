@@ -235,12 +235,75 @@ export const ProcessDefinitionSchema = z.object({
 export type ProcessDefinition = z.infer<typeof ProcessDefinitionSchema>;
 
 /**
+ * Customer classification levels
+ */
+export const CustomerClassificationSchema = z.enum([
+  "basis",
+  "affluent",
+  "HNWI",
+  "UHNWI",
+]);
+
+export type CustomerClassification = z.infer<
+  typeof CustomerClassificationSchema
+>;
+
+/**
+ * Customer profile
+ */
+export const CustomerSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  gender: z.enum(["male", "female", "other"]),
+  email: z.string().email().nullable(),
+  phone: z.string().nullable(),
+  customerSince: z.string(), // Date string
+  classification: CustomerClassificationSchema,
+  products: z.array(z.string()),
+  preferredLanguage: z.string(),
+  notes: z.string().nullable(),
+});
+
+export type Customer = z.infer<typeof CustomerSchema>;
+
+/**
+ * Customer interaction types
+ */
+export const CustomerInteractionTypeSchema = z.enum([
+  "phone",
+  "chat",
+  "branch_visit",
+  "email",
+]);
+
+export type CustomerInteractionType = z.infer<
+  typeof CustomerInteractionTypeSchema
+>;
+
+/**
+ * Customer interaction record
+ */
+export const CustomerInteractionSchema = z.object({
+  id: z.string().uuid(),
+  customerId: z.string().uuid(),
+  type: CustomerInteractionTypeSchema,
+  date: z.string().datetime(),
+  summary: z.string(),
+  outcome: z.string().nullable(),
+  agentName: z.string().nullable(),
+  channelDetail: z.string().nullable(),
+});
+
+export type CustomerInteraction = z.infer<typeof CustomerInteractionSchema>;
+
+/**
  * Customer-initiated session creation request
  */
 export const SessionCreateRequestSchema = z.object({
   locale: z.string().default("en"),
   domain: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
+  customerId: z.string().uuid().optional(),
 });
 
 export type SessionCreateRequest = z.infer<typeof SessionCreateRequestSchema>;
