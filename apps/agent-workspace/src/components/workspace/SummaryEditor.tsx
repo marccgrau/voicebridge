@@ -1,0 +1,85 @@
+"use client";
+
+interface SummaryEditorProps {
+  summaryText: string;
+  onSummaryChange: (text: string) => void;
+  onSave: () => void;
+  isGenerating: boolean;
+  isSaving: boolean;
+  isSaved: boolean;
+  error: string | null;
+}
+
+export function SummaryEditor({
+  summaryText,
+  onSummaryChange,
+  onSave,
+  isGenerating,
+  isSaving,
+  isSaved,
+  error,
+}: SummaryEditorProps) {
+  return (
+    <div className="panel-morph flex h-full flex-col rounded-2xl border border-border/60 bg-card shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+        <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+          Session Summary
+        </span>
+        {isSaved && (
+          <span className="flex items-center gap-1.5 text-xs text-success">
+            <svg
+              className="h-3.5 w-3.5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Saved
+          </span>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-1 flex-col p-4 gap-4">
+        {isGenerating ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="h-3 w-3 animate-pulse-dot rounded-full gradient-accent" />
+              <span className="text-sm text-muted-foreground">
+                Generating summary...
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground/60">
+              Analyzing transcript and preparing notes
+            </p>
+          </div>
+        ) : (
+          <>
+            <textarea
+              value={summaryText}
+              onChange={(e) => onSummaryChange(e.target.value)}
+              placeholder="Write a summary of the session..."
+              className="flex-1 resize-none rounded-xl border border-border/60 bg-background p-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50"
+            />
+
+            {error && <p className="text-xs text-destructive">{error}</p>}
+
+            <button
+              onClick={onSave}
+              disabled={isSaving || !summaryText.trim()}
+              className="gradient-accent rounded-xl px-5 py-2.5 text-sm font-medium text-white hover:-translate-y-0.5 hover:shadow-accent-lg disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all"
+            >
+              {isSaving ? "Saving..." : "Save Summary"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}

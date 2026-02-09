@@ -15,8 +15,10 @@ class Settings(BaseSettings):
     speechmatics_url: str = "wss://neu.rt.speechmatics.com/v2"
     first_speaker_role: str = "customer"
 
-    # Anthropic
-    anthropic_api_key: str
+    # LLM Providers
+    anthropic_api_key: str | None = None
+    google_api_key: str | None = None
+    openai_api_key: str | None = None
 
     # Daily
     daily_api_key: str
@@ -28,7 +30,6 @@ class Settings(BaseSettings):
 
     # Pipeline
     stt_language: str = "en"
-    llm_model: str = "claude-sonnet-4-5-20250929"
     process_lookup_limit: int = 5
 
     # HTTP timeouts (seconds)

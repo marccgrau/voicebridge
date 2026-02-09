@@ -117,17 +117,18 @@ export function useSession() {
         throw new Error(error.detail || "Failed to stop session");
       }
 
-      // Clear storage
+      // Keep sessionId so postcall_summary phase can activate.
+      // Disconnect from room but preserve session reference.
       localStorage.removeItem(SESSION_STORAGE_KEY);
 
-      setState({
-        sessionId: null,
+      setState((prev) => ({
+        ...prev,
         roomUrl: null,
         roomToken: null,
         isConnected: false,
         isLoading: false,
         error: null,
-      });
+      }));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       setState((prev) => ({
@@ -139,10 +140,24 @@ export function useSession() {
     }
   }, [state.sessionId]);
 
+  /** Fully clear session state — call when leaving postcall to return to idle. */
+  const clearSession = useCallback(() => {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setState({
+      sessionId: null,
+      roomUrl: null,
+      roomToken: null,
+      isConnected: false,
+      isLoading: false,
+      error: null,
+    });
+  }, []);
+
   return {
     ...state,
     acceptSession,
     stopSession,
+    clearSession,
   };
 }
 

@@ -633,6 +633,309 @@ class TestSessionCreateEndpoint:
         assert "Failed to create voice room" in response.json()["detail"]
 
 
+class TestSessionSummaryEndpoint:
+    """Tests for POST /sessions/summary endpoint."""
+
+    @patch("src.main.get_supabase_client")
+    def test_saves_summary_on_completed_session(self, mock_get_client, client):
+        """Test successful summary save on a completed session."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+
+        # Mock select for status check
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(data={"status": "completed"})
+
+        # Mock update
+        mock_update = MagicMock()
+        mock_update.eq.return_value = mock_update
+        mock_update.execute.return_value = MagicMock(data={}, error=None)
+
+        mock_table.select.return_value = mock_select
+        mock_table.update.return_value = mock_update
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        response = client.post(
+            "/sessions/summary",
+            json={
+                "session_id": "test-session-123",
+                "summary_text": "Customer needed help with billing.",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["session_id"] == "test-session-123"
+        assert data["summary_text"] == "Customer needed help with billing."
+        assert data["updated_by"] == "agent"
+        assert "updated_at" in data
+
+        # Verify update was called with summary data
+        update_call = mock_table.update
+        assert update_call.called
+        update_data = update_call.call_args[0][0]
+        assert update_data["summary_text"] == "Customer needed help with billing."
+        assert "summary_updated_at" in update_data
+        assert update_data["summary_updated_by"] == "agent"
+
+    @patch("src.main.get_supabase_client")
+    def test_rejects_summary_for_active_session(self, mock_get_client, client):
+        """Test that saving summary on active session returns 400."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(data={"status": "active"})
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        response = client.post(
+            "/sessions/summary",
+            json={
+                "session_id": "test-session-123",
+                "summary_text": "Some summary",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "terminal" in response.json()["detail"].lower()
+
+    @patch("src.main.get_supabase_client")
+    def test_rejects_summary_for_pending_session(self, mock_get_client, client):
+        """Test that saving summary on pending session returns 400."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(data={"status": "pending"})
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        response = client.post(
+            "/sessions/summary",
+            json={
+                "session_id": "test-session-123",
+                "summary_text": "Some summary",
+            },
+        )
+
+        assert response.status_code == 400
+
+    @patch("src.main.get_supabase_client")
+    def test_returns_404_for_nonexistent_session(self, mock_get_client, client):
+        """Test that saving summary for nonexistent session returns 404."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.side_effect = Exception("Not found")
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        response = client.post(
+            "/sessions/summary",
+            json={
+                "session_id": "nonexistent-session",
+                "summary_text": "Some summary",
+            },
+        )
+
+        assert response.status_code == 500
+
+    @patch("src.main.get_supabase_client")
+    def test_idempotent_overwrite(self, mock_get_client, client):
+        """Test that saving summary twice overwrites the first."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(data={"status": "completed"})
+        mock_update = MagicMock()
+        mock_update.eq.return_value = mock_update
+        mock_update.execute.return_value = MagicMock(data={}, error=None)
+        mock_table.select.return_value = mock_select
+        mock_table.update.return_value = mock_update
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        # First save
+        response1 = client.post(
+            "/sessions/summary",
+            json={
+                "session_id": "test-session-123",
+                "summary_text": "First summary",
+            },
+        )
+        assert response1.status_code == 200
+        assert response1.json()["summary_text"] == "First summary"
+
+        # Second save overwrites
+        response2 = client.post(
+            "/sessions/summary",
+            json={
+                "session_id": "test-session-123",
+                "summary_text": "Updated summary",
+            },
+        )
+        assert response2.status_code == 200
+        assert response2.json()["summary_text"] == "Updated summary"
+
+    def test_rejects_empty_summary(self, client):
+        """Test that empty/whitespace summary is rejected."""
+        response = client.post(
+            "/sessions/summary",
+            json={
+                "session_id": "test-session-123",
+                "summary_text": "   ",
+            },
+        )
+
+        assert response.status_code == 400
+        assert "empty" in response.json()["detail"].lower()
+
+
+class TestGenerateSummaryEndpoint:
+    """Tests for POST /sessions/{id}/generate-summary endpoint."""
+
+    @patch("src.main.anthropic")
+    @patch("src.main.get_supabase_client")
+    def test_generates_summary_for_completed_session(
+        self, mock_get_client, mock_anthropic_mod, client
+    ):
+        """Test successful summary generation from transcript."""
+        mock_client = MagicMock()
+
+        # Mock select for session status
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(
+            data={"status": "completed", "summary_text": None}
+        )
+
+        # Mock select for transcript segments
+        mock_transcript_select = MagicMock()
+        mock_transcript_select.eq.return_value = mock_transcript_select
+        mock_transcript_select.order.return_value = mock_transcript_select
+        mock_transcript_select.execute.return_value = MagicMock(
+            data=[
+                {
+                    "speaker": "customer",
+                    "text": "I need help with billing",
+                    "ts": "2024-01-01T00:00:00Z",
+                },
+                {"speaker": "agent", "text": "I can help with that", "ts": "2024-01-01T00:00:05Z"},
+            ]
+        )
+
+        # Mock update
+        mock_update = MagicMock()
+        mock_update.eq.return_value = mock_update
+        mock_update.execute.return_value = MagicMock(data={}, error=None)
+
+        # Route table calls: first for sessions (status check), second for transcript_segments, third for sessions (update)
+        call_count = {"n": 0}
+
+        def table_router(name):
+            call_count["n"] += 1
+            if name == "transcript_segments":
+                return mock_transcript_select
+            # sessions table
+            mock_t = MagicMock()
+            mock_t.select.return_value = mock_select
+            mock_t.update.return_value = mock_update
+            return mock_t
+
+        mock_client.table.side_effect = table_router
+        mock_get_client.return_value = mock_client
+
+        # Mock Anthropic
+        mock_llm_client = MagicMock()
+        mock_message = MagicMock()
+        mock_text_block = MagicMock()
+        mock_text_block.text = (
+            "The customer requested help with billing. The agent assisted with the issue."
+        )
+        mock_message.content = [mock_text_block]
+        mock_llm_client.messages.create.return_value = mock_message
+        mock_anthropic_mod.Anthropic.return_value = mock_llm_client
+
+        response = client.post("/sessions/test-session-123/generate-summary")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["session_id"] == "test-session-123"
+        assert "billing" in data["summary_text"].lower()
+        assert data["updated_by"] == "ai"
+        assert "updated_at" in data
+
+        # Verify LLM was called
+        mock_llm_client.messages.create.assert_called_once()
+
+    @patch("src.main.get_supabase_client")
+    def test_rejects_active_session(self, mock_get_client, client):
+        """Test that generating summary for active session returns 400."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(
+            data={"status": "active", "summary_text": None}
+        )
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        response = client.post("/sessions/test-session-123/generate-summary")
+
+        assert response.status_code == 400
+        assert "terminal" in response.json()["detail"].lower()
+
+    @patch("src.main.get_supabase_client")
+    def test_rejects_empty_transcript(self, mock_get_client, client):
+        """Test that generating summary with no transcript returns 400."""
+        mock_client = MagicMock()
+
+        mock_select = MagicMock()
+        mock_select.eq.return_value = mock_select
+        mock_select.single.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(
+            data={"status": "completed", "summary_text": None}
+        )
+
+        mock_transcript_chain = MagicMock()
+        mock_transcript_chain.select.return_value = mock_transcript_chain
+        mock_transcript_chain.eq.return_value = mock_transcript_chain
+        mock_transcript_chain.order.return_value = mock_transcript_chain
+        mock_transcript_chain.execute.return_value = MagicMock(data=[])
+
+        def table_router(name):
+            if name == "transcript_segments":
+                return mock_transcript_chain
+            mock_t = MagicMock()
+            mock_t.select.return_value = mock_select
+            return mock_t
+
+        mock_client.table.side_effect = table_router
+        mock_get_client.return_value = mock_client
+
+        response = client.post("/sessions/test-session-123/generate-summary")
+
+        assert response.status_code == 400
+        assert "transcript" in response.json()["detail"].lower()
+
+
 class TestSessionAcceptEndpoint:
     """Tests for POST /sessions/accept (agent accepts pending session) endpoint."""
 

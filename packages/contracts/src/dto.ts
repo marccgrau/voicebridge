@@ -2,6 +2,13 @@ import { z } from "zod";
 import { ProcessStepSchema } from "./events.js";
 
 /**
+ * LLM provider options
+ */
+export const LLMProviderSchema = z.enum(["gemini", "anthropic", "openai"]);
+
+export type LLMProvider = z.infer<typeof LLMProviderSchema>;
+
+/**
  * Process candidate returned from lookup
  */
 export const ProcessCandidateSchema = z.object({
@@ -297,6 +304,33 @@ export const CustomerInteractionSchema = z.object({
 export type CustomerInteraction = z.infer<typeof CustomerInteractionSchema>;
 
 /**
+ * Session summary update request (postcall notes)
+ */
+export const SessionSummaryUpdateRequestSchema = z.object({
+  sessionId: z.string(),
+  summaryText: z.string().min(1),
+  updatedBy: z.string().default("agent"),
+});
+
+export type SessionSummaryUpdateRequest = z.infer<
+  typeof SessionSummaryUpdateRequestSchema
+>;
+
+/**
+ * Session summary update response
+ */
+export const SessionSummaryUpdateResponseSchema = z.object({
+  sessionId: z.string(),
+  summaryText: z.string(),
+  updatedAt: z.string(),
+  updatedBy: z.string(),
+});
+
+export type SessionSummaryUpdateResponse = z.infer<
+  typeof SessionSummaryUpdateResponseSchema
+>;
+
+/**
  * Customer-initiated session creation request
  */
 export const SessionCreateRequestSchema = z.object({
@@ -326,8 +360,10 @@ export const SessionAcceptRequestSchema = z.object({
   sessionId: z.string().uuid(),
   enableProcessFlow: z.boolean().default(true),
   enableSuggestionFlow: z.boolean().default(true),
-  processFlowModel: z.string().default("claude-3-5-haiku-20241022"),
-  suggestionFlowModel: z.string().default("claude-sonnet-4-20250514"),
+  processFlowProvider: LLMProviderSchema.default("openai"),
+  processFlowModel: z.string().default("gpt-5-nano"),
+  suggestionFlowProvider: LLMProviderSchema.default("openai"),
+  suggestionFlowModel: z.string().default("gpt-5-nano"),
   processContentPath: z.string().optional(),
 });
 

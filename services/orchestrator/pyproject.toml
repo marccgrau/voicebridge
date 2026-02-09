@@ -5,7 +5,7 @@ description = "VoiceBridge voice orchestrator with Pipecat"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "pipecat-ai[anthropic,daily,speechmatics,silero]>=0.0.50",
+    "pipecat-ai[anthropic,daily,speechmatics,silero,google,openai]>=0.0.50",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "supabase>=2.10.0",

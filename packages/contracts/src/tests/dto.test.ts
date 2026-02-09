@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  LLMProviderSchema,
   ProcessLookupInputSchema,
   ProcessLookupOutputSchema,
   SessionConfigSchema,
@@ -10,10 +11,24 @@ import {
   SessionCreateResponseSchema,
   SessionAcceptRequestSchema,
   SessionAcceptResponseSchema,
+  SessionSummaryUpdateRequestSchema,
+  SessionSummaryUpdateResponseSchema,
   UIPreferencesSchema,
 } from "../dto.js";
 
 describe("DTO Schemas", () => {
+  describe("LLMProviderSchema", () => {
+    it("accepts valid providers", () => {
+      expect(LLMProviderSchema.safeParse("gemini").success).toBe(true);
+      expect(LLMProviderSchema.safeParse("anthropic").success).toBe(true);
+      expect(LLMProviderSchema.safeParse("openai").success).toBe(true);
+    });
+
+    it("rejects invalid provider", () => {
+      expect(LLMProviderSchema.safeParse("invalid").success).toBe(false);
+    });
+  });
+
   describe("ProcessLookupInputSchema", () => {
     it("validates with required fields only", () => {
       const input = { query: "billing dispute" };
@@ -206,7 +221,7 @@ describe("DTO Schemas", () => {
   });
 
   describe("SessionAcceptRequestSchema", () => {
-    it("validates with required fields", () => {
+    it("validates with required fields and defaults", () => {
       const request = {
         sessionId: "123e4567-e89b-12d3-a456-426614174000",
       };
@@ -215,12 +230,36 @@ describe("DTO Schemas", () => {
       if (result.success) {
         expect(result.data.enableProcessFlow).toBe(true);
         expect(result.data.enableSuggestionFlow).toBe(true);
+        expect(result.data.processFlowProvider).toBe("openai");
+        expect(result.data.processFlowModel).toBe("gpt-5-nano");
+        expect(result.data.suggestionFlowProvider).toBe("openai");
+        expect(result.data.suggestionFlowModel).toBe("gpt-5-nano");
       }
+    });
+
+    it("validates with custom providers", () => {
+      const request = {
+        sessionId: "123e4567-e89b-12d3-a456-426614174000",
+        processFlowProvider: "anthropic" as const,
+        processFlowModel: "claude-haiku-4-5-20251001",
+        suggestionFlowProvider: "openai" as const,
+        suggestionFlowModel: "gpt-4",
+      };
+      const result = SessionAcceptRequestSchema.safeParse(request);
+      expect(result.success).toBe(true);
     });
 
     it("rejects invalid session ID", () => {
       const result = SessionAcceptRequestSchema.safeParse({
         sessionId: "not-a-uuid",
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid provider", () => {
+      const result = SessionAcceptRequestSchema.safeParse({
+        sessionId: "123e4567-e89b-12d3-a456-426614174000",
+        processFlowProvider: "invalid",
       });
       expect(result.success).toBe(false);
     });
@@ -240,6 +279,69 @@ describe("DTO Schemas", () => {
       };
       const result = SessionAcceptResponseSchema.safeParse(response);
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("SessionSummaryUpdateRequestSchema", () => {
+    it("validates with required fields", () => {
+      const request = {
+        sessionId: "test-session-123",
+        summaryText: "Customer needed help with billing.",
+      };
+      const result = SessionSummaryUpdateRequestSchema.safeParse(request);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.updatedBy).toBe("agent");
+      }
+    });
+
+    it("validates with custom updatedBy", () => {
+      const request = {
+        sessionId: "test-session-123",
+        summaryText: "Summary text",
+        updatedBy: "supervisor",
+      };
+      const result = SessionSummaryUpdateRequestSchema.safeParse(request);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.updatedBy).toBe("supervisor");
+      }
+    });
+
+    it("rejects empty summary text", () => {
+      const request = {
+        sessionId: "test-session-123",
+        summaryText: "",
+      };
+      const result = SessionSummaryUpdateRequestSchema.safeParse(request);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects missing summaryText", () => {
+      const result = SessionSummaryUpdateRequestSchema.safeParse({
+        sessionId: "test-session-123",
+      });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("SessionSummaryUpdateResponseSchema", () => {
+    it("validates valid response", () => {
+      const response = {
+        sessionId: "test-session-123",
+        summaryText: "Customer needed help with billing.",
+        updatedAt: "2024-01-15T10:30:00Z",
+        updatedBy: "agent",
+      };
+      const result = SessionSummaryUpdateResponseSchema.safeParse(response);
+      expect(result.success).toBe(true);
+    });
+
+    it("rejects missing fields", () => {
+      const result = SessionSummaryUpdateResponseSchema.safeParse({
+        sessionId: "test-session-123",
+      });
+      expect(result.success).toBe(false);
     });
   });
 });

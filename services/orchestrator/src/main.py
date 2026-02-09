@@ -4,9 +4,10 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
+import anthropic
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +16,11 @@ from pydantic import BaseModel, Field
 
 from src.config import settings
 from src.db import get_supabase_client
+from src.llm import LLMServiceFactory
 from src.pipeline import VoiceBridgePipeline
+
+# LLM Provider type
+LLMProvider = Literal["gemini", "anthropic", "openai"]
 
 # Configure logging
 logging.basicConfig(
@@ -121,12 +126,20 @@ class SessionStartRequest(BaseModel):
         default=True,
         description="Enable agent suggestion generation",
     )
+    process_flow_provider: LLMProvider = Field(
+        default="openai",
+        description="LLM provider for process flow",
+    )
     process_flow_model: str = Field(
-        default="claude-haiku-4-5-20251001",
+        default="gpt-5-nano",
         description="Model for process flow (fast/cheap for infrequent calls)",
     )
+    suggestion_flow_provider: LLMProvider = Field(
+        default="openai",
+        description="LLM provider for suggestion flow",
+    )
     suggestion_flow_model: str = Field(
-        default="claude-sonnet-4-5-20250929",
+        default="gpt-5-nano",
         description="Model for suggestion flow (quality for frequent calls)",
     )
     process_content_path: str | None = Field(
@@ -183,8 +196,10 @@ class SessionAcceptRequest(BaseModel):
     session_id: str
     enable_process_flow: bool = Field(default=True)
     enable_suggestion_flow: bool = Field(default=True)
-    process_flow_model: str = Field(default="claude-haiku-4-5-20251001")
-    suggestion_flow_model: str = Field(default="claude-sonnet-4-5-20250929")
+    process_flow_provider: LLMProvider = Field(default="openai")
+    process_flow_model: str = Field(default="gpt-5-nano")
+    suggestion_flow_provider: LLMProvider = Field(default="openai")
+    suggestion_flow_model: str = Field(default="gpt-5-nano")
     process_content_path: str | None = Field(default=None)
 
 
@@ -196,6 +211,32 @@ class SessionAcceptResponse(BaseModel):
     agent_token: str
     rtvi_url: str
     services: dict[str, Any]
+
+
+class SessionSummaryRequest(BaseModel):
+    """Request to save a session summary."""
+
+    session_id: str
+    summary_text: str
+    updated_by: str = Field(default="agent")
+
+
+class SessionSummaryResponse(BaseModel):
+    """Response after saving a session summary."""
+
+    session_id: str
+    summary_text: str
+    updated_at: str
+    updated_by: str
+
+
+class GenerateSummaryResponse(BaseModel):
+    """Response after generating a session summary."""
+
+    session_id: str
+    summary_text: str
+    updated_at: str
+    updated_by: str
 
 
 class HealthResponse(BaseModel):
@@ -303,7 +344,9 @@ async def run_pipeline(
     room_token: str,
     enable_process_flow: bool,
     enable_suggestion_flow: bool,
+    process_flow_provider: LLMProvider,
     process_flow_model: str,
+    suggestion_flow_provider: LLMProvider,
     suggestion_flow_model: str,
     process_content_path: str | None,
 ) -> None:
@@ -315,17 +358,27 @@ async def run_pipeline(
         room_token: Daily room token
         enable_process_flow: Enable process flow
         enable_suggestion_flow: Enable suggestion flow
+        process_flow_provider: LLM provider for process flow
         process_flow_model: Model for process flow
+        suggestion_flow_provider: LLM provider for suggestion flow
         suggestion_flow_model: Model for suggestion flow
         process_content_path: Path to process markdown files
     """
+    # Validate provider configuration
+    if enable_process_flow:
+        LLMServiceFactory.validate_provider_config(process_flow_provider)
+    if enable_suggestion_flow:
+        LLMServiceFactory.validate_provider_config(suggestion_flow_provider)
+
     pipeline = VoiceBridgePipeline(
         session_id=session_id,
         room_url=room_url,
         room_token=room_token,
         enable_process_flow=enable_process_flow,
         enable_suggestion_flow=enable_suggestion_flow,
+        process_flow_provider=process_flow_provider,
         process_flow_model=process_flow_model,
+        suggestion_flow_provider=suggestion_flow_provider,
         suggestion_flow_model=suggestion_flow_model,
         process_content_path=process_content_path or "process_content/",
     )
@@ -399,7 +452,9 @@ async def start_session(
             room["room_token"],
             request.enable_process_flow,
             request.enable_suggestion_flow,
+            request.process_flow_provider,
             request.process_flow_model,
+            request.suggestion_flow_provider,
             request.suggestion_flow_model,
             request.process_content_path,
         )
@@ -418,7 +473,9 @@ async def start_session(
             services={
                 "processFlowEnabled": request.enable_process_flow,
                 "suggestionFlowEnabled": request.enable_suggestion_flow,
+                "processFlowProvider": request.process_flow_provider,
                 "processFlowModel": request.process_flow_model,
+                "suggestionFlowProvider": request.suggestion_flow_provider,
                 "suggestionFlowModel": request.suggestion_flow_model,
             },
         )
@@ -486,9 +543,11 @@ async def create_session(
             room["room_token"],  # bot gets the owner token
             True,  # enable_process_flow
             True,  # enable_suggestion_flow
-            "claude-haiku-4-5-20251001",
-            "claude-sonnet-4-5-20250929",
-            None,
+            "openai",  # process_flow_provider (default)
+            "gpt-5-nano",  # process_flow_model (default)
+            "openai",  # suggestion_flow_provider (default)
+            "gpt-5-nano",  # suggestion_flow_model (default)
+            None,  # process_content_path
         )
 
         return SessionCreateResponse(
@@ -558,6 +617,10 @@ async def accept_session(request: SessionAcceptRequest) -> SessionAcceptResponse
             services={
                 "processFlowEnabled": request.enable_process_flow,
                 "suggestionFlowEnabled": request.enable_suggestion_flow,
+                "processFlowProvider": request.process_flow_provider,
+                "processFlowModel": request.process_flow_model,
+                "suggestionFlowProvider": request.suggestion_flow_provider,
+                "suggestionFlowModel": request.suggestion_flow_model,
             },
         )
 
@@ -644,6 +707,155 @@ async def stop_session(request: SessionStopRequest) -> SessionStopResponse:
         stopped_at=datetime.now(UTC).isoformat(),
         status="completed",
     )
+
+
+TERMINAL_STATUSES = {"completed", "abandoned", "escalated"}
+
+
+@app.post("/sessions/summary", response_model=SessionSummaryResponse)
+async def save_session_summary(request: SessionSummaryRequest) -> SessionSummaryResponse:
+    """Save or update a session summary (postcall notes).
+
+    Only allowed for sessions with a terminal status (completed, abandoned, escalated).
+    Idempotent: repeated calls overwrite the previous summary.
+    """
+    session_id = request.session_id
+
+    if not request.summary_text or not request.summary_text.strip():
+        raise HTTPException(status_code=400, detail="Summary text cannot be empty")
+
+    try:
+        client = get_supabase_client()
+
+        # Fetch session to validate existence and status
+        result = client.table("sessions").select("status").eq("id", session_id).single().execute()
+
+        if not result.data:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+
+        session_status = result.data["status"]
+        if session_status not in TERMINAL_STATUSES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Summary can only be saved for terminal sessions (completed/abandoned/escalated), current status: {session_status}",
+            )
+
+        now = datetime.now(UTC).isoformat()
+        client.table("sessions").update(
+            {
+                "summary_text": request.summary_text.strip(),
+                "summary_updated_at": now,
+                "summary_updated_by": request.updated_by,
+                "updated_at": now,
+            }
+        ).eq("id", session_id).execute()
+
+        return SessionSummaryResponse(
+            session_id=session_id,
+            summary_text=request.summary_text.strip(),
+            updated_at=now,
+            updated_by=request.updated_by,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to save summary for session %s: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.post("/sessions/{session_id}/generate-summary", response_model=GenerateSummaryResponse)
+async def generate_session_summary(session_id: str) -> GenerateSummaryResponse:
+    """Generate a summary from transcript segments using an LLM.
+
+    Reads all transcript segments for the session, sends them to Claude,
+    saves the generated summary, and returns it. Only works for terminal sessions.
+    """
+    try:
+        client = get_supabase_client()
+
+        # Validate session exists and is terminal
+        session_result = (
+            client.table("sessions")
+            .select("status, summary_text")
+            .eq("id", session_id)
+            .single()
+            .execute()
+        )
+
+        if not session_result.data:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+
+        if session_result.data["status"] not in TERMINAL_STATUSES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Summary can only be generated for terminal sessions, current status: {session_result.data['status']}",
+            )
+
+        # Fetch transcript segments ordered by timestamp
+        transcript_result = (
+            client.table("transcript_segments")
+            .select("speaker, text, ts")
+            .eq("session_id", session_id)
+            .order("ts", desc=False)
+            .execute()
+        )
+
+        segments = transcript_result.data or []
+
+        if not segments:
+            raise HTTPException(
+                status_code=400,
+                detail="No transcript segments found for this session",
+            )
+
+        # Format transcript for LLM
+        transcript_text = "\n".join(f"[{seg['speaker'].upper()}] {seg['text']}" for seg in segments)
+
+        # Generate summary via Claude
+        llm_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+        message = llm_client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"""Summarize the following customer service call transcript in 2-4 sentences.
+Focus on: the customer's issue, actions taken by the agent, and the outcome/resolution.
+Write in past tense, third person. Be concise and factual.
+
+Transcript:
+{transcript_text}""",
+                }
+            ],
+        )
+
+        summary_text = message.content[0].text.strip()
+
+        # Save to database
+        now = datetime.now(UTC).isoformat()
+        client.table("sessions").update(
+            {
+                "summary_text": summary_text,
+                "summary_updated_at": now,
+                "summary_updated_by": "ai",
+                "updated_at": now,
+            }
+        ).eq("id", session_id).execute()
+
+        return GenerateSummaryResponse(
+            session_id=session_id,
+            summary_text=summary_text,
+            updated_at=now,
+            updated_by="ai",
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Failed to generate summary for session %s: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/healthz", response_model=HealthResponse)

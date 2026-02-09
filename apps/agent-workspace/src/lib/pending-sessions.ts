@@ -11,6 +11,7 @@ export interface PendingSession {
   room_name: string;
   created_at: string;
   customer_joined_at: string | null;
+  customer_id: string | null;
   state: Record<string, unknown>;
 }
 
@@ -27,7 +28,7 @@ export function usePendingSessions() {
     supabase
       .from("sessions")
       .select(
-        "id, status, room_url, room_name, created_at, customer_joined_at, state"
+        "id, status, room_url, room_name, created_at, customer_joined_at, customer_id, state"
       )
       .eq("status", "pending")
       .order("created_at", { ascending: false })
