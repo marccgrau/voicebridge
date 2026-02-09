@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 from uuid import uuid4
 
-import anthropic
 import httpx
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +15,7 @@ from pydantic import BaseModel, Field
 
 from src.config import settings
 from src.db import get_supabase_client
-from src.llm import LLMServiceFactory
+from src.llm import LLMServiceFactory, SummaryService
 from src.pipeline import VoiceBridgePipeline
 
 # LLM Provider type
@@ -809,29 +808,9 @@ async def generate_session_summary(session_id: str) -> GenerateSummaryResponse:
                 detail="No transcript segments found for this session",
             )
 
-        # Format transcript for LLM
-        transcript_text = "\n".join(f"[{seg['speaker'].upper()}] {seg['text']}" for seg in segments)
-
-        # Generate summary via Claude
-        llm_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
-
-        message = llm_client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=512,
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"""Summarize the following customer service call transcript in 2-4 sentences.
-Focus on: the customer's issue, actions taken by the agent, and the outcome/resolution.
-Write in past tense, third person. Be concise and factual.
-
-Transcript:
-{transcript_text}""",
-                }
-            ],
-        )
-
-        summary_text = message.content[0].text.strip()
+        # Generate summary using SummaryService
+        summary_service = SummaryService()
+        summary_text = summary_service.generate_summary(segments)
 
         # Save to database
         now = datetime.now(UTC).isoformat()

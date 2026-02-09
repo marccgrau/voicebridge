@@ -807,10 +807,10 @@ class TestSessionSummaryEndpoint:
 class TestGenerateSummaryEndpoint:
     """Tests for POST /sessions/{id}/generate-summary endpoint."""
 
-    @patch("src.main.anthropic")
+    @patch("src.main.SummaryService")
     @patch("src.main.get_supabase_client")
     def test_generates_summary_for_completed_session(
-        self, mock_get_client, mock_anthropic_mod, client
+        self, mock_get_client, mock_summary_service_class, client
     ):
         """Test successful summary generation from transcript."""
         mock_client = MagicMock()
@@ -859,16 +859,12 @@ class TestGenerateSummaryEndpoint:
         mock_client.table.side_effect = table_router
         mock_get_client.return_value = mock_client
 
-        # Mock Anthropic
-        mock_llm_client = MagicMock()
-        mock_message = MagicMock()
-        mock_text_block = MagicMock()
-        mock_text_block.text = (
+        # Mock SummaryService
+        mock_summary_service = MagicMock()
+        mock_summary_service.generate_summary.return_value = (
             "The customer requested help with billing. The agent assisted with the issue."
         )
-        mock_message.content = [mock_text_block]
-        mock_llm_client.messages.create.return_value = mock_message
-        mock_anthropic_mod.Anthropic.return_value = mock_llm_client
+        mock_summary_service_class.return_value = mock_summary_service
 
         response = client.post("/sessions/test-session-123/generate-summary")
 
@@ -879,8 +875,9 @@ class TestGenerateSummaryEndpoint:
         assert data["updated_by"] == "ai"
         assert "updated_at" in data
 
-        # Verify LLM was called
-        mock_llm_client.messages.create.assert_called_once()
+        # Verify SummaryService was instantiated and generate_summary was called
+        mock_summary_service_class.assert_called_once()
+        mock_summary_service.generate_summary.assert_called_once()
 
     @patch("src.main.get_supabase_client")
     def test_rejects_active_session(self, mock_get_client, client):
