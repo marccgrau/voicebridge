@@ -81,15 +81,15 @@ voicebridge/
 ├── services/
 │   └── orchestrator/              # Python/FastAPI voice pipeline (port 8000)
 │       ├── src/
+│       │   ├── llm/               # Multi-provider LLM support (LLMServiceFactory)
 │       │   ├── flows/             # ProcessFlow & SuggestionFlow (FlowManager)
-│       │   ├── pipeline/          # Pipeline assembly & TranscriptWriter
-│       │   ├── rtvi/              # VoiceBridgeRTVIObserver
-│       │   ├── frames/            # Custom frames (Suggestion, ProcessIllustration, Transcript)
-│       │   ├── utils/             # Logging, retry, cleanup utilities
+│       │   ├── pipeline/          # Pipeline assembly & VoiceBridgePipeline
+│       │   ├── processors/        # TranscriptWriter, VoiceBridgeRTVIObserver
 │       │   ├── db/                # Supabase client
+│       │   ├── utils/             # Logging, retry, cleanup utilities
 │       │   ├── config.py          # Settings (API keys, timeouts, models)
 │       │   └── main.py            # FastAPI app with session endpoints
-│       ├── tests/                 # Pytest test suite
+│       ├── tests/                 # Pytest test suite (api, llm, pipeline, db)
 │       └── process_content/       # Markdown process definitions
 ├── packages/
 │   ├── contracts/                 # Shared Zod schemas (events & DTOs)
