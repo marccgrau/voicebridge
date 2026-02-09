@@ -79,35 +79,43 @@ def create_suggesting_node(
             [f"{i + 1}. {s['label']} [{s['status']}]" for i, s in enumerate(steps)]
         )
 
-        system_content = f"""You are an agent guidance assistant. Generate exactly 3 concise suggestions for the agent.
+        system_content = f"""You are an agent guidance assistant that observes a conversation between an agent and a customer.
+        Your task is to provide helpful suggestions to the agent based on the conversation and the current process context.
+        Generate exactly 3 concise suggestions for the agent.
+        The conversation is recorded with a STT model. Therefore, the conversation may contain transcription errors.
+        Use your judgment to interpret the conversation and provide relevant suggestions.
 
-Conversation lines are tagged with [customer] or [agent].
+        Conversation lines are tagged with [customer] or [agent].
 
-Make sure that the suggestions are relevant to the current process step.
-If the customer utterance indicates an issue or question related to the current step, tailor your suggestions to help the agent address it effectively.
+        Make sure that the suggestions are relevant to the current process step.
+        If the customer utterance indicates an issue or question related to the current step, tailor your suggestions to help the agent address it effectively.
 
-Current Process: {process_name} (Step {current_step + 1})
-Steps: {step_list}
+        Current Process: {process_name} (Step {current_step + 1})
+        Steps: {step_list}
 
-Rules:
-- Exactly 3 suggestions, each one short sentence
-- Reference the current process step when relevant
-- No preamble, just call publish_suggestions immediately
+        Rules:
+        - Exactly 3 suggestions, each one short sentence
+        - Reference the current process step when relevant
+        - No preamble, just call publish_suggestions immediately
 
-Call publish_suggestions with exactly 3 suggestions."""  # noqa
+        Call publish_suggestions with exactly 3 suggestions."""  # noqa
     else:
         system_content = """You are an agent guidance assistant. Generate exactly 3 concise suggestions for the agent.
+        Your task is to provide helpful suggestions to the agent based on the conversation and the current process context.
+        Generate exactly 3 concise suggestions for the agent.
+        The conversation is recorded with a STT model. Therefore, the conversation may contain transcription errors.
+        Use your judgment to interpret the conversation and provide relevant suggestions.
 
-Conversation lines are tagged with [customer] or [agent].
+        Conversation lines are tagged with [customer] or [agent].
 
-The intent of the customer is not yet known.
-Make suggestions based on the latest customer utterance, and keep them general enough to be useful to identify the customer's intent and next steps.
+        The intent of the customer is not yet known.
+        Make suggestions based on the latest customer utterance, and keep them general enough to be useful to identify the customer's intent and next steps.
 
-Rules:
-- Exactly 3 suggestions, each one short sentence
-- No preamble, just call publish_suggestions immediately
+        Rules:
+        - Exactly 3 suggestions, each one short sentence
+        - No preamble, just call publish_suggestions immediately
 
-Call publish_suggestions with exactly 3 suggestions."""  # noqa
+        Call publish_suggestions with exactly 3 suggestions."""  # noqa
 
     return {
         "name": "suggesting",

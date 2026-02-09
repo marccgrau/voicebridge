@@ -3,12 +3,7 @@
 
 import asyncio
 import logging
-
-# Add src to path
-import sys
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from src.flows.process_flow import load_process_catalog
 
@@ -17,7 +12,8 @@ async def main():
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    process_path = Path(__file__).parent / "process_content"
+    # Path is now relative to tests/flows/, so go up two levels
+    process_path = Path(__file__).parent.parent.parent / "process_content"
     logger.info(f"Loading processes from: {process_path}")
 
     processes = await load_process_catalog(process_path, logger)

@@ -156,16 +156,18 @@ def create_detecting_node(
             {
                 "role": "system",
                 "content": f"""You are a process detection expert.
-Analyze the customer conversation and identify which process matches their needs.
-Below you find the conversation so far and the list of available processes you can choose from.
+                Your task is to analyze a conversation between a customer and an agent and identify which process best matches the customer's intent, based on the conversation and the list of available processes.
+                Below you find the conversation so far and the list of available processes you can choose from.
+                The conversation is recorded with a STT model. Therefore, the conversation may contain transcription errors.
+                Use your judgment to interpret the conversation and identify the most appropriate process.
 
-Conversation lines are tagged with speaker labels like [customer] or [agent].
+                Conversation lines are tagged with speaker labels like [customer] or [agent].
 
-Available processes:
-{process_list}
+                Available processes:
+                {process_list}
 
-Call select_process when you've identified the right process with confidence > 0.6.
-Call need_more_context if you need more conversation to make a decision.""",
+                Call select_process when you've identified the right process with confidence > 0.6.
+                Call need_more_context if you need more conversation to make a decision.""",
             }
         ],
         "task_messages": [
@@ -194,17 +196,20 @@ def create_tracking_node(
         "role_messages": [
             {
                 "role": "system",
-                "content": f"""Track conversation progress through process steps.
+                "content": f"""You are a process tracking assistant.
+                Your task is to monitor the conversation between a customer and an agent, and determine when the conversation has progressed to a new step in the current process.
+                The conversation is recorded with a STT model. Therefore, the conversation may contain transcription errors.
+                Use your judgment to interpret the conversation and identify the current process step.
 
-Conversation lines are tagged with speaker labels like [customer] or [agent].
+                Conversation lines are tagged with speaker labels like [customer] or [agent].
 
-Process: {current_process.name}
-Steps:
-{step_list}
+                Process: {current_process.name}
+                Steps:
+                {step_list}
 
-Current step: {current_step + 1}
+                Current step: {current_step + 1}
 
-Call update_step when you detect the conversation has moved to a new step.""",
+                Call update_step when you detect the conversation has moved to a new step.""",
             }
         ],
         "task_messages": [
