@@ -41,9 +41,11 @@ class ProcessService:
         self,
         min_utterances_before_detection: int = 3,
         detection_confidence_threshold: float = 0.6,
+        conversation_window_size: int = 8,
     ):
         self._min_utterances_before_detection = min_utterances_before_detection
         self._detection_confidence_threshold = detection_confidence_threshold
+        self._conversation_window_size = max(1, conversation_window_size)
 
     async def load_process_catalog(
         self,
@@ -183,11 +185,13 @@ class ProcessService:
         conversation_buffer: list[str],
         current_step: int,
         update_step_fn: FlowsFunctionSchema,
+        conversation_window_size: int = 8,
     ) -> NodeConfig:
         """Create TRACKING node (step progress tracking)."""
         step_list = "\n".join(
             [f"{i + 1}. {step.label}" for i, step in enumerate(current_process.steps)]
         )
+        window_size = max(1, conversation_window_size)
 
         return {
             "name": "tracking",
@@ -213,7 +217,7 @@ class ProcessService:
             "task_messages": [
                 {
                     "role": "user",
-                    "content": "\n".join(conversation_buffer[-5:]),
+                    "content": "\n".join(conversation_buffer[-window_size:]),
                 }
             ],
             "functions": [update_step_fn],
@@ -251,6 +255,7 @@ class ProcessService:
                 state["conversation_buffer"],
                 state["current_step"],
                 update_step_schema,
+                self._conversation_window_size,
             )
 
         return None, None
@@ -306,6 +311,7 @@ class ProcessService:
             state["conversation_buffer"],
             0,
             update_step_schema,
+            self._conversation_window_size,
         )
 
         return {"status": "selected", "process_key": process_key}, next_node, illustration_frame
@@ -344,6 +350,7 @@ class ProcessService:
                 state["conversation_buffer"],
                 state["current_step"],
                 update_step_schema,
+                self._conversation_window_size,
             )
             return {"status": "invalid_step"}, next_node, None
 
@@ -382,6 +389,7 @@ class ProcessService:
             state["conversation_buffer"],
             step_index,
             update_step_schema,
+            self._conversation_window_size,
         )
 
         return (

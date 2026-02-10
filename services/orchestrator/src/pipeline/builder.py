@@ -16,6 +16,7 @@ from pipecat.turns.user_stop import TurnAnalyzerUserTurnStopStrategy
 from pipecat.turns.user_turn_strategies import UserTurnStrategies
 from pipecat_flows import FlowManager
 from pipecat_flows.adapters import LLMContextAggregatorPair
+from pipecat_flows.types import ContextStrategy, ContextStrategyConfig
 
 from src.config import settings
 from src.flows import ProcessFlow, SuggestionFlow
@@ -209,6 +210,7 @@ class VoiceBridgePipelineBuilder:
             task=process_task,
             llm=process_llm,
             context_aggregator=process_agg_pair,
+            context_strategy=ContextStrategyConfig(strategy=ContextStrategy.RESET),
         )
 
         process_flow = ProcessFlow(
@@ -253,6 +255,7 @@ class VoiceBridgePipelineBuilder:
             task=suggestion_task,
             llm=suggestion_llm,
             context_aggregator=suggestion_agg_pair,
+            context_strategy=ContextStrategyConfig(strategy=ContextStrategy.RESET),
         )
 
         suggestion_flow = SuggestionFlow(

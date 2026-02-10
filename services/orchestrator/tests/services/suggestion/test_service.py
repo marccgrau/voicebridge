@@ -49,3 +49,26 @@ class TestSuggestionService:
         assert frame.process_key == "billing"
         assert frame.latency_ms == 12.3
         assert len(frame.suggestions) == 3
+
+    def test_create_suggesting_node_uses_last_window_utterances(self):
+        service = SuggestionService(conversation_window_size=3)
+
+        node = service.create_suggesting_node(
+            conversation_buffer=[
+                "[customer]: turn_1",
+                "[agent]: turn_2",
+                "[customer]: turn_3",
+                "[agent]: turn_4",
+                "[customer]: turn_5",
+            ],
+            process_context=None,
+            publish_suggestions_fn=object(),
+        )
+
+        prompt = node["task_messages"][0]["content"]
+        assert "Conversation (last 3 utterances):" in prompt
+        assert "turn_1" not in prompt
+        assert "turn_2" not in prompt
+        assert "turn_3" in prompt
+        assert "turn_4" in prompt
+        assert "turn_5" in prompt

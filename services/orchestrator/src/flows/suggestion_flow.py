@@ -26,7 +26,7 @@ class SuggestionFlow(FrameProcessor):
         super().__init__(**kwargs)
         self.session_id = session_id
         self.flow_manager = flow_manager
-        self.service = SuggestionService()
+        self.service = SuggestionService(conversation_window_size=settings.conversation_window_size)
         self._turn_start_time: float | None = None
         self._latest_turn_id = 0
         self._suggestion_task: asyncio.Task | None = None

@@ -62,6 +62,50 @@ class TestProcessService:
         assert node is not None
         assert node["name"] == "detecting"
 
+    def test_handle_transcription_detecting_uses_full_conversation(self):
+        service = ProcessService(min_utterances_before_detection=2)
+        state = service.initial_state(
+            {
+                "billing": ProcessDefinition(
+                    process_key="billing",
+                    name="Billing",
+                    domain="billing",
+                    intents=["bill"],
+                    steps=[],
+                    full_content="",
+                )
+            }
+        )
+
+        select_schema = object()
+        more_context_schema = object()
+        update_schema = object()
+
+        service.handle_transcription(
+            state,
+            "customer",
+            "first utterance",
+            "idle",
+            select_schema,
+            more_context_schema,
+            update_schema,
+        )
+        _, node = service.handle_transcription(
+            state,
+            "agent",
+            "second utterance",
+            "idle",
+            select_schema,
+            more_context_schema,
+            update_schema,
+        )
+
+        assert node is not None
+        assert node["name"] == "detecting"
+        prompt = node["task_messages"][0]["content"]
+        assert "[customer]: first utterance" in prompt
+        assert "[agent]: second utterance" in prompt
+
     def test_handle_select_process_success_returns_frame_and_tracking_node(self):
         service = ProcessService()
         process = ProcessDefinition(
@@ -115,3 +159,35 @@ class TestProcessService:
         assert result["status"] == "invalid_step"
         assert next_node["name"] == "tracking"
         assert frame is None
+
+    def test_handle_transcription_tracking_uses_last_eight_utterances(self):
+        service = ProcessService(conversation_window_size=8)
+        process = ProcessDefinition(
+            process_key="billing",
+            name="Billing",
+            domain="billing",
+            intents=["bill"],
+            steps=[ProcessStep(key="step_1", label="Verify", content="...", order=1)],
+            full_content="content",
+        )
+        state = service.initial_state({"billing": process})
+        state["detected_process"] = process
+        state["conversation_buffer"] = [f"[customer]: utt_{index:02d}" for index in range(1, 10)]
+
+        _, node = service.handle_transcription(
+            state=state,
+            speaker="agent",
+            text="utt_10",
+            current_node="tracking",
+            select_process_schema=object(),
+            need_more_context_schema=object(),
+            update_step_schema=object(),
+        )
+
+        assert node is not None
+        assert node["name"] == "tracking"
+        prompt = node["task_messages"][0]["content"]
+        assert "utt_01" not in prompt
+        assert "utt_02" not in prompt
+        assert "utt_03" in prompt
+        assert "utt_10" in prompt

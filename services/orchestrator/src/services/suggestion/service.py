@@ -10,6 +10,9 @@ from src.frames import ProcessIllustrationFrame, SuggestionFrame
 class SuggestionService:
     """Encapsulates suggestion-domain state and prompt/node construction."""
 
+    def __init__(self, conversation_window_size: int = 8):
+        self._conversation_window_size = max(1, conversation_window_size)
+
     @staticmethod
     def initial_state() -> dict[str, Any]:
         """Return initial state map for SuggestionFlow."""
@@ -48,8 +51,8 @@ class SuggestionService:
             "functions": [],
         }
 
-    @staticmethod
     def create_suggesting_node(
+        self,
         conversation_buffer: list[str],
         process_context: dict[str, Any] | None,
         publish_suggestions_fn: FlowsFunctionSchema,
@@ -94,13 +97,17 @@ class SuggestionService:
             Conversation lines are tagged with [customer] or [agent].
 
             The intent of the customer is not yet known.
-            Make suggestions based on the latest customer utterance, and keep them general enough to be useful to identify the customer's intent and next steps.
+            Make suggestions based on the recent conversation window, and keep them general enough to identify the customer's intent and likely next steps.
 
             Rules:
             - Exactly 3 suggestions, each one short sentence
             - No preamble, just call publish_suggestions immediately
 
             Call publish_suggestions with exactly 3 suggestions."""
+
+        conversation_window = "\n".join(conversation_buffer[-self._conversation_window_size :])
+        if not conversation_window:
+            conversation_window = "(waiting)"
 
         return {
             "name": "suggesting",
@@ -113,7 +120,10 @@ class SuggestionService:
             "task_messages": [
                 {
                     "role": "user",
-                    "content": f"Latest customer message:\n{conversation_buffer[-1] if conversation_buffer else '(waiting)'}",
+                    "content": (
+                        f"Conversation (last {self._conversation_window_size} utterances):\n"
+                        f"{conversation_window}"
+                    ),
                 }
             ],
             "functions": [publish_suggestions_fn],

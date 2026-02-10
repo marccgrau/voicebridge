@@ -35,7 +35,7 @@ class ProcessFlow(FrameProcessor):
         self.session_id = session_id
         self.flow_manager = flow_manager
         self.process_path = Path(process_content_path)
-        self.service = ProcessService()
+        self.service = ProcessService(conversation_window_size=settings.conversation_window_size)
 
         self.logger = get_session_logger(__name__, session_id)
 

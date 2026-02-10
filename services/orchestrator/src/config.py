@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     stt_max_speakers: int = 2
     stt_prefer_current_speaker: bool = True
     process_lookup_limit: int = 5
+    conversation_window_size: int = 8
     vad_start_secs: float = 0.2
     vad_stop_secs: float = 0.6
     smart_turn_cpu_count: int = 1

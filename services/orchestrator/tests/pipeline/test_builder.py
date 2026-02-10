@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from pipecat.services.speechmatics.stt import Language
+from pipecat_flows.types import ContextStrategy
 
 import src.pipeline.builder as builder_module
 from src.pipeline.builder import VoiceBridgePipelineBuilder
@@ -41,6 +42,21 @@ def _build_test_builder() -> VoiceBridgePipelineBuilder:
         room_token="test-token",
         enable_process_flow=False,
         enable_suggestion_flow=False,
+        process_flow_provider="openai",
+        process_flow_model="gpt-5-nano",
+        suggestion_flow_provider="openai",
+        suggestion_flow_model="gpt-5-nano",
+        process_content_path="process_content/",
+    )
+
+
+def _build_flow_enabled_builder() -> VoiceBridgePipelineBuilder:
+    return VoiceBridgePipelineBuilder(
+        session_id="test-session",
+        room_url="https://example.daily.co/test-room",
+        room_token="test-token",
+        enable_process_flow=True,
+        enable_suggestion_flow=True,
         process_flow_provider="openai",
         process_flow_model="gpt-5-nano",
         suggestion_flow_provider="openai",
@@ -115,3 +131,80 @@ def test_resolve_stt_language_raises_on_invalid_value():
     """Test invalid language strings raise a clear error."""
     with pytest.raises(ValueError, match="Unsupported STT_LANGUAGE"):
         VoiceBridgePipelineBuilder._resolve_stt_language("not-a-language")
+
+
+class _FakeFlowManager:
+    def __init__(self, **kwargs):
+        self.state: dict = {}
+        self.current_node = "idle"
+        self._context_strategy = kwargs["context_strategy"]
+
+
+class _FakePipeline:
+    def __init__(self, *_args, **_kwargs):
+        pass
+
+
+class _FakePipelineTask:
+    def __init__(self, *_args, **_kwargs):
+        pass
+
+
+class _FakeProcessFlow:
+    def __init__(self, **kwargs):
+        self.flow_manager = kwargs["flow_manager"]
+
+    async def start(self):
+        return None
+
+
+class _FakeSuggestionFlow:
+    def __init__(self, **kwargs):
+        self.flow_manager = kwargs["flow_manager"]
+
+    async def start(self):
+        return None
+
+
+@pytest.mark.usefixtures("configure_builder_settings")
+@pytest.mark.asyncio
+async def test_process_flow_manager_uses_reset_context_strategy(monkeypatch):
+    """Test process flow manager is configured with RESET context strategy."""
+    builder = _build_flow_enabled_builder()
+
+    monkeypatch.setattr(
+        builder_module.LLMServiceFactory,
+        "create_llm_service",
+        lambda **_kwargs: object(),
+    )
+    monkeypatch.setattr(builder_module, "FlowManager", _FakeFlowManager)
+    monkeypatch.setattr(builder_module, "Pipeline", _FakePipeline)
+    monkeypatch.setattr(builder_module, "PipelineTask", _FakePipelineTask)
+    monkeypatch.setattr(builder_module, "ProcessFlow", _FakeProcessFlow)
+
+    _, flow_manager = await builder._build_process_flow()
+
+    assert flow_manager is not None
+    assert flow_manager._context_strategy.strategy == ContextStrategy.RESET
+
+
+@pytest.mark.usefixtures("configure_builder_settings")
+@pytest.mark.asyncio
+async def test_suggestion_flow_manager_uses_reset_context_strategy(monkeypatch):
+    """Test suggestion flow manager is configured with RESET context strategy."""
+    builder = _build_flow_enabled_builder()
+
+    monkeypatch.setattr(
+        builder_module.LLMServiceFactory,
+        "create_llm_service",
+        lambda **_kwargs: object(),
+    )
+    monkeypatch.setattr(builder_module, "FlowManager", _FakeFlowManager)
+    monkeypatch.setattr(builder_module, "Pipeline", _FakePipeline)
+    monkeypatch.setattr(builder_module, "PipelineTask", _FakePipelineTask)
+    monkeypatch.setattr(builder_module, "SuggestionFlow", _FakeSuggestionFlow)
+
+    _, flow_manager = await builder._build_suggestion_flow()
+
+    assert flow_manager is not None
+    assert flow_manager._context_strategy.strategy == ContextStrategy.RESET
