@@ -48,9 +48,15 @@ class TestSettings:
         assert settings.port == 8000
         assert settings.debug is False
         assert settings.stt_language == "en"
+        assert settings.stt_include_partials is False
+        assert settings.stt_enable_diarization is True
+        assert settings.stt_max_speakers == 2
+        assert settings.stt_prefer_current_speaker is True
         assert settings.process_lookup_limit == 5
         assert settings.vad_start_secs == 0.2
         assert settings.vad_stop_secs == 0.6
+        assert settings.smart_turn_cpu_count == 1
+        assert settings.smart_turn_model_path is None
         assert settings.transcript_write_queue_size == 256
 
     def test_optional_fields_can_be_overridden(self, monkeypatch):
@@ -65,7 +71,13 @@ class TestSettings:
         monkeypatch.setenv("PORT", "9000")
         monkeypatch.setenv("DEBUG", "true")
         monkeypatch.setenv("STT_LANGUAGE", "es")
+        monkeypatch.setenv("STT_INCLUDE_PARTIALS", "true")
+        monkeypatch.setenv("STT_ENABLE_DIARIZATION", "false")
+        monkeypatch.setenv("STT_MAX_SPEAKERS", "3")
+        monkeypatch.setenv("STT_PREFER_CURRENT_SPEAKER", "false")
         monkeypatch.setenv("PROCESS_LOOKUP_LIMIT", "10")
+        monkeypatch.setenv("SMART_TURN_CPU_COUNT", "2")
+        monkeypatch.setenv("SMART_TURN_MODEL_PATH", "/tmp/smart-turn-v3.onnx")
 
         settings = Settings()
 
@@ -73,7 +85,13 @@ class TestSettings:
         assert settings.port == 9000
         assert settings.debug is True
         assert settings.stt_language == "es"
+        assert settings.stt_include_partials is True
+        assert settings.stt_enable_diarization is False
+        assert settings.stt_max_speakers == 3
+        assert settings.stt_prefer_current_speaker is False
         assert settings.process_lookup_limit == 10
+        assert settings.smart_turn_cpu_count == 2
+        assert settings.smart_turn_model_path == "/tmp/smart-turn-v3.onnx"
 
     def test_missing_supabase_url_raises_validation_error(self, monkeypatch):
         """Test that missing required field raises validation error."""
@@ -242,4 +260,10 @@ class TestSettingsModuleLevel:
         assert hasattr(settings, "port")
         assert hasattr(settings, "debug")
         assert hasattr(settings, "stt_language")
+        assert hasattr(settings, "stt_include_partials")
+        assert hasattr(settings, "stt_enable_diarization")
+        assert hasattr(settings, "stt_max_speakers")
+        assert hasattr(settings, "stt_prefer_current_speaker")
         assert hasattr(settings, "process_lookup_limit")
+        assert hasattr(settings, "smart_turn_cpu_count")
+        assert hasattr(settings, "smart_turn_model_path")

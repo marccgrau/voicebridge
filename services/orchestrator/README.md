@@ -7,7 +7,7 @@ Architecture reference: see `ARCHITECTURE.md` for module boundaries and service 
 ## Features
 
 - **Multi-Provider LLM Support**: OpenAI (default), Gemini, Anthropic - configurable per-session
-- **Pipecat Pipeline**: Voice processing with Speechmatics STT, Silero VAD, and Daily.co transport
+- **Pipecat Pipeline**: Voice processing with Pipecat Smart Turn V3, Speechmatics STT, and Daily.co transport
 - **Process Detection**: LLM-driven process identification and step tracking (ProcessFlow)
 - **Suggestion Generation**: Context-aware agent guidance with process awareness (SuggestionFlow)
 - **RTVI Message Delivery**: Low-latency WebRTC data channel for real-time UI updates
@@ -41,6 +41,15 @@ SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=xxx
 SPEECHMATICS_API_KEY=xxx
 DAILY_API_KEY=xxx
+
+# STT / turn detection tuning
+STT_LANGUAGE=en
+STT_INCLUDE_PARTIALS=false
+STT_ENABLE_DIARIZATION=true
+STT_MAX_SPEAKERS=2
+STT_PREFER_CURRENT_SPEAKER=true
+SMART_TURN_CPU_COUNT=1
+SMART_TURN_MODEL_PATH=
 
 # LLM Provider API Keys (at least one required)
 OPENAI_API_KEY=xxx          # Default provider
@@ -89,8 +98,8 @@ Provider options: `"openai"`, `"gemini"`, `"anthropic"`
 
 ```
 Daily.co WebRTC (audio in)
-  → Silero VAD (voice activity detection)
-    → Speechmatics STT (streaming speech-to-text)
+  → Pipecat Smart Turn V3 (LocalSmartTurnAnalyzerV3 + user turn strategies)
+    → Speechmatics STT (EXTERNAL turn mode, explicit InputParams)
       → TranscriptWriter (saves to Supabase, emits TranscriptSegmentFrame)
         → ProcessFlow (detects process, tracks steps with multi-provider LLM)
           → SuggestionFlow (generates suggestions with process context, multi-provider LLM)

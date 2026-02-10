@@ -30,9 +30,15 @@ class Settings(BaseSettings):
 
     # Pipeline
     stt_language: str = "en"
+    stt_include_partials: bool = False
+    stt_enable_diarization: bool = True
+    stt_max_speakers: int = 2
+    stt_prefer_current_speaker: bool = True
     process_lookup_limit: int = 5
     vad_start_secs: float = 0.2
     vad_stop_secs: float = 0.6
+    smart_turn_cpu_count: int = 1
+    smart_turn_model_path: str | None = None
 
     # HTTP timeouts (seconds)
     daily_api_timeout: float = 10.0
