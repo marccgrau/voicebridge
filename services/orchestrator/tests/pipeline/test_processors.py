@@ -44,6 +44,7 @@ class TestTranscriptWriter:
 
         # Process frame
         await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
+        await writer.flush_writes()
 
         # Verify speaker was resolved to "customer"
         assert frame.user_id == "customer"
@@ -73,6 +74,7 @@ class TestTranscriptWriter:
             finalized=True,
         )
         await writer.process_frame(frame2, FrameDirection.DOWNSTREAM)
+        await writer.flush_writes()
 
         # Verify second speaker was mapped to "agent"
         assert frame2.user_id == "agent"
@@ -98,6 +100,7 @@ class TestTranscriptWriter:
             text="Hi", user_id="S2", timestamp="2024-01-01T00:00:01Z", finalized=True
         )
         await writer.process_frame(frame2, FrameDirection.DOWNSTREAM)
+        await writer.flush_writes()
 
         # Verify mapping
         assert frame1.user_id == "agent"
@@ -124,6 +127,7 @@ class TestTranscriptWriter:
                 text=text, user_id=speaker_id, timestamp="2024-01-01T00:00:00Z", finalized=True
             )
             await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
+        await writer.flush_writes()
 
         # Verify mapping remained consistent
         insert_calls = mock_supabase.table().insert.call_args_list
@@ -142,6 +146,7 @@ class TestTranscriptWriter:
         )
 
         await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
+        await writer.flush_writes()
 
         # Verify no database insert
         mock_supabase.table.assert_not_called()
@@ -156,6 +161,7 @@ class TestTranscriptWriter:
         )
 
         await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
+        await writer.flush_writes()
 
         # Verify speaker was resolved to "customer" (first speaker = unknown)
         insert_call = mock_supabase.table().insert.call_args[0][0]

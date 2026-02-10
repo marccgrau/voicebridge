@@ -49,6 +49,9 @@ class TestSettings:
         assert settings.debug is False
         assert settings.stt_language == "en"
         assert settings.process_lookup_limit == 5
+        assert settings.vad_start_secs == 0.2
+        assert settings.vad_stop_secs == 0.6
+        assert settings.transcript_write_queue_size == 256
 
     def test_optional_fields_can_be_overridden(self, monkeypatch):
         """Test that optional fields can be overridden via env vars."""

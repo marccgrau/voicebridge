@@ -1,7 +1,10 @@
 """Simple processors for the pipeline."""
 
+import asyncio
 import logging
+from contextlib import suppress
 from datetime import UTC, datetime
+from typing import Any
 
 from pipecat.frames.frames import Frame, TranscriptionFrame
 from pipecat.processors.frame_processor import FrameDirection, FrameProcessor
@@ -29,6 +32,10 @@ class TranscriptWriter(FrameProcessor):
         self.first_speaker_role = first_speaker_role
         self._speaker_map: dict[str, str] = {}
         self._client = None
+        self._write_queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue(
+            maxsize=settings.transcript_write_queue_size
+        )
+        self._write_task: asyncio.Task | None = None
 
     @property
     def client(self):
@@ -58,34 +65,42 @@ class TranscriptWriter(FrameProcessor):
                 )
         return self._speaker_map[speaker_id]
 
-    async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
-        """Process transcription frames.
+    def _ensure_writer_task(self) -> None:
+        """Start background writer task lazily."""
+        if self._write_task is None or self._write_task.done():
+            self._write_task = asyncio.create_task(self._write_worker())
 
-        Args:
-            frame: The frame to process
-            direction: Frame direction
-        """
-        await super().process_frame(frame, direction)
-
-        if isinstance(frame, TranscriptionFrame) and frame.finalized:
-            # Resolve speaker from Speechmatics user_id
-            speaker = self._resolve_speaker(getattr(frame, "user_id", None))
-
-            # Stamp resolved role back onto frame for downstream processors
-            frame.user_id = speaker
-
-            # Write to database with retry
-            async def write_transcript():
-                self.client.table("transcript_segments").insert(
-                    {
-                        "session_id": self.session_id,
-                        "speaker": speaker,
-                        "text": frame.text,
-                        "ts": frame.timestamp,
-                    }
-                ).execute()
-
+    def _enqueue_write(self, payload: dict[str, Any]) -> None:
+        """Enqueue transcript write without blocking frame propagation."""
+        self._ensure_writer_task()
+        if self._write_queue.full():
             try:
+                # Drop oldest pending write to keep hot path non-blocking.
+                self._write_queue.get_nowait()
+                self._write_queue.task_done()
+                logger.warning(
+                    "Transcript write queue full for session %s, dropped oldest pending write",
+                    self.session_id,
+                )
+            except asyncio.QueueEmpty:
+                pass
+        try:
+            self._write_queue.put_nowait(payload)
+        except asyncio.QueueFull:
+            logger.warning(
+                "Transcript write queue still full for session %s, dropped newest write",
+                self.session_id,
+            )
+
+    async def _write_worker(self) -> None:
+        """Background worker that persists transcript writes with retries."""
+        while True:
+            payload = await self._write_queue.get()
+            try:
+
+                async def write_transcript(current_payload: dict[str, Any] = payload) -> None:
+                    self.client.table("transcript_segments").insert(current_payload).execute()
+
                 await retry_async(
                     write_transcript,
                     max_retries=settings.db_write_max_retries,
@@ -103,28 +118,68 @@ class TranscriptWriter(FrameProcessor):
                 logger.debug(
                     "Wrote transcript for session %s [%s]: %s",
                     self.session_id,
-                    speaker,
-                    frame.text[:50],
+                    payload["speaker"],
+                    str(payload["text"])[:50],
                 )
-
-                # Emit TranscriptSegmentFrame for RTVI delivery to frontend
-                transcript_frame = TranscriptSegmentFrame(
-                    session_id=self.session_id,
-                    speaker=speaker,
-                    text=frame.text,
-                    timestamp=frame.timestamp or datetime.now(UTC).isoformat(),
-                    is_final=True,
-                )
-                await self.push_frame(transcript_frame, direction)
-
+            except asyncio.CancelledError:
+                raise
             except Exception as e:
-                # Log error but never raise - always push frame downstream
                 logger.error(
                     "Failed to write transcript after %d retries for session %s: %s",
                     settings.db_write_max_retries,
                     self.session_id,
                     e,
                 )
+            finally:
+                self._write_queue.task_done()
+
+    async def flush_writes(self) -> None:
+        """Wait until all queued transcript writes are processed."""
+        await self._write_queue.join()
+
+    async def stop(self) -> None:
+        """Flush and stop background writer task."""
+        await self.flush_writes()
+        if self._write_task and not self._write_task.done():
+            self._write_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._write_task
+
+    async def process_frame(self, frame: Frame, direction: FrameDirection) -> None:
+        """Process transcription frames.
+
+        Args:
+            frame: The frame to process
+            direction: Frame direction
+        """
+        await super().process_frame(frame, direction)
+
+        if isinstance(frame, TranscriptionFrame) and frame.finalized:
+            # Resolve speaker from Speechmatics user_id
+            speaker = self._resolve_speaker(getattr(frame, "user_id", None))
+
+            # Stamp resolved role back onto frame for downstream processors
+            frame.user_id = speaker
+
+            # Emit transcript frame immediately (low-latency path).
+            transcript_frame = TranscriptSegmentFrame(
+                session_id=self.session_id,
+                speaker=speaker,
+                text=frame.text,
+                timestamp=frame.timestamp or datetime.now(UTC).isoformat(),
+                is_final=True,
+            )
+            await self.push_frame(transcript_frame, direction)
+
+            # Persist transcript asynchronously in the background.
+            self._enqueue_write(
+                {
+                    "session_id": self.session_id,
+                    "speaker": speaker,
+                    "text": frame.text,
+                    "ts": frame.timestamp,
+                }
+            )
 
         # Always push frame downstream
         await self.push_frame(frame, direction)
