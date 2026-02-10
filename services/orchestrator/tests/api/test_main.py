@@ -849,7 +849,9 @@ class TestGenerateSummaryEndpoint:
         def table_router(name):
             call_count["n"] += 1
             if name == "transcript_segments":
-                return mock_transcript_select
+                mock_t = MagicMock()
+                mock_t.select.return_value = mock_transcript_select
+                return mock_t
             # sessions table
             mock_t = MagicMock()
             mock_t.select.return_value = mock_select

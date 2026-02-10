@@ -2,24 +2,15 @@
 
 import asyncio
 
-from pipecat.audio.vad.silero import SileroVADAnalyzer
-from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
-from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.aggregators.llm_context import LLMContext
-from pipecat.processors.frameworks.rtvi import RTVIProcessor
-from pipecat.services.speechmatics.stt import Language, SpeechmaticsSTTService, TurnDetectionMode
-from pipecat.transports.daily.transport import DailyParams, DailyTransport
+from pipecat.pipeline.task import PipelineTask
 from pipecat_flows import FlowManager
-from pipecat_flows.adapters import LLMContextAggregatorPair
 
-from src.config import settings
 from src.flows import ProcessFlow, SuggestionFlow
-from src.llm import LLMServiceFactory
-from src.rtvi import VoiceBridgeRTVIObserver
 from src.utils.logging import get_session_logger
 
+from .builder import VoiceBridgePipelineBuilder
 from .processors import TranscriptWriter
 
 
@@ -77,6 +68,7 @@ class VoiceBridgePipeline:
         self._suggestion_flow: SuggestionFlow | None = None
         self._process_flow_manager: FlowManager | None = None
         self._suggestion_flow_manager: FlowManager | None = None
+        self._transcript_writer: TranscriptWriter | None = None
 
         # Session-scoped logger
         self.logger = get_session_logger(__name__, session_id)
@@ -89,172 +81,27 @@ class VoiceBridgePipeline:
             self.enable_suggestion_flow,
         )
 
-        # Configure VAD with responsive settings
-        vad_params = VADParams(
-            start_secs=0.2,  # Quick to detect speech start
-            stop_secs=0.8,  # Wait before considering speech ended
-        )
-
-        # Initialize transport
-        transport = DailyTransport(
-            room_url=self.room_url,
-            token=self.room_token,
-            bot_name="VoiceBridge",
-            params=DailyParams(
-                audio_in_enabled=True,
-                audio_out_enabled=False,  # Listen only
-                vad_analyzer=SileroVADAnalyzer(params=vad_params),
-                audio_in_filter=None,  # Accept audio from all participants
-            ),
-        )
-
-        # Initialize STT with speaker diarization
-        stt = SpeechmaticsSTTService(
-            api_key=settings.speechmatics_api_key,
-            url=settings.speechmatics_url,
-            turn_detection_mode=TurnDetectionMode.EXTERNAL,
-            params=SpeechmaticsSTTService.InputParams(
-                language=Language.EN,
-            ),
-        )
-
-        # Initialize transcript writer with speaker mapping
-        transcript_writer = TranscriptWriter(
+        builder = VoiceBridgePipelineBuilder(
             session_id=self.session_id,
-            first_speaker_role=settings.first_speaker_role,
+            room_url=self.room_url,
+            room_token=self.room_token,
+            enable_process_flow=self.enable_process_flow,
+            enable_suggestion_flow=self.enable_suggestion_flow,
+            process_flow_provider=self.process_flow_provider,
+            process_flow_model=self.process_flow_model,
+            suggestion_flow_provider=self.suggestion_flow_provider,
+            suggestion_flow_model=self.suggestion_flow_model,
+            process_content_path=self.process_content_path,
         )
+        components = await builder.build()
 
-        # Create RTVI components
-        rtvi_processor = RTVIProcessor()
-        rtvi_observer = VoiceBridgeRTVIObserver(rtvi_processor)
-
-        # Base processors (always needed)
-        processors = [
-            transport.input(),
-            stt,
-            transcript_writer,
-        ]
-
-        # Initialize ProcessFlow (optional)
-        if self.enable_process_flow:
-            self.logger.info(
-                "Initializing ProcessFlow (provider: %s, model: %s)",
-                self.process_flow_provider,
-                self.process_flow_model,
-            )
-
-            # Create LLM service for ProcessFlow using factory
-            process_llm = LLMServiceFactory.create_llm_service(
-                provider=self.process_flow_provider,
-                model=self.process_flow_model,
-            )
-
-            # Create context aggregator pair for ProcessFlow FlowManager
-            process_context = LLMContext()
-            process_agg_pair = LLMContextAggregatorPair(process_context)
-
-            # Create task for ProcessFlow FlowManager
-            process_flow_pipeline = Pipeline(
-                [process_agg_pair.user(), process_llm, process_agg_pair.assistant()]
-            )
-            process_task = PipelineTask(
-                process_flow_pipeline,
-                params=PipelineParams(
-                    allow_interruptions=False,
-                    enable_metrics=True,
-                ),
-                enable_rtvi=False,
-            )
-
-            # Initialize ProcessFlow FlowManager
-            self._process_flow_manager = FlowManager(
-                task=process_task,
-                llm=process_llm,
-                context_aggregator=process_agg_pair,
-            )
-
-            # Initialize ProcessFlow
-            self._process_flow = ProcessFlow(
-                session_id=self.session_id,
-                flow_manager=self._process_flow_manager,
-                process_content_path=self.process_content_path,
-            )
-            await self._process_flow.start()
-
-            # Add ProcessFlow to main pipeline (no aggregators needed -
-            # ProcessFlow handles TranscriptionFrames directly and uses
-            # FlowManager's own pipeline for LLM calls)
-            processors.append(self._process_flow)
-
-        # Initialize SuggestionFlow (optional)
-        if self.enable_suggestion_flow:
-            self.logger.info(
-                "Initializing SuggestionFlow (provider: %s, model: %s)",
-                self.suggestion_flow_provider,
-                self.suggestion_flow_model,
-            )
-
-            # Create LLM service for SuggestionFlow using factory
-            suggestion_llm = LLMServiceFactory.create_llm_service(
-                provider=self.suggestion_flow_provider,
-                model=self.suggestion_flow_model,
-            )
-
-            # Create context aggregator pair for SuggestionFlow FlowManager
-            suggestion_context = LLMContext()
-            suggestion_agg_pair = LLMContextAggregatorPair(suggestion_context)
-
-            # Create task for SuggestionFlow FlowManager
-            suggestion_flow_pipeline = Pipeline(
-                [suggestion_agg_pair.user(), suggestion_llm, suggestion_agg_pair.assistant()]
-            )
-            suggestion_task = PipelineTask(
-                suggestion_flow_pipeline,
-                params=PipelineParams(
-                    allow_interruptions=False,
-                    enable_metrics=True,
-                ),
-                enable_rtvi=False,
-            )
-
-            # Initialize SuggestionFlow FlowManager
-            self._suggestion_flow_manager = FlowManager(
-                task=suggestion_task,
-                llm=suggestion_llm,
-                context_aggregator=suggestion_agg_pair,
-            )
-
-            # Initialize SuggestionFlow
-            self._suggestion_flow = SuggestionFlow(
-                session_id=self.session_id,
-                flow_manager=self._suggestion_flow_manager,
-            )
-            await self._suggestion_flow.start()
-
-            # Add SuggestionFlow to main pipeline (no aggregators needed -
-            # SuggestionFlow handles frames directly and uses
-            # FlowManager's own pipeline for LLM calls)
-            processors.append(self._suggestion_flow)
-
-        # Add RTVI observer and transport output at the end.
-        # transport.output() is needed even though audio_out is disabled —
-        # it handles the WebRTC data channel for RTVI messages.
-        processors.append(rtvi_observer)
-        processors.append(transport.output())
-
-        # Build final pipeline
-        self._pipeline = Pipeline(processors)
-
-        # Create main task — pass rtvi_processor so PipelineTask uses our
-        # instance (the same one the observer sends messages through)
-        self._task = PipelineTask(
-            self._pipeline,
-            params=PipelineParams(
-                allow_interruptions=False,
-                enable_metrics=True,
-            ),
-            rtvi_processor=rtvi_processor,
-        )
+        self._pipeline = components.pipeline
+        self._task = components.task
+        self._transcript_writer = components.transcript_writer
+        self._process_flow = components.process_flow
+        self._suggestion_flow = components.suggestion_flow
+        self._process_flow_manager = components.process_flow_manager
+        self._suggestion_flow_manager = components.suggestion_flow_manager
 
         # RTVI event handlers
         @self._task.rtvi.event_handler("on_client_ready")
@@ -290,6 +137,20 @@ class VoiceBridgePipeline:
         self.logger.info("Stopping VoiceBridge pipeline")
 
         errors = []
+
+        # Flush/cancel transcript writer background writes first
+        if self._transcript_writer:
+            try:
+                await asyncio.wait_for(self._transcript_writer.stop(), timeout=5.0)
+                self.logger.debug("TranscriptWriter stopped successfully")
+            except TimeoutError:
+                msg = "TranscriptWriter stop timed out"
+                self.logger.warning(msg)
+                errors.append(msg)
+            except Exception as e:
+                msg = f"TranscriptWriter stop failed: {e}"
+                self.logger.warning(msg)
+                errors.append(msg)
 
         # Stop ProcessFlow
         if self._process_flow:

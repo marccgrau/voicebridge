@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     # Pipeline
     stt_language: str = "en"
     process_lookup_limit: int = 5
+    vad_start_secs: float = 0.2
+    vad_stop_secs: float = 0.6
 
     # HTTP timeouts (seconds)
     daily_api_timeout: float = 10.0
@@ -43,6 +45,7 @@ class Settings(BaseSettings):
     # Retry config
     db_write_max_retries: int = 3
     db_write_retry_delay: float = 0.5
+    transcript_write_queue_size: int = 256
     rtvi_max_retries: int = 2
 
     model_config = {
