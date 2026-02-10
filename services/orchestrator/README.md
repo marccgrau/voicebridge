@@ -2,6 +2,8 @@
 
 Python voice pipeline orchestrator using Pipecat for real-time customer service guidance.
 
+Architecture reference: see `ARCHITECTURE.md` for module boundaries and service ownership.
+
 ## Features
 
 - **Multi-Provider LLM Support**: OpenAI (default), Gemini, Anthropic - configurable per-session

@@ -7,8 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-from src.composition.runtime import SessionRuntimeRegistry
-from src.config import settings
+from src.ports.session_runtime import SessionRuntimeRegistryPort
 
 from .contracts import (
     SessionAcceptParams,
@@ -32,15 +31,17 @@ class SessionLifecycleService:
 
     def __init__(
         self,
-        runtime_registry: SessionRuntimeRegistry,
+        runtime_registry: SessionRuntimeRegistryPort,
         get_supabase_client: Callable[[], Any],
         create_daily_room: Callable[[], Awaitable[dict[str, str]]],
         create_meeting_token: Callable[[str, bool, str | None], Awaitable[str]],
+        pipeline_stop_timeout: float,
     ):
         self.runtime_registry = runtime_registry
         self.get_supabase_client = get_supabase_client
         self.create_daily_room = create_daily_room
         self.create_meeting_token = create_meeting_token
+        self._pipeline_stop_timeout = pipeline_stop_timeout
         self.logger = logging.getLogger(__name__)
 
     @staticmethod
@@ -261,11 +262,11 @@ class SessionLifecycleService:
         try:
             await asyncio.wait_for(
                 pipeline.stop(),
-                timeout=settings.pipeline_stop_timeout,
+                timeout=self._pipeline_stop_timeout,
             )
             self.logger.info("Pipeline stopped successfully for session %s", session_id)
         except TimeoutError:
-            stop_error = f"Pipeline stop timed out after {settings.pipeline_stop_timeout}s"
+            stop_error = f"Pipeline stop timed out after {self._pipeline_stop_timeout}s"
             self.logger.error("Stop timeout for session %s: %s", session_id, stop_error)
         except Exception as e:
             stop_error = f"Pipeline stop failed: {e}"

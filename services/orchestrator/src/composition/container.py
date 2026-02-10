@@ -31,11 +31,13 @@ class OrchestratorContainer:
 
     def build_session_lifecycle_service(self) -> SessionLifecycleService:
         """Create session lifecycle service from container dependencies."""
+        app_settings = self.get_settings()
         return SessionLifecycleService(
             runtime_registry=self.runtime_registry,
             get_supabase_client=self.get_supabase_client,
             create_daily_room=self.create_daily_room,
             create_meeting_token=self.create_meeting_token,
+            pipeline_stop_timeout=app_settings.pipeline_stop_timeout,
         )
 
 
