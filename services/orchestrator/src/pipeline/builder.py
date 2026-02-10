@@ -2,14 +2,18 @@
 
 from dataclasses import dataclass
 
+from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
 from pipecat.audio.vad.silero import SileroVADAnalyzer
 from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.aggregators.llm_context import LLMContext
+from pipecat.processors.aggregators.llm_response_universal import LLMUserAggregatorParams
 from pipecat.processors.frameworks.rtvi import RTVIProcessor
 from pipecat.services.speechmatics.stt import Language, SpeechmaticsSTTService, TurnDetectionMode
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
+from pipecat.turns.user_stop import TurnAnalyzerUserTurnStopStrategy
+from pipecat.turns.user_turn_strategies import UserTurnStrategies
 from pipecat_flows import FlowManager
 from pipecat_flows.adapters import LLMContextAggregatorPair
 
@@ -67,6 +71,7 @@ class VoiceBridgePipelineBuilder:
             start_secs=settings.vad_start_secs,
             stop_secs=settings.vad_stop_secs,
         )
+        stt_language = self._resolve_stt_language(settings.stt_language)
 
         transport = DailyTransport(
             room_url=self.room_url,
@@ -75,17 +80,39 @@ class VoiceBridgePipelineBuilder:
             params=DailyParams(
                 audio_in_enabled=True,
                 audio_out_enabled=False,
-                vad_analyzer=SileroVADAnalyzer(params=vad_params),
                 audio_in_filter=None,
             ),
         )
 
+        speechmatics_params = SpeechmaticsSTTService.InputParams(
+            language=stt_language,
+            turn_detection_mode=TurnDetectionMode.EXTERNAL,
+            include_partials=settings.stt_include_partials,
+            enable_diarization=settings.stt_enable_diarization,
+            max_speakers=settings.stt_max_speakers,
+            prefer_current_speaker=settings.stt_prefer_current_speaker,
+        )
         stt = SpeechmaticsSTTService(
             api_key=settings.speechmatics_api_key,
-            url=settings.speechmatics_url,
-            turn_detection_mode=TurnDetectionMode.EXTERNAL,
-            params=SpeechmaticsSTTService.InputParams(
-                language=Language.EN,
+            base_url=settings.speechmatics_url,
+            params=speechmatics_params,
+        )
+
+        smart_turn_analyzer = LocalSmartTurnAnalyzerV3(
+            smart_turn_model_path=settings.smart_turn_model_path,
+            cpu_count=settings.smart_turn_cpu_count,
+        )
+        smart_turn_agg_pair = LLMContextAggregatorPair(
+            LLMContext(),
+            user_params=LLMUserAggregatorParams(
+                vad_analyzer=SileroVADAnalyzer(params=vad_params),
+                user_turn_strategies=UserTurnStrategies(
+                    stop=[
+                        TurnAnalyzerUserTurnStopStrategy(
+                            turn_analyzer=smart_turn_analyzer,
+                        )
+                    ]
+                ),
             ),
         )
 
@@ -97,7 +124,7 @@ class VoiceBridgePipelineBuilder:
         rtvi_processor = RTVIProcessor()
         rtvi_observer = VoiceBridgeRTVIObserver(rtvi_processor)
 
-        processors = [transport.input(), stt, transcript_writer]
+        processors = [transport.input(), smart_turn_agg_pair.user(), stt, transcript_writer]
 
         process_flow, process_flow_manager = await self._build_process_flow()
         if process_flow:
@@ -128,6 +155,25 @@ class VoiceBridgePipelineBuilder:
             suggestion_flow=suggestion_flow,
             process_flow_manager=process_flow_manager,
             suggestion_flow_manager=suggestion_flow_manager,
+        )
+
+    @staticmethod
+    def _resolve_stt_language(language: str) -> Language:
+        """Resolve configured language string to Pipecat Language enum."""
+        normalized = language.strip()
+        candidates = [normalized]
+        if normalized.lower() != normalized:
+            candidates.append(normalized.lower())
+
+        for candidate in candidates:
+            try:
+                return Language(candidate)
+            except ValueError:
+                continue
+
+        raise ValueError(
+            f"Unsupported STT_LANGUAGE '{language}'. "
+            "Provide a valid Pipecat Language value (for example: en, en-US, es)."
         )
 
     async def _build_process_flow(self) -> tuple[ProcessFlow | None, FlowManager | None]:
