@@ -1,10 +1,9 @@
 """Tests for pipeline builder wiring and STT configuration."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pipecat.services.speechmatics.stt import Language
-from pipecat_flows.types import ContextStrategy
 
 import src.pipeline.builder as builder_module
 from src.pipeline.builder import VoiceBridgePipelineBuilder
@@ -24,14 +23,6 @@ def configure_builder_settings(monkeypatch):
     monkeypatch.setattr(builder_module.settings, "stt_enable_diarization", True)
     monkeypatch.setattr(builder_module.settings, "stt_max_speakers", 2)
     monkeypatch.setattr(builder_module.settings, "stt_prefer_current_speaker", True)
-    monkeypatch.setattr(builder_module.settings, "vad_start_secs", 0.2)
-    monkeypatch.setattr(builder_module.settings, "vad_stop_secs", 0.6)
-    monkeypatch.setattr(builder_module.settings, "smart_turn_cpu_count", 2)
-    monkeypatch.setattr(
-        builder_module.settings,
-        "smart_turn_model_path",
-        "/tmp/smart-turn-v3.onnx",
-    )
     monkeypatch.setattr(builder_module.settings, "first_speaker_role", "customer")
 
 
@@ -67,27 +58,20 @@ def _build_flow_enabled_builder() -> VoiceBridgePipelineBuilder:
 
 @pytest.mark.usefixtures("configure_builder_settings")
 @pytest.mark.asyncio
-async def test_build_wires_pipecat_smart_turn_before_stt():
-    """Test Smart Turn user aggregator is placed before STT in the pipeline."""
+async def test_build_wires_stt_before_transcript_writer():
+    """Test STT is placed before TranscriptWriter in the pipeline (no user aggregator)."""
     builder = _build_test_builder()
-
-    with patch("src.pipeline.builder.LocalSmartTurnAnalyzerV3") as mock_analyzer:
-        mock_analyzer.return_value = MagicMock()
-        components = await builder.build()
+    components = await builder.build()
 
     processors = components.pipeline.processors
     names = [type(processor).__name__ for processor in processors]
 
     input_idx = names.index("DailyInputTransport")
-    user_agg_idx = names.index("LLMUserAggregator")
     stt_idx = names.index("SpeechmaticsSTTService")
     transcript_idx = names.index("TranscriptWriter")
 
-    assert input_idx < user_agg_idx < stt_idx < transcript_idx
-    mock_analyzer.assert_called_once_with(
-        smart_turn_model_path="/tmp/smart-turn-v3.onnx",
-        cpu_count=2,
-    )
+    assert input_idx < stt_idx < transcript_idx
+    assert "LLMUserAggregator" not in names
 
 
 @pytest.mark.usefixtures("configure_builder_settings")
@@ -100,10 +84,7 @@ async def test_build_sets_explicit_speechmatics_input_params(monkeypatch):
     monkeypatch.setattr(builder_module.settings, "stt_prefer_current_speaker", False)
 
     builder = _build_test_builder()
-
-    with patch("src.pipeline.builder.LocalSmartTurnAnalyzerV3") as mock_analyzer:
-        mock_analyzer.return_value = MagicMock()
-        components = await builder.build()
+    components = await builder.build()
 
     stt = next(
         processor
@@ -113,7 +94,7 @@ async def test_build_sets_explicit_speechmatics_input_params(monkeypatch):
 
     assert stt._base_url == "wss://neu.rt.speechmatics.com/v2"
     assert stt._config.language == "es"
-    assert stt._config.end_of_utterance_mode.value == "external"
+    assert stt._config.end_of_utterance_mode.value == "adaptive"
     assert stt._config.include_partials is True
     assert stt._config.speech_segment_config.emit_sentences is False
     assert stt._config.enable_diarization is False
@@ -133,78 +114,53 @@ def test_resolve_stt_language_raises_on_invalid_value():
         VoiceBridgePipelineBuilder._resolve_stt_language("not-a-language")
 
 
-class _FakeFlowManager:
-    def __init__(self, **kwargs):
-        self.state: dict = {}
-        self.current_node = "idle"
-        self._context_strategy = kwargs["context_strategy"]
+@pytest.mark.usefixtures("configure_builder_settings")
+@pytest.mark.asyncio
+async def test_build_uses_direct_processors_only():
+    """Test builder wires direct processors and never calls legacy flow builders."""
+    builder = _build_flow_enabled_builder()
+    fake_process_resolver = MagicMock()
+    fake_suggestion_processor = MagicMock()
 
+    builder._build_process_context_resolver = AsyncMock(return_value=fake_process_resolver)
+    builder._build_direct_suggestion_processor = AsyncMock(return_value=fake_suggestion_processor)
 
-class _FakePipeline:
-    def __init__(self, *_args, **_kwargs):
-        pass
+    components = await builder.build()
 
-
-class _FakePipelineTask:
-    def __init__(self, *_args, **_kwargs):
-        pass
-
-
-class _FakeProcessFlow:
-    def __init__(self, **kwargs):
-        self.flow_manager = kwargs["flow_manager"]
-
-    async def start(self):
-        return None
-
-
-class _FakeSuggestionFlow:
-    def __init__(self, **kwargs):
-        self.flow_manager = kwargs["flow_manager"]
-
-    async def start(self):
-        return None
+    builder._build_process_context_resolver.assert_awaited_once()
+    builder._build_direct_suggestion_processor.assert_awaited_once()
+    assert components.process_context_resolver is fake_process_resolver
+    assert components.direct_suggestion_processor is fake_suggestion_processor
 
 
 @pytest.mark.usefixtures("configure_builder_settings")
 @pytest.mark.asyncio
-async def test_process_flow_manager_uses_reset_context_strategy(monkeypatch):
-    """Test process flow manager is configured with RESET context strategy."""
+async def test_build_wires_separate_llm_timeouts(monkeypatch):
+    """Test process and suggestion processors get separate timeout values."""
+    monkeypatch.setattr(builder_module.settings, "process_detection_llm_timeout", 8.0)
+    monkeypatch.setattr(builder_module.settings, "suggestion_llm_timeout", 15.0)
+
     builder = _build_flow_enabled_builder()
 
-    monkeypatch.setattr(
-        builder_module.LLMServiceFactory,
-        "create_llm_service",
-        lambda **_kwargs: object(),
-    )
-    monkeypatch.setattr(builder_module, "FlowManager", _FakeFlowManager)
-    monkeypatch.setattr(builder_module, "Pipeline", _FakePipeline)
-    monkeypatch.setattr(builder_module, "PipelineTask", _FakePipelineTask)
-    monkeypatch.setattr(builder_module, "ProcessFlow", _FakeProcessFlow)
+    with patch("src.pipeline.builder.LLMServiceFactory") as mock_factory:
+        mock_factory.create_llm_service.return_value = MagicMock()
+        components = await builder.build()
 
-    _, flow_manager = await builder._build_process_flow()
-
-    assert flow_manager is not None
-    assert flow_manager._context_strategy.strategy == ContextStrategy.RESET
+    assert components.process_context_resolver._llm_timeout == 8.0
+    assert components.direct_suggestion_processor._llm_timeout == 15.0
 
 
 @pytest.mark.usefixtures("configure_builder_settings")
 @pytest.mark.asyncio
-async def test_suggestion_flow_manager_uses_reset_context_strategy(monkeypatch):
-    """Test suggestion flow manager is configured with RESET context strategy."""
-    builder = _build_flow_enabled_builder()
+async def test_build_uses_smart_turn_mode():
+    """Test that STT is configured with SMART_TURN mode."""
+    builder = _build_test_builder()
+    components = await builder.build()
 
-    monkeypatch.setattr(
-        builder_module.LLMServiceFactory,
-        "create_llm_service",
-        lambda **_kwargs: object(),
+    stt = next(
+        processor
+        for processor in components.pipeline.processors
+        if type(processor).__name__ == "SpeechmaticsSTTService"
     )
-    monkeypatch.setattr(builder_module, "FlowManager", _FakeFlowManager)
-    monkeypatch.setattr(builder_module, "Pipeline", _FakePipeline)
-    monkeypatch.setattr(builder_module, "PipelineTask", _FakePipelineTask)
-    monkeypatch.setattr(builder_module, "SuggestionFlow", _FakeSuggestionFlow)
 
-    _, flow_manager = await builder._build_suggestion_flow()
-
-    assert flow_manager is not None
-    assert flow_manager._context_strategy.strategy == ContextStrategy.RESET
+    assert stt._config.end_of_utterance_mode.value == "adaptive"

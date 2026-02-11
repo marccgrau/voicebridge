@@ -1,29 +1,22 @@
 """Pipeline builder for VoiceBridge Pipecat runtime assembly."""
 
+import logging
 from dataclasses import dataclass
 
-from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
-from pipecat.audio.vad.silero import SileroVADAnalyzer
-from pipecat.audio.vad.vad_analyzer import VADParams
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.aggregators.llm_context import LLMContext
-from pipecat.processors.aggregators.llm_response_universal import LLMUserAggregatorParams
 from pipecat.processors.frameworks.rtvi import RTVIProcessor
 from pipecat.services.speechmatics.stt import Language, SpeechmaticsSTTService, TurnDetectionMode
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
-from pipecat.turns.user_stop import TurnAnalyzerUserTurnStopStrategy
-from pipecat.turns.user_turn_strategies import UserTurnStrategies
-from pipecat_flows import FlowManager
-from pipecat_flows.adapters import LLMContextAggregatorPair
-from pipecat_flows.types import ContextStrategy, ContextStrategyConfig
 
 from src.config import settings
-from src.flows import ProcessFlow, SuggestionFlow
 from src.llm import LLMServiceFactory
 from src.rtvi import VoiceBridgeRTVIObserver
 
+from .direct_processors import DirectSuggestionProcessor, ProcessContextResolverProcessor
 from .processors import TranscriptWriter
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -33,10 +26,8 @@ class BuiltPipelineComponents:
     pipeline: Pipeline
     task: PipelineTask
     transcript_writer: TranscriptWriter
-    process_flow: ProcessFlow | None
-    suggestion_flow: SuggestionFlow | None
-    process_flow_manager: FlowManager | None
-    suggestion_flow_manager: FlowManager | None
+    process_context_resolver: ProcessContextResolverProcessor | None
+    direct_suggestion_processor: DirectSuggestionProcessor | None
 
 
 class VoiceBridgePipelineBuilder:
@@ -53,7 +44,7 @@ class VoiceBridgePipelineBuilder:
         process_flow_model: str,
         suggestion_flow_provider: str,
         suggestion_flow_model: str,
-        process_content_path: str,
+        process_content_path: str = "process_content/",
     ):
         self.session_id = session_id
         self.room_url = room_url
@@ -67,11 +58,7 @@ class VoiceBridgePipelineBuilder:
         self.process_content_path = process_content_path
 
     async def build(self) -> BuiltPipelineComponents:
-        """Build pipeline processors and task with optional flows."""
-        vad_params = VADParams(
-            start_secs=settings.vad_start_secs,
-            stop_secs=settings.vad_stop_secs,
-        )
+        """Build pipeline processors and task with optional direct processors."""
         stt_language = self._resolve_stt_language(settings.stt_language)
 
         transport = DailyTransport(
@@ -87,7 +74,7 @@ class VoiceBridgePipelineBuilder:
 
         speechmatics_params = SpeechmaticsSTTService.InputParams(
             language=stt_language,
-            turn_detection_mode=TurnDetectionMode.EXTERNAL,
+            turn_detection_mode=TurnDetectionMode.SMART_TURN,
             include_partials=settings.stt_include_partials,
             enable_diarization=settings.stt_enable_diarization,
             max_speakers=settings.stt_max_speakers,
@@ -97,24 +84,7 @@ class VoiceBridgePipelineBuilder:
             api_key=settings.speechmatics_api_key,
             base_url=settings.speechmatics_url,
             params=speechmatics_params,
-        )
-
-        smart_turn_analyzer = LocalSmartTurnAnalyzerV3(
-            smart_turn_model_path=settings.smart_turn_model_path,
-            cpu_count=settings.smart_turn_cpu_count,
-        )
-        smart_turn_agg_pair = LLMContextAggregatorPair(
-            LLMContext(),
-            user_params=LLMUserAggregatorParams(
-                vad_analyzer=SileroVADAnalyzer(params=vad_params),
-                user_turn_strategies=UserTurnStrategies(
-                    stop=[
-                        TurnAnalyzerUserTurnStopStrategy(
-                            turn_analyzer=smart_turn_analyzer,
-                        )
-                    ]
-                ),
-            ),
+            should_interrupt=False,
         )
 
         transcript_writer = TranscriptWriter(
@@ -125,15 +95,25 @@ class VoiceBridgePipelineBuilder:
         rtvi_processor = RTVIProcessor()
         rtvi_observer = VoiceBridgeRTVIObserver(rtvi_processor)
 
-        processors = [transport.input(), smart_turn_agg_pair.user(), stt, transcript_writer]
+        processors = [transport.input(), stt, transcript_writer]
 
-        process_flow, process_flow_manager = await self._build_process_flow()
-        if process_flow:
-            processors.append(process_flow)
+        process_context_resolver = await self._build_process_context_resolver()
+        if process_context_resolver:
+            processors.append(process_context_resolver)
+        logger.info(
+            "Process context resolver: %s (enable_process_flow=%s)",
+            "built" if process_context_resolver else "skipped",
+            self.enable_process_flow,
+        )
 
-        suggestion_flow, suggestion_flow_manager = await self._build_suggestion_flow()
-        if suggestion_flow:
-            processors.append(suggestion_flow)
+        direct_suggestion_processor = await self._build_direct_suggestion_processor()
+        if direct_suggestion_processor:
+            processors.append(direct_suggestion_processor)
+        logger.info(
+            "Direct suggestion processor: %s (enable_suggestion_flow=%s)",
+            "built" if direct_suggestion_processor else "skipped",
+            self.enable_suggestion_flow,
+        )
 
         processors.append(rtvi_observer)
         processors.append(transport.output())
@@ -152,10 +132,8 @@ class VoiceBridgePipelineBuilder:
             pipeline=pipeline,
             task=task,
             transcript_writer=transcript_writer,
-            process_flow=process_flow,
-            suggestion_flow=suggestion_flow,
-            process_flow_manager=process_flow_manager,
-            suggestion_flow_manager=suggestion_flow_manager,
+            process_context_resolver=process_context_resolver,
+            direct_suggestion_processor=direct_suggestion_processor,
         )
 
     @staticmethod
@@ -177,91 +155,46 @@ class VoiceBridgePipelineBuilder:
             "Provide a valid Pipecat Language value (for example: en, en-US, es)."
         )
 
-    async def _build_process_flow(self) -> tuple[ProcessFlow | None, FlowManager | None]:
-        """Build optional process flow + FlowManager."""
+    async def _build_process_context_resolver(self) -> ProcessContextResolverProcessor | None:
+        """Build direct process resolver processor."""
         if not self.enable_process_flow:
-            return None, None
+            return None
 
         process_llm = LLMServiceFactory.create_llm_service(
             provider=self.process_flow_provider,
             model=self.process_flow_model,
+            extra_params={"response_format": {"type": "json_object"}},
         )
-
-        process_context = LLMContext()
-        process_agg_pair = LLMContextAggregatorPair(process_context)
-
-        process_flow_pipeline = Pipeline(
-            [
-                process_agg_pair.user(),
-                process_llm,
-                process_agg_pair.assistant(),
-            ]
-        )
-        process_task = PipelineTask(
-            process_flow_pipeline,
-            params=PipelineParams(
-                allow_interruptions=False,
-                enable_metrics=True,
-            ),
-            enable_rtvi=False,
-        )
-
-        process_flow_manager = FlowManager(
-            task=process_task,
+        return ProcessContextResolverProcessor(
+            session_id=self.session_id,
             llm=process_llm,
-            context_aggregator=process_agg_pair,
-            context_strategy=ContextStrategyConfig(strategy=ContextStrategy.RESET),
-        )
-
-        process_flow = ProcessFlow(
-            session_id=self.session_id,
-            flow_manager=process_flow_manager,
             process_content_path=self.process_content_path,
+            llm_timeout=settings.process_detection_llm_timeout,
+            shortlist_k=settings.process_shortlist_k,
+            confidence_threshold=settings.process_match_confidence_threshold,
+            margin_threshold=settings.process_match_margin_threshold,
+            cache_size=settings.process_content_cache_size,
         )
-        await process_flow.start()
 
-        return process_flow, process_flow_manager
-
-    async def _build_suggestion_flow(self) -> tuple[SuggestionFlow | None, FlowManager | None]:
-        """Build optional suggestion flow + FlowManager."""
+    async def _build_direct_suggestion_processor(self) -> DirectSuggestionProcessor | None:
+        """Build direct suggestion processor."""
         if not self.enable_suggestion_flow:
-            return None, None
+            logger.info("Suggestion flow disabled, skipping processor build")
+            return None
 
-        suggestion_llm = LLMServiceFactory.create_llm_service(
-            provider=self.suggestion_flow_provider,
-            model=self.suggestion_flow_model,
-        )
-
-        suggestion_context = LLMContext()
-        suggestion_agg_pair = LLMContextAggregatorPair(suggestion_context)
-
-        suggestion_flow_pipeline = Pipeline(
-            [
-                suggestion_agg_pair.user(),
-                suggestion_llm,
-                suggestion_agg_pair.assistant(),
-            ]
-        )
-        suggestion_task = PipelineTask(
-            suggestion_flow_pipeline,
-            params=PipelineParams(
-                allow_interruptions=False,
-                enable_metrics=True,
-            ),
-            enable_rtvi=False,
-        )
-
-        suggestion_flow_manager = FlowManager(
-            task=suggestion_task,
-            llm=suggestion_llm,
-            context_aggregator=suggestion_agg_pair,
-            context_strategy=ContextStrategyConfig(strategy=ContextStrategy.RESET),
-        )
-
-        suggestion_flow = SuggestionFlow(
-            session_id=self.session_id,
-            flow_manager=suggestion_flow_manager,
-        )
-        await suggestion_flow.start()
-
-        return suggestion_flow, suggestion_flow_manager
+        try:
+            suggestion_llm = LLMServiceFactory.create_llm_service(
+                provider=self.suggestion_flow_provider,
+                model=self.suggestion_flow_model,
+                extra_params={"response_format": {"type": "json_object"}},
+            )
+            return DirectSuggestionProcessor(
+                session_id=self.session_id,
+                llm=suggestion_llm,
+                llm_timeout=settings.suggestion_llm_timeout,
+                conversation_window_size=settings.conversation_window_size,
+                debounce_ms=settings.suggestion_debounce_ms,
+            )
+        except Exception:
+            logger.exception("Failed to build DirectSuggestionProcessor")
+            return None

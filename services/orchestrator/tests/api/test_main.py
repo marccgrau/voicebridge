@@ -115,6 +115,7 @@ class TestSessionStartEndpoint:
         assert data["room_url"] == "https://test.daily.co/test-room"
         assert data["room_token"] == "test-token-123"
         assert "created_at" in data
+        assert data["services"]["guidanceMode"] == "direct_call"
 
     @respx.mock
     @patch("src.main.get_supabase_client")
@@ -978,6 +979,7 @@ class TestSessionAcceptEndpoint:
         assert data["room_url"] == "https://test.daily.co/test-room"
         assert data["agent_token"] == "agent-token-abc"
         assert "rtvi_url" in data
+        assert data["services"]["guidanceMode"] == "direct_call"
 
     @patch("src.main.get_supabase_client")
     def test_rejects_already_accepted_session(self, mock_get_client, client):

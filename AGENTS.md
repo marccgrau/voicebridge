@@ -60,6 +60,15 @@ make db-reset             # supabase db reset
 
 ## Development Practices
 
+### Branching and PR Workflow
+
+For every new feature:
+
+1. Create a new git branch before making code changes.
+2. Implement the feature on that branch only.
+3. Fully test the feature with all relevant automated tests.
+4. Prepare a pull request with a clear summary and test evidence.
+
 ### Testing Requirements
 
 Always add tests for new behavior and run relevant suites before considering work complete.

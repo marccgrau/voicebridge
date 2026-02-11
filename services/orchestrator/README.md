@@ -8,8 +8,8 @@ Architecture reference: see `ARCHITECTURE.md` for module boundaries and service 
 
 - **Multi-Provider LLM Support**: OpenAI (default), Gemini, Anthropic - configurable per-session
 - **Pipecat Pipeline**: Voice processing with Pipecat Smart Turn V3, Speechmatics STT, and Daily.co transport
-- **Process Detection**: LLM-driven process identification and step tracking (ProcessFlow)
-- **Suggestion Generation**: Context-aware agent guidance with process awareness (SuggestionFlow)
+- **Process Detection**: Direct process-context resolver with metadata shortlist + optional LLM disambiguation
+- **Suggestion Generation**: Direct per-turn suggestion generation with process awareness and stale-turn cancellation
 - **RTVI Message Delivery**: Low-latency WebRTC data channel for real-time UI updates
 - **Process Catalog**: Full-text search for customer service processes loaded from markdown files
 - **Listen-Only Bot**: Processes audio without speaking, delivers guidance to human agents
@@ -75,7 +75,7 @@ ANTHROPIC_API_KEY=xxx       # Optional: Claude
 
 ## Multi-Provider LLM Configuration
 
-Both ProcessFlow and SuggestionFlow support independent provider configuration:
+Process context resolution and suggestion generation support independent provider configuration:
 
 ```bash
 # Default (OpenAI gpt-5-nano for both)
@@ -101,8 +101,8 @@ Daily.co WebRTC (audio in)
   → Pipecat Smart Turn V3 (LocalSmartTurnAnalyzerV3 + user turn strategies)
     → Speechmatics STT (EXTERNAL turn mode, explicit InputParams)
       → TranscriptWriter (saves to Supabase, emits TranscriptSegmentFrame)
-        → ProcessFlow (detects process, tracks steps with multi-provider LLM)
-          → SuggestionFlow (generates suggestions with process context, multi-provider LLM)
+        → ProcessContextResolverProcessor (detects process, tracks steps)
+          → DirectSuggestionProcessor (generates suggestions per customer turn)
             → VoiceBridgeRTVIObserver (sends frames via RTVI)
               → Daily.co WebRTC (data channel out)
 ```
@@ -133,10 +133,8 @@ services/orchestrator/
 │   │   └── __init__.py
 │   ├── pipeline/
 │   │   ├── pipeline.py      # VoiceBridgePipeline (main audio pipeline)
-│   │   └── __init__.py
-│   ├── flows/               # LLM-driven processors
-│   │   ├── process_flow.py  # Process detection with FlowManager
-│   │   ├── suggestion_flow.py # Suggestion generation with FlowManager
+│   │   ├── builder.py       # Runtime assembly for transport/STT/processors
+│   │   ├── direct_processors.py # Direct process/suggestion processors
 │   │   └── __init__.py
 │   ├── processors/          # Custom FrameProcessors
 │   │   ├── transcript_writer.py   # Saves transcripts, emits frames

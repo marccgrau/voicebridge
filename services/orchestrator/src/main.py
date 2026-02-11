@@ -169,16 +169,16 @@ async def run_pipeline(
     room_token: str,
     enable_process_flow: bool,
     enable_suggestion_flow: bool,
-    process_flow_provider: LLMProvider,
-    process_flow_model: str,
-    suggestion_flow_provider: LLMProvider,
-    suggestion_flow_model: str,
+    process_flow_provider: LLMProvider | None,
+    process_flow_model: str | None,
+    suggestion_flow_provider: LLMProvider | None,
+    suggestion_flow_model: str | None,
     process_content_path: str | None,
 ) -> None:
     """Run the pipeline in the background."""
-    if enable_process_flow:
+    if enable_process_flow and process_flow_provider:
         LLMServiceFactory.validate_provider_config(process_flow_provider)
-    if enable_suggestion_flow:
+    if enable_suggestion_flow and suggestion_flow_provider:
         LLMServiceFactory.validate_provider_config(suggestion_flow_provider)
 
     pipeline = VoiceBridgePipeline(

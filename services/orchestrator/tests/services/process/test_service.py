@@ -1,193 +1,74 @@
-"""Tests for ProcessService domain logic."""
+"""Tests for ProcessService catalog parsing."""
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
-from src.services.process.service import ProcessDefinition, ProcessService, ProcessStep
+import pytest
+
+from src.services.process.service import ProcessService
+
+
+def _write_process_file(path: Path, process_key: str, name: str, intents: list[str]) -> None:
+    intents_yaml = "\n".join(f"  - {intent}" for intent in intents)
+    path.write_text(
+        f"""---
+process_key: {process_key}
+name: {name}
+domain: card_services
+intents:
+{intents_yaml}
+---
+
+# {name}
+
+## Step 1: Verify Identity
+
+Verify the caller identity.
+
+## Step 2: Resolve Request
+
+Complete the customer request.
+"""
+    )
 
 
 class TestProcessService:
     """ProcessService behavior tests."""
 
-    def test_handle_transcription_switches_to_detecting_after_min_utterances(self):
-        service = ProcessService(min_utterances_before_detection=3)
-        state = service.initial_state(
-            {
-                "billing": ProcessDefinition(
-                    process_key="billing",
-                    name="Billing",
-                    domain="billing",
-                    intents=["bill"],
-                    steps=[],
-                    full_content="",
-                )
-            }
-        )
-
-        select_schema = object()
-        more_context_schema = object()
-        update_schema = object()
-
-        phase, node = service.handle_transcription(
-            state,
-            "customer",
-            "hello",
-            "idle",
-            select_schema,
-            more_context_schema,
-            update_schema,
-        )
-        assert phase is None
-        assert node is None
-
-        service.handle_transcription(
-            state,
-            "agent",
-            "hi",
-            "idle",
-            select_schema,
-            more_context_schema,
-            update_schema,
-        )
-        phase, node = service.handle_transcription(
-            state,
-            "customer",
-            "need help",
-            "idle",
-            select_schema,
-            more_context_schema,
-            update_schema,
-        )
-
-        assert phase == "detecting"
-        assert node is not None
-        assert node["name"] == "detecting"
-
-    def test_handle_transcription_detecting_uses_full_conversation(self):
-        service = ProcessService(min_utterances_before_detection=2)
-        state = service.initial_state(
-            {
-                "billing": ProcessDefinition(
-                    process_key="billing",
-                    name="Billing",
-                    domain="billing",
-                    intents=["bill"],
-                    steps=[],
-                    full_content="",
-                )
-            }
-        )
-
-        select_schema = object()
-        more_context_schema = object()
-        update_schema = object()
-
-        service.handle_transcription(
-            state,
-            "customer",
-            "first utterance",
-            "idle",
-            select_schema,
-            more_context_schema,
-            update_schema,
-        )
-        _, node = service.handle_transcription(
-            state,
-            "agent",
-            "second utterance",
-            "idle",
-            select_schema,
-            more_context_schema,
-            update_schema,
-        )
-
-        assert node is not None
-        assert node["name"] == "detecting"
-        prompt = node["task_messages"][0]["content"]
-        assert "[customer]: first utterance" in prompt
-        assert "[agent]: second utterance" in prompt
-
-    def test_handle_select_process_success_returns_frame_and_tracking_node(self):
+    @pytest.mark.asyncio
+    async def test_load_process_catalog_reads_markdown(self, tmp_path: Path):
         service = ProcessService()
-        process = ProcessDefinition(
-            process_key="billing",
-            name="Billing",
-            domain="billing",
-            intents=["bill"],
-            steps=[
-                ProcessStep(key="step_1", label="Verify", content="...", order=1),
-                ProcessStep(key="step_2", label="Resolve", content="...", order=2),
-            ],
-            full_content="content",
-        )
-        state = service.initial_state({"billing": process})
-        state["conversation_buffer"] = ["[customer]: help"]
-
-        result, next_node, frame = service.handle_select_process(
-            args={"process_key": "billing", "confidence": 0.8, "rationale": "intent match"},
-            state=state,
-            update_step_schema=object(),
-            logger=MagicMock(),
+        logger = MagicMock()
+        _write_process_file(
+            tmp_path / "lost_stolen_card.md",
+            "lost_stolen_card",
+            "Lost or Stolen Card",
+            ["lost card", "stolen card", "block card"],
         )
 
-        assert result["status"] == "selected"
-        assert next_node["name"] == "tracking"
-        assert frame is not None
-        assert frame.process_key == "billing"
-        assert state["detected_process"] is process
+        processes = await service.load_process_catalog(tmp_path, logger)
 
-    def test_handle_update_step_invalid_returns_tracking_without_frame(self):
-        service = ProcessService()
-        process = ProcessDefinition(
-            process_key="billing",
-            name="Billing",
-            domain="billing",
-            intents=["bill"],
-            steps=[ProcessStep(key="step_1", label="Verify", content="...", order=1)],
-            full_content="content",
-        )
-        state = service.initial_state({"billing": process})
-        state["detected_process"] = process
-        state["conversation_buffer"] = ["[customer]: help"]
+        assert "lost_stolen_card" in processes
+        process = processes["lost_stolen_card"]
+        assert process.name == "Lost or Stolen Card"
+        assert len(process.steps) == 2
+        assert process.steps[0].label == "Verify Identity"
 
-        result, next_node, frame = service.handle_update_step(
-            args={"step_number": 3, "rationale": "bad"},
-            state=state,
-            update_step_schema=object(),
-            logger=MagicMock(),
-        )
+    def test_extract_steps_from_markdown_parses_step_headers(self):
+        content = """
+# Test Process
 
-        assert result["status"] == "invalid_step"
-        assert next_node["name"] == "tracking"
-        assert frame is None
+## Step 1: First Step
+Collect account details.
 
-    def test_handle_transcription_tracking_uses_last_eight_utterances(self):
-        service = ProcessService(conversation_window_size=8)
-        process = ProcessDefinition(
-            process_key="billing",
-            name="Billing",
-            domain="billing",
-            intents=["bill"],
-            steps=[ProcessStep(key="step_1", label="Verify", content="...", order=1)],
-            full_content="content",
-        )
-        state = service.initial_state({"billing": process})
-        state["detected_process"] = process
-        state["conversation_buffer"] = [f"[customer]: utt_{index:02d}" for index in range(1, 10)]
+## Step 2: Second Step
+Resolve issue.
+"""
+        steps = ProcessService.extract_steps_from_markdown(content)
 
-        _, node = service.handle_transcription(
-            state=state,
-            speaker="agent",
-            text="utt_10",
-            current_node="tracking",
-            select_process_schema=object(),
-            need_more_context_schema=object(),
-            update_step_schema=object(),
-        )
-
-        assert node is not None
-        assert node["name"] == "tracking"
-        prompt = node["task_messages"][0]["content"]
-        assert "utt_01" not in prompt
-        assert "utt_02" not in prompt
-        assert "utt_03" in prompt
-        assert "utt_10" in prompt
+        assert len(steps) == 2
+        assert steps[0].key == "step_1"
+        assert steps[0].label == "First Step"
+        assert "Collect account details." in steps[0].content
+        assert steps[1].key == "step_2"
+        assert steps[1].label == "Second Step"

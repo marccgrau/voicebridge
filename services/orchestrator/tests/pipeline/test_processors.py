@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pipecat.frames.frames import TranscriptionFrame
+from pipecat.frames.frames import InterimTranscriptionFrame, TranscriptionFrame
 from pipecat.processors.frame_processor import FrameDirection
 
 from src.pipeline.processors import TranscriptWriter
@@ -136,13 +136,13 @@ class TestTranscriptWriter:
         assert insert_calls[2][0][0]["speaker"] == "customer"
         assert insert_calls[3][0][0]["speaker"] == "agent"
 
-    async def test_unfinalized_frames_ignored(self, mock_supabase):
-        """Test that unfinalized frames are not written to database."""
+    async def test_interim_frames_ignored(self, mock_supabase):
+        """Test that interim (partial) frames are not written to database."""
         writer = TranscriptWriter(session_id="test-session")
 
-        # Unfinalized frame
-        frame = TranscriptionFrame(
-            text="Partial...", user_id="S1", timestamp="2024-01-01T00:00:00Z", finalized=False
+        # Interim frame (partials use InterimTranscriptionFrame, not TranscriptionFrame)
+        frame = InterimTranscriptionFrame(
+            text="Partial...", user_id="S1", timestamp="2024-01-01T00:00:00Z"
         )
 
         await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
