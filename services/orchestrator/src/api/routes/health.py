@@ -66,7 +66,13 @@ def build_health_router(deps: HealthRouterDeps) -> APIRouter:
         except Exception as e:
             logger.warning("Daily.co health check failed: %s", e)
 
-        if current_settings.speechmatics_api_key:
+        provider = current_settings.default_stt_provider
+        if (
+            provider == "speechmatics"
+            and current_settings.speechmatics_api_key
+            or provider == "deepgram"
+            and current_settings.deepgram_api_key
+        ):
             services["stt"] = "up"
 
         if current_settings.anthropic_api_key:

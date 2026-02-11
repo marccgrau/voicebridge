@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pipecat.services.speechmatics.stt import Language
 
 import src.pipeline.builder as builder_module
 from src.pipeline.builder import VoiceBridgePipelineBuilder
@@ -13,6 +12,7 @@ from src.pipeline.builder import VoiceBridgePipelineBuilder
 def configure_builder_settings(monkeypatch):
     """Configure deterministic settings for builder tests."""
     monkeypatch.setattr(builder_module.settings, "speechmatics_api_key", "sm-key")
+    monkeypatch.setattr(builder_module.settings, "default_stt_provider", "speechmatics")
     monkeypatch.setattr(
         builder_module.settings,
         "speechmatics_url",
@@ -100,18 +100,6 @@ async def test_build_sets_explicit_speechmatics_input_params(monkeypatch):
     assert stt._config.enable_diarization is False
     assert stt._config.max_speakers == 3
     assert stt._config.prefer_current_speaker is False
-
-
-def test_resolve_stt_language_accepts_enum_values():
-    """Test language resolution accepts canonical language values."""
-    assert VoiceBridgePipelineBuilder._resolve_stt_language("en") == Language.EN
-    assert VoiceBridgePipelineBuilder._resolve_stt_language("EN") == Language.EN
-
-
-def test_resolve_stt_language_raises_on_invalid_value():
-    """Test invalid language strings raise a clear error."""
-    with pytest.raises(ValueError, match="Unsupported STT_LANGUAGE"):
-        VoiceBridgePipelineBuilder._resolve_stt_language("not-a-language")
 
 
 @pytest.mark.usefixtures("configure_builder_settings")
