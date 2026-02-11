@@ -22,6 +22,7 @@ __pycache__/
 .env.*.local
 **/.env
 **/.env.*
+**/.models
 
 # Supabase
 supabase/.temp
