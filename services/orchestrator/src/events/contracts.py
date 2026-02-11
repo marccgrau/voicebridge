@@ -49,7 +49,7 @@ class SuggestionGeneratedEvent:
 
     session_id: str
     suggestions: list[SuggestionItem]
-    service_type: str = "suggestion_flow"
+    service_type: str = "direct_call"
     latency_ms: float | None = None
     process_key: str | None = None
     tools_used: list[str] | None = None

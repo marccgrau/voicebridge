@@ -1,6 +1,13 @@
 """Process service package."""
 
-from .contracts import ProcessServiceInput, ProcessServiceResult
-from .service import ProcessService
+from .index_service import ProcessCatalogEntry, ProcessCatalogIndexService, ProcessMatch
+from .service import ProcessDefinition, ProcessService, ProcessStep
 
-__all__ = ["ProcessServiceInput", "ProcessServiceResult", "ProcessService"]
+__all__ = [
+    "ProcessService",
+    "ProcessDefinition",
+    "ProcessStep",
+    "ProcessCatalogEntry",
+    "ProcessCatalogIndexService",
+    "ProcessMatch",
+]

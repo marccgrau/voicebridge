@@ -19,7 +19,7 @@ class BoundaryRule:
 RULES = (
     BoundaryRule(
         source="src.api",
-        forbidden=("src.main", "src.pipeline", "src.flows"),
+        forbidden=("src.main", "src.pipeline"),
     ),
     BoundaryRule(
         source="src.services",
@@ -28,14 +28,9 @@ RULES = (
             "src.main",
             "src.composition",
             "src.pipeline",
-            "src.flows",
             "src.adapters",
             "src.config",
         ),
-    ),
-    BoundaryRule(
-        source="src.flows",
-        forbidden=("src.api", "src.main", "src.composition", "src.adapters"),
     ),
     BoundaryRule(
         source="src.ports",
@@ -45,13 +40,12 @@ RULES = (
             "src.composition",
             "src.adapters",
             "src.services",
-            "src.flows",
             "src.pipeline",
         ),
     ),
     BoundaryRule(
         source="src.adapters",
-        forbidden=("src.api", "src.main", "src.composition", "src.flows"),
+        forbidden=("src.api", "src.main", "src.composition"),
     ),
 )
 

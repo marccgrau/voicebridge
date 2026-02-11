@@ -69,6 +69,7 @@ class SessionLifecycleService:
             "processFlowModel": process_flow_model,
             "suggestionFlowProvider": suggestion_flow_provider,
             "suggestionFlowModel": suggestion_flow_model,
+            "guidanceMode": "direct_call",
         }
 
     async def start_session(
@@ -97,7 +98,7 @@ class SessionLifecycleService:
                     "steps": [],
                 },
                 "status": "active",
-                "suggestion_service": "split_flows",
+                "suggestion_service": "direct_call",
                 "process_illustration_enabled": params.enable_process_flow,
             }
         ).execute()
@@ -161,7 +162,7 @@ class SessionLifecycleService:
                 "room_name": room["room_name"],
                 "customer_id": params.customer_id,
                 "customer_joined_at": self._now_iso(),
-                "suggestion_service": "split_flows",
+                "suggestion_service": "direct_call",
                 "process_illustration_enabled": True,
             }
         ).execute()
@@ -172,10 +173,10 @@ class SessionLifecycleService:
             room["room_token"],
             True,
             True,
-            "openai",
-            "gpt-5-nano",
-            "openai",
-            "gpt-5-nano",
+            None,
+            None,
+            None,
+            None,
             None,
         )
 

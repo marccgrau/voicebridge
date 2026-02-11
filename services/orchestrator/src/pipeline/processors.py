@@ -154,7 +154,7 @@ class TranscriptWriter(FrameProcessor):
         """
         await super().process_frame(frame, direction)
 
-        if isinstance(frame, TranscriptionFrame) and frame.finalized:
+        if isinstance(frame, TranscriptionFrame):
             # Resolve speaker from Speechmatics user_id
             speaker = self._resolve_speaker(getattr(frame, "user_id", None))
 
