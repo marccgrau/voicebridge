@@ -352,6 +352,36 @@ class TestHealthCheckEndpoint:
     @respx.mock
     @patch("src.main.get_supabase_client")
     @patch("src.main.settings")
+    def test_stt_health_uses_configured_provider(self, mock_settings, mock_get_client, client):
+        """Test STT health check follows default STT provider setting."""
+        mock_client = MagicMock()
+        mock_table = MagicMock()
+        mock_select = MagicMock()
+        mock_select.limit.return_value = mock_select
+        mock_select.execute.return_value = MagicMock(data=[])
+        mock_table.select.return_value = mock_select
+        mock_client.table.return_value = mock_table
+        mock_get_client.return_value = mock_client
+
+        mock_settings.default_stt_provider = "deepgram"
+        mock_settings.speechmatics_api_key = None
+        mock_settings.deepgram_api_key = "deepgram-key"
+        mock_settings.anthropic_api_key = "test-key"
+        mock_settings.daily_api_key = "test-key"
+
+        respx.get("https://api.daily.co/v1").mock(
+            return_value=httpx.Response(200, json={"version": "test"})
+        )
+
+        response = client.get("/healthz")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["services"]["stt"] == "up"
+
+    @respx.mock
+    @patch("src.main.get_supabase_client")
+    @patch("src.main.settings")
     def test_all_services_healthy(self, mock_settings, mock_get_client, client):
         """Test health check when all services are up."""
         # Mock successful database query
@@ -365,6 +395,7 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock settings
+        mock_settings.default_stt_provider = "speechmatics"
         mock_settings.speechmatics_api_key = "test-key"
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.daily_api_key = "test-key"
@@ -401,6 +432,7 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock settings (other services OK)
+        mock_settings.default_stt_provider = "speechmatics"
         mock_settings.speechmatics_api_key = "test-key"
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.daily_api_key = "test-key"
@@ -436,6 +468,7 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock missing API keys
+        mock_settings.default_stt_provider = "speechmatics"
         mock_settings.speechmatics_api_key = None
         mock_settings.anthropic_api_key = None
         mock_settings.daily_api_key = None

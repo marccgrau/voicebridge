@@ -6,12 +6,12 @@ from dataclasses import dataclass
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.task import PipelineParams, PipelineTask
 from pipecat.processors.frameworks.rtvi import RTVIProcessor
-from pipecat.services.speechmatics.stt import Language, SpeechmaticsSTTService, TurnDetectionMode
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
 
 from src.config import settings
 from src.llm import LLMServiceFactory
 from src.rtvi import VoiceBridgeRTVIObserver
+from src.stt import STTServiceFactory
 
 from .direct_processors import DirectSuggestionProcessor, ProcessContextResolverProcessor
 from .processors import TranscriptWriter
@@ -59,8 +59,6 @@ class VoiceBridgePipelineBuilder:
 
     async def build(self) -> BuiltPipelineComponents:
         """Build pipeline processors and task with optional direct processors."""
-        stt_language = self._resolve_stt_language(settings.stt_language)
-
         transport = DailyTransport(
             room_url=self.room_url,
             token=self.room_token,
@@ -72,19 +70,9 @@ class VoiceBridgePipelineBuilder:
             ),
         )
 
-        speechmatics_params = SpeechmaticsSTTService.InputParams(
-            language=stt_language,
-            turn_detection_mode=TurnDetectionMode.SMART_TURN,
-            include_partials=settings.stt_include_partials,
-            enable_diarization=settings.stt_enable_diarization,
-            max_speakers=settings.stt_max_speakers,
-            prefer_current_speaker=settings.stt_prefer_current_speaker,
-        )
-        stt = SpeechmaticsSTTService(
-            api_key=settings.speechmatics_api_key,
-            base_url=settings.speechmatics_url,
-            params=speechmatics_params,
-            should_interrupt=False,
+        stt = STTServiceFactory.create_stt_service(
+            provider=settings.default_stt_provider,
+            language=settings.stt_language,
         )
 
         transcript_writer = TranscriptWriter(
@@ -134,25 +122,6 @@ class VoiceBridgePipelineBuilder:
             transcript_writer=transcript_writer,
             process_context_resolver=process_context_resolver,
             direct_suggestion_processor=direct_suggestion_processor,
-        )
-
-    @staticmethod
-    def _resolve_stt_language(language: str) -> Language:
-        """Resolve configured language string to Pipecat Language enum."""
-        normalized = language.strip()
-        candidates = [normalized]
-        if normalized.lower() != normalized:
-            candidates.append(normalized.lower())
-
-        for candidate in candidates:
-            try:
-                return Language(candidate)
-            except ValueError:
-                continue
-
-        raise ValueError(
-            f"Unsupported STT_LANGUAGE '{language}'. "
-            "Provide a valid Pipecat Language value (for example: en, en-US, es)."
         )
 
     async def _build_process_context_resolver(self) -> ProcessContextResolverProcessor | None:

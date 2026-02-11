@@ -1,5 +1,7 @@
 """Configuration settings for the orchestrator."""
 
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -10,8 +12,11 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_service_role_key: str
 
-    # Speechmatics
-    speechmatics_api_key: str
+    # STT Providers
+    speechmatics_api_key: str | None = None
+    deepgram_api_key: str | None = None
+    default_stt_provider: Literal["speechmatics", "deepgram"] = "deepgram"
+    deepgram_model: str = "nova-3-general"
     speechmatics_url: str = "wss://neu.rt.speechmatics.com/v2"
     first_speaker_role: str = "customer"
 

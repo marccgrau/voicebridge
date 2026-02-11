@@ -37,8 +37,6 @@ class TestSettings:
         # Set only required env vars
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
-        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
-        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
         settings = Settings()
@@ -52,6 +50,8 @@ class TestSettings:
         assert settings.stt_enable_diarization is True
         assert settings.stt_max_speakers == 2
         assert settings.stt_prefer_current_speaker is True
+        assert settings.default_stt_provider == "deepgram"
+        assert settings.deepgram_model == "nova-3-general"
         assert settings.process_lookup_limit == 5
         assert settings.transcript_write_queue_size == 256
 
@@ -115,19 +115,17 @@ class TestSettings:
         errors = exc_info.value.errors()
         assert any(error["loc"] == ("supabase_service_role_key",) for error in errors)
 
-    def test_missing_speechmatics_api_key_raises_error(self, monkeypatch):
-        """Test that missing Speechmatics API key raises validation error."""
+    def test_stt_api_keys_are_optional(self, monkeypatch):
+        """Test that STT API keys are optional in config and validated at runtime."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
         monkeypatch.delenv("SPEECHMATICS_API_KEY", raising=False)
-        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
+        monkeypatch.delenv("DEEPGRAM_API_KEY", raising=False)
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
-        with pytest.raises(ValidationError) as exc_info:
-            Settings(_env_file=None)
-
-        errors = exc_info.value.errors()
-        assert any(error["loc"] == ("speechmatics_api_key",) for error in errors)
+        settings = Settings(_env_file=None)
+        assert settings.speechmatics_api_key is None
+        assert settings.deepgram_api_key is None
 
     def test_llm_api_keys_are_optional(self, monkeypatch):
         """Test that LLM API keys are optional (at least one provider must be configured at runtime)."""
@@ -244,6 +242,9 @@ class TestSettingsModuleLevel:
         assert hasattr(settings, "supabase_url")
         assert hasattr(settings, "supabase_service_role_key")
         assert hasattr(settings, "speechmatics_api_key")
+        assert hasattr(settings, "deepgram_api_key")
+        assert hasattr(settings, "default_stt_provider")
+        assert hasattr(settings, "deepgram_model")
         assert hasattr(settings, "speechmatics_url")
         assert hasattr(settings, "first_speaker_role")
         assert hasattr(settings, "anthropic_api_key")
