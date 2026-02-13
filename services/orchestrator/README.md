@@ -1,167 +1,48 @@
-# VoiceBridge Orchestrator
+# VoiceBridge Orchestrator (Legacy)
+
+> **Deprecated**: This service has been superseded by the [PCC Service](../pcc/README.md). The PCC service provides equivalent functionality using Pipecat Cloud's standard runner pattern, eliminating the need for a custom FastAPI orchestrator. This code remains in the repository for reference but is no longer actively developed.
 
 Python voice pipeline orchestrator using Pipecat for real-time customer service guidance.
 
-## Features
+## What Changed
 
-- **Multi-Provider LLM Support**: OpenAI (default), Gemini, Anthropic - configurable per-session
+The orchestrator was the original backend that combined:
+- FastAPI HTTP API for session management
+- Pipecat pipeline for voice processing
+- Supabase integration for persistence
+
+The PCC service replaces this with:
+- Stateless Pipecat Cloud bot (no custom API server)
+- Session management moved to Next.js API routes + Supabase
+- Simpler deployment via `pipecat cloud deploy`
+
+## Original Features
+
+- **Multi-Provider LLM Support**: OpenAI, Gemini, Anthropic — configurable per-session
 - **Pipecat Pipeline**: Voice processing with Speechmatics STT, Silero VAD, and Daily.co transport
 - **Process Detection**: LLM-driven process identification and step tracking (ProcessFlow)
 - **Suggestion Generation**: Context-aware agent guidance with process awareness (SuggestionFlow)
 - **RTVI Message Delivery**: Low-latency WebRTC data channel for real-time UI updates
-- **Process Catalog**: Full-text search for customer service processes loaded from markdown files
-- **Listen-Only Bot**: Processes audio without speaking, delivers guidance to human agents
+- **Process Catalog**: Full-text search for customer service processes
 
-## Requirements
+## API Endpoints (No Longer Active)
 
-- Python 3.13+
-- uv package manager
-- At least one LLM provider API key (OpenAI, Google, or Anthropic)
+- `POST /sessions/create` — Customer-initiated session
+- `POST /sessions/accept` — Agent accepts pending session
+- `POST /sessions/start` — Agent-initiated session
+- `POST /sessions/stop` — Stop session
+- `GET /sessions/{id}/status` — Get session status
+- `POST /sessions/summary` — Save postcall summary
+- `POST /sessions/{id}/generate-summary` — AI summary generation
+- `GET /healthz` — Health check
 
-## Setup
-
-```bash
-# Install dependencies
-uv sync
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys (at least OPENAI_API_KEY required)
-
-# Run server
-uv run uvicorn src.main:app --reload
-```
-
-## Environment Variables
+## Development (Reference Only)
 
 ```bash
-SUPABASE_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=xxx
-SPEECHMATICS_API_KEY=xxx
-DAILY_API_KEY=xxx
-
-# LLM Provider API Keys (at least one required)
-OPENAI_API_KEY=xxx          # Default provider
-GOOGLE_API_KEY=xxx          # Optional: Gemini
-ANTHROPIC_API_KEY=xxx       # Optional: Claude
+cd services/orchestrator
+uv sync                           # Install dependencies
+uv run uvicorn src.main:app --reload  # Run server
+uv run pytest                     # Run tests
+uv run ruff check .               # Lint
+uv run ruff format .              # Format
 ```
-
-## API Endpoints
-
-### Session Management
-- `POST /sessions/create` - Customer-initiated session (creates room, bot joins, status=pending)
-- `POST /sessions/accept` - Agent accepts pending session (atomic status update, returns agent token)
-- `POST /sessions/start` - Agent-initiated session (creates room, bot joins, status=active)
-- `POST /sessions/stop` - Stop session (stops pipeline, status=completed)
-- `GET /sessions/{id}/status` - Get session status
-
-### Postcall
-- `POST /sessions/summary` - Save agent's postcall summary
-- `POST /sessions/{id}/generate-summary` - Generate AI summary from transcript
-
-### Health
-- `GET /healthz` - Health check (validates DB, Daily.co, STT, LLM connectivity)
-
-## Multi-Provider LLM Configuration
-
-Both ProcessFlow and SuggestionFlow support independent provider configuration:
-
-```bash
-# Default (OpenAI gpt-5-nano for both)
-POST /sessions/start
-{}
-
-# Custom providers
-POST /sessions/start
-{
-  "processFlowProvider": "anthropic",
-  "processFlowModel": "claude-haiku-4-5-20251001",
-  "suggestionFlowProvider": "openai",
-  "suggestionFlowModel": "gpt-4"
-}
-```
-
-Provider options: `"openai"`, `"gemini"`, `"anthropic"`
-
-## Pipeline Architecture
-
-```
-Daily.co WebRTC (audio in)
-  → Silero VAD (voice activity detection)
-    → Speechmatics STT (streaming speech-to-text)
-      → TranscriptWriter (saves to Supabase, emits TranscriptSegmentFrame)
-        → ProcessFlow (detects process, tracks steps with multi-provider LLM)
-          → SuggestionFlow (generates suggestions with process context, multi-provider LLM)
-            → VoiceBridgeRTVIObserver (sends frames via RTVI)
-              → Daily.co WebRTC (data channel out)
-```
-
-### Custom Frames
-
-Three custom Pipecat frames carry domain data:
-- `TranscriptSegmentFrame`: Live transcript with speaker role
-- `ProcessIllustrationFrame`: Detected process with step progress
-- `SuggestionFrame`: Agent guidance suggestions
-
-### RTVI Messages
-
-All frames are delivered to the agent workspace via RTVI (WebRTC data channel):
-- `transcript_segment`: Live transcript updates
-- `process_illustration`: Process detection and step tracking
-- `agent_guidance`: Contextual agent suggestions
-
-## Development
-
-```bash
-# Run tests
-uv run pytest
-
-# Run specific test file
-uv run pytest tests/llm/test_factory.py
-
-# Lint
-uv run ruff check .
-
-# Format
-uv run ruff format .
-
-# Type hints check (via pyright if installed)
-pyright src/
-```
-
-## Testing
-
-Tests use:
-- `pytest` for test runner
-- `respx` for mocking HTTP calls (Daily.co API)
-- `pytest-asyncio` for async test support
-- Fixtures in `conftest.py`: `mock_supabase_client`, `mock_anthropic_client`, `mock_event_publisher`
-
-Test structure:
-- `tests/api/` - FastAPI endpoint tests
-- `tests/pipeline/` - Pipeline processor tests
-- `tests/llm/` - LLM factory tests
-- `tests/db/` - Database client tests
-
-## Process Definitions
-
-Process definitions are markdown files in `process_content/`:
-
-```markdown
----
-process_key: billing_dispute
-name: Billing Dispute Resolution
-domain: billing
-intents:
-  - charge dispute
-  - incorrect bill
----
-
-## Step 1: Verify Account
-Confirm customer identity...
-
-## Step 2: Review Charges
-Investigate disputed charges...
-```
-
-YAML frontmatter defines metadata, `## Step N:` headings define steps.

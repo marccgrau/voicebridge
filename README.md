@@ -4,25 +4,33 @@ VoiceBridge is a proactive guidance workspace for live human-human customer serv
 
 ## Monorepo Layout
 
-- `apps/agent-workspace` - Next.js agent UI (port `3000`)
-- `apps/customer` - Next.js customer UI (port `3001`)
-- `services/pcc` - Pipecat Cloud voice pipeline (port `7860`)
-- `packages/contracts` - shared Zod schemas and TypeScript types
-- `packages/db` - Supabase query helpers
-- `supabase/migrations` - database migrations
+```
+voicebridge/
+├── apps/
+│   ├── agent-workspace/     # Next.js agent UI (port 3000)
+│   └── customer/            # Next.js customer UI (port 3001)
+├── services/
+│   ├── pcc/                 # Pipecat Cloud voice pipeline (port 7860)
+│   └── orchestrator/        # Legacy orchestrator (deprecated, superseded by PCC)
+├── packages/
+│   ├── contracts/           # Shared Zod schemas and TypeScript types
+│   └── db/                  # Supabase query helpers
+└── supabase/
+    └── migrations/          # Database migrations (001–006)
+```
 
 ## High-Level Flow
 
 ```text
-Daily.co WebRTC -> Deepgram STT -> Pipecat Pipeline -> RTVI + Supabase Realtime -> Next.js UIs
+Daily.co WebRTC → Deepgram STT → Pipecat Pipeline (PCC) → RTVI + Supabase Realtime → Next.js UIs
 ```
 
 Realtime channels:
 
-- RTVI (WebRTC data channel): `transcript_segment`, `process_illustration`, `agent_guidance`
-- Supabase Realtime: session lifecycle + pending call notifications
+- **RTVI** (WebRTC data channel): `transcript_segment`, `process_illustration`, `agent_guidance`
+- **Supabase Realtime**: session lifecycle + pending call notifications
 
-The PCC bot is stateless and runs directly in Pipecat Cloud. Session management (pending → active) lives in Next.js API routes + Supabase.
+The PCC bot is stateless and runs in Pipecat Cloud (or locally). Session management (pending → active) lives in Next.js API routes + Supabase.
 
 ## Prerequisites
 
@@ -54,13 +62,13 @@ make dev
 
 ```bash
 # Development
-make dev                  # web + customer + pcc
-make web-dev              # agent workspace only
-make customer-dev         # customer app only
-make pcc-dev              # pcc service only
+make dev                  # web + customer + pcc (all 3 in parallel)
+make web-dev              # agent workspace only (port 3000)
+make customer-dev         # customer app only (port 3001)
+make pcc-dev              # PCC service only (port 7860)
 
 # Quality
-make test                 # pnpm workspace tests + pcc pytest
+make test                 # pnpm workspace tests + PCC pytest
 make lint                 # eslint + ruff
 make typecheck            # TypeScript typecheck
 make format               # prettier + ruff format
@@ -75,44 +83,47 @@ make db-reset             # supabase db reset
 ### Agent Workspace (`apps/agent-workspace/.env.local`)
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-OPENAI_API_KEY  # For AI-generated call summaries
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+OPENAI_API_KEY=your_openai_api_key  # For AI-generated call summaries
 ```
 
 ### Customer App (`apps/customer/.env.local`)
 
 ```bash
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-PCC_AGENT_URL=http://localhost:7860
-DAILY_API_KEY
-PIPECAT_CLOUD_API_KEY  # Optional, for cloud deployment
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+PCC_AGENT_URL=http://localhost:7860  # PCC local dev server
+DAILY_API_KEY=your_daily_api_key
+PIPECAT_CLOUD_API_KEY=your_pipecat_cloud_api_key  # Optional, for cloud deployment
 ```
 
 ### PCC Service (`services/pcc/.env`)
 
 ```bash
-DAILY_API_KEY
-DEEPGRAM_API_KEY
-OPENAI_API_KEY
+DAILY_API_KEY=your_daily_api_key
+DEEPGRAM_API_KEY=your_deepgram_api_key
+OPENAI_API_KEY=your_openai_api_key
 
-# Optional: Pipecat Cloud API key (for cloud deployment)
-PIPECAT_CLOUD_API_KEY
-
-# Optional: Override suggestion LLM model (default: gpt-4.1-mini)
-SUGGESTION_MODEL=gpt-4.1-mini
+# Optional
+PIPECAT_CLOUD_API_KEY=your_pipecat_cloud_api_key  # For cloud deployment
+SUGGESTION_MODEL=gpt-4.1                           # Override suggestion LLM model (default: gpt-4.1)
 ```
 
 ## API Surface
 
 ### Customer App API Routes
 
-- `POST /api/sessions/create` - Customer-initiated session (creates Daily room, starts PCC bot, stores pending session)
+- `POST /api/sessions/create` — Customer-initiated session (creates Daily room via PCC, generates tokens, stores pending session in Supabase)
 
-### Agent Workspace
+### Agent Workspace API Routes
+
+- `POST /api/sessions/summary` — Save agent's postcall summary
+- `POST /api/sessions/[sessionId]/generate-summary` — Generate AI summary from transcript via OpenAI
+
+### Agent Workspace Data Access
 
 - Reads session data directly from Supabase (room_url, agent_token)
 - Updates session status via Supabase (pending → active, active → completed)
@@ -121,60 +132,61 @@ SUGGESTION_MODEL=gpt-4.1-mini
 
 `services/pcc/` is a stateless Pipecat Cloud bot:
 
-- `bot.py` - Entry point with full pipeline wiring
-- `src/frames.py` - Custom Pipecat frames
-- `src/processors.py` - Pipeline processors
-- `src/process_catalog.py` - Process loading and matching
-- `process_content/` - Process markdown files
+- `bot.py` — Entry point with full pipeline wiring
+- `src/frames.py` — Custom Pipecat frames
+- `src/processors.py` — Pipeline processors
+- `src/process_catalog.py` — Process loading and matching
+- `process_content/` — Process markdown files (9 processes)
 
-Pipeline processors emit these custom frames:
+Pipeline processors emit three custom frames:
 
-- `TranscriptSegmentFrame`
-- `ProcessIllustrationFrame`
-- `SuggestionFrame`
+- `TranscriptSegmentFrame` — Live transcript with speaker role
+- `ProcessIllustrationFrame` — Detected process with step progress
+- `SuggestionFrame` — Agent guidance suggestions
 
 All frames are delivered via RTVI (WebRTC data channel) for sub-second latency.
 
-## Database Notes
+## Database
 
-Current migrations:
+### Migrations
 
-- `001_initial_schema.sql`
-- `002_customers.sql`
-- `003_add_session_summary.sql`
-- `004_customers_rls.sql`
+- `001_initial_schema.sql` — sessions, transcript_segments, process_catalog
+- `002_customers.sql` — customers, customer_interactions tables
+- `003_add_session_summary.sql` — summary fields on sessions
+- `004_customers_rls.sql` — Row-level security for customers
+- `005_update_suggestion_service_modes.sql` — Update service type column
+- `006_add_agent_token.sql` — Add agent_token to sessions
 
-Primary tables:
+### Primary Tables
 
-- `sessions`
-- `transcript_segments`
-- `process_catalog`
-- `customers`
-- `customer_interactions`
+- `sessions` — Session state (JSONB), status, room URL/name, agent_token, timestamps
+- `transcript_segments` — STT output segments by speaker (agent/customer)
+- `process_catalog` — Process definitions with full-text search
+- `customers` — Customer profiles with classification
+- `customer_interactions` — Links sessions to customers
 
-Session statuses:
+### Session Statuses
 
-- `pending`
-- `active`
-- `completed`
-- `abandoned`
-- `escalated`
-- `error`
+`pending` → `active` → `completed` / `abandoned` / `escalated` / `error`
 
 Summary save/generate is allowed for terminal statuses only: `completed`, `abandoned`, `escalated`.
 
 ## Process Catalog
 
-Process definitions live in `services/pcc/process_content` (currently 9 markdown files).
+Process definitions live in `services/pcc/process_content/` (9 markdown files).
 
 - YAML frontmatter: `process_key`, `name`, `domain`, `intents`
 - Steps parsed from `## Step N: ...` headings
+- Detection uses token-overlap matching against customer speech (no LLM calls)
 
 ## Testing
 
-- Run full suite: `make test`
-- PCC service only: `cd services/pcc && uv run pytest`
-- Contracts only: `pnpm --filter @voicebridge/contracts test`
+```bash
+make test                                        # Full suite (vitest + pytest)
+cd services/pcc && uv run pytest                 # PCC service only
+pnpm --filter @voicebridge/contracts test        # Contracts only
+pnpm --filter @voicebridge/db test               # DB package only
+```
 
 ## Operational Gotchas
 
@@ -182,4 +194,12 @@ Process definitions live in `services/pcc/process_content` (currently 9 markdown
 - PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
 - PCC service is stateless — no DB persistence, all data flows through RTVI.
 - Process detection uses token-overlap matching (no LLM calls).
-- Suggestion generation uses OpenAI gpt-4.1-mini by default (configurable via `SUGGESTION_MODEL` env var).
+- Suggestion generation uses OpenAI `gpt-4.1` by default (configurable via `SUGGESTION_MODEL`).
+- Node must be 24+, Python must be 3.13+, pnpm must be 10+.
+
+## Further Reading
+
+- [Architecture Guide](./ARCHITECTURE.md) — Detailed system architecture, data flows, and design patterns
+- [Agent Workspace](./apps/agent-workspace/README.md) — Phase-based agent UI documentation
+- [Customer App](./apps/customer/README.md) — Customer call interface documentation
+- [PCC Service](./services/pcc/README.md) — Voice pipeline service documentation

@@ -8,11 +8,12 @@ VoiceBridge is a proactive guidance workspace for live human-human customer serv
 
 The system consists of:
 
-- `apps/agent-workspace` (Next.js, agent UI)
-- `apps/customer` (Next.js, customer UI)
-- `services/orchestrator` (FastAPI + Pipecat voice pipeline)
+- `apps/agent-workspace` (Next.js, agent UI, port 3000)
+- `apps/customer` (Next.js, customer UI, port 3001)
+- `services/pcc` (Pipecat Cloud voice pipeline, port 7860)
 - `packages/contracts` (shared Zod schemas/types)
 - `packages/db` (Supabase query helpers)
+- `services/orchestrator` (legacy, deprecated — superseded by PCC)
 
 ## Development Commands
 
@@ -26,29 +27,29 @@ make db-migrate           # Push Supabase migrations
 ### Development
 
 ```bash
-make dev                  # Run web + customer + orchestrator
-make web-dev              # Agent workspace only (3000)
-make customer-dev         # Customer app only (3001)
-make orchestrator-dev     # Orchestrator only (8000)
+make dev                  # Run web + customer + pcc (all 3 in parallel)
+make web-dev              # Agent workspace only (port 3000)
+make customer-dev         # Customer app only (port 3001)
+make pcc-dev              # PCC service only (port 7860)
 ```
 
 ### Testing & Quality
 
 ```bash
-make test                 # pnpm workspace tests + orchestrator pytest
+make test                 # pnpm workspace tests + PCC pytest
 make lint                 # eslint + ruff
 make typecheck            # TypeScript typecheck
 make format               # prettier + ruff format
 ```
 
-### Python Orchestrator
+### PCC Service
 
 ```bash
-cd services/orchestrator
-uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-uv run pytest
-uv run ruff check .
-uv run ruff format .
+cd services/pcc
+uv run python bot.py -t daily --port 7860   # Run local dev server
+uv run pytest                                # Run tests
+uv run ruff check .                          # Lint
+uv run ruff format .                         # Format
 ```
 
 ### Database
@@ -74,30 +75,35 @@ For every new feature:
 Always add tests for new behavior and run relevant suites before considering work complete.
 
 - TypeScript/React changes: run workspace tests (`pnpm -r test`) or `make test`
-- Python orchestrator changes: run `cd services/orchestrator && uv run pytest`
+- Python PCC changes: run `cd services/pcc && uv run pytest`
 - Contract/schema changes: run `packages/contracts` vitest suite
 
-For orchestrator work, prioritize tests for:
+For PCC service work, prioritize tests for:
 
-- service-level business logic in `src/services`
-- API route behavior in `tests/api`
-- pipeline/flow processors in `tests/pipeline` and `tests/flows`
-- architecture boundaries in `tests/architecture/test_module_boundaries.py`
+- Pipeline processor logic (transcript writing, process detection, suggestion generation)
+- Custom frame emission and handling
+- RTVI message delivery via VoiceBridgeRTVIObserver
+
+For Next.js apps, prioritize tests for:
+
+- Component rendering and state management
+- RTVI message handling and Supabase Realtime subscription logic
+- Schema validation with Zod
 
 ## Architecture
 
 ### High-Level Flow
 
 ```text
-Daily.co WebRTC -> Silero VAD -> Speechmatics STT -> Pipecat Pipeline -> RTVI / Supabase Realtime -> Next.js UIs
+Daily.co WebRTC → Deepgram STT → Pipecat Pipeline (PCC) → RTVI / Supabase Realtime → Next.js UIs
 ```
 
-The orchestrator is listen-only (`audio_out_enabled=False`). It never speaks; it emits guidance events.
+The PCC bot is listen-only (`audio_out_enabled=False`). It never speaks; it emits guidance events.
 
 Realtime channels:
 
 - RTVI (WebRTC data channel): transcript segments, process illustrations, suggestions
-- Supabase Realtime: session lifecycle updates (pending/active/completed...) and pending-call notifications
+- Supabase Realtime: session lifecycle updates (pending/active/completed) and pending-call notifications
 
 ### Component Responsibilities
 
@@ -109,87 +115,60 @@ Realtime channels:
   - `active_preprocess`
   - `active_inprocess`
   - `postcall_summary`
-- Accepts pending sessions and stops active ones via orchestrator API
+- Accepts pending sessions via Supabase (updates status to active)
+- Connects to Daily.co room via @pipecat-ai/client-js RTVI client
 - Receives RTVI actions:
   - `transcript_segment`
   - `process_illustration`
   - `agent_guidance`
 - Fetches customer profile/interactions from Supabase when `customer_id` exists
+- API routes for postcall summary save and AI generation
 - Includes `/admin` route with session list + session transcript/detail inspector
 
 #### Customer App (`apps/customer`)
 
-- Customer flow states: `idle -> calling -> connected -> ended`
-- Starts calls via `POST /sessions/create` (optional `customer_id`)
+- Customer flow states: `idle → calling → connected → ended`
+- Starts calls via `POST /api/sessions/create` (optional `customer_id`)
+- API route creates PCC bot, Daily tokens, and pending session in Supabase
 - Watches session status via Supabase Realtime to detect agent join/end
 - Connects to Daily room audio using `@daily-co/daily-js`
 
-#### Orchestrator (`services/orchestrator`)
+#### PCC Service (`services/pcc`)
 
-- FastAPI API with session lifecycle + summary endpoints:
-  - `POST /sessions/create`
-  - `POST /sessions/accept`
-  - `POST /sessions/start`
-  - `POST /sessions/stop`
-  - `GET /sessions/{session_id}/status`
-  - `POST /sessions/summary`
-  - `POST /sessions/{session_id}/generate-summary`
-  - `GET /healthz`
-- Pipecat pipeline processors:
-  1. `TranscriptWriter` (speaker mapping + async DB writes + emits `TranscriptSegmentFrame`)
-  2. `ProcessFlow` (LLM process detection/tracking + emits `ProcessIllustrationFrame`)
-  3. `SuggestionFlow` (LLM suggestions; consumes process context; emits `SuggestionFrame`)
-  4. `VoiceBridgeRTVIObserver` (publishes custom frames as RTVI bot-action messages with retries)
-
-### Orchestrator Module Boundaries
-
-`services/orchestrator` follows a modular-monolith structure:
-
-- `src/api` for HTTP layer only
-- `src/services` for business rules (`session`, `process`, `suggestion`, `summary`)
-- `src/ports` for dependency interfaces
-- `src/adapters` for concrete infrastructure integrations
-- `src/flows` for Pipecat frame adapters around services
-- `src/pipeline` for runtime assembly
-- `src/composition` for dependency wiring
-
-See `services/orchestrator/ARCHITECTURE.md` for details and constraints.
+- Stateless Pipecat Cloud bot using standard runner pattern
+- Entry point: `bot.py` with `RunnerArguments`
+- Local dev: `python bot.py -t daily --port 7860` (HTTP server with `/start` endpoint)
+- Production: `pipecat cloud deploy`
+- Pipeline processors:
+  1. `TranscriptWriter` (emits `TranscriptSegmentFrame`)
+  2. `ProcessDetectionProcessor` (catalog-based matching, emits `ProcessIllustrationFrame`)
+  3. `SuggestionContextBuilder` (aggregates context for LLM)
+  4. `SuggestionOutputProcessor` (emits `SuggestionFrame`)
+  5. `VoiceBridgeRTVIObserver` (publishes frames as RTVI bot-action messages with retries)
+- `ParallelPipeline` ensures suggestions don't block transcript/process delivery
 
 ## Database Schema
 
-Migrations currently present:
+Migrations (in `supabase/migrations/`):
 
-- `001_initial_schema.sql`
-- `002_customers.sql`
-- `003_add_session_summary.sql`
-- `004_customers_rls.sql`
+- `001_initial_schema.sql` — sessions, transcript_segments, process_catalog
+- `002_customers.sql` — customers, customer_interactions
+- `003_add_session_summary.sql` — summary fields on sessions
+- `004_customers_rls.sql` — Row-level security for customers
+- `005_update_suggestion_service_modes.sql` — Update service type column
+- `006_add_agent_token.sql` — Add agent_token to sessions
 
 Primary tables:
 
-- `sessions`
-- `transcript_segments`
-- `process_catalog`
-- `customers`
-- `customer_interactions`
+- `sessions` — status, room_url, room_name, agent_token, state (JSONB), timestamps
+- `transcript_segments` — session_id, speaker, text, is_final, timestamps
+- `process_catalog` — process_key, name, domain, status, version
+- `customers` — id, name, classification, email
+- `customer_interactions` — session_id, customer_id, interaction_type
 
-Notable additions after initial schema:
+Session statuses: `pending` → `active` → `completed` / `abandoned` / `escalated` / `error`
 
-- `sessions.customer_id` links sessions to customers
-- summary fields on sessions:
-  - `summary_text`
-  - `summary_updated_at`
-  - `summary_updated_by`
-
-Session statuses:
-
-- `pending`
-- `active`
-- `completed`
-- `abandoned`
-- `escalated`
-- `error`
-
-Supabase Realtime publications are enabled for `sessions` and `transcript_segments`.
+Supabase Realtime enabled on `sessions` and `transcript_segments`.
 
 ## Contracts and Frames
 
@@ -199,28 +178,29 @@ Supabase Realtime publications are enabled for `sessions` and `transcript_segmen
 - DTO schemas for session lifecycle, summary updates, and customer data
 - Cross-package TypeScript type source of truth
 
-### Custom Pipecat Frames (`services/orchestrator/src/frames`)
+### Custom Pipecat Frames (`services/pcc/src/frames.py`)
 
-- `SuggestionFrame`
-- `ProcessIllustrationFrame`
-- `TranscriptSegmentFrame`
+- `TranscriptSegmentFrame` — session_id, speaker, text, timestamp, is_final
+- `ProcessIllustrationFrame` — process_key, process_name, steps, current_step, content
+- `SuggestionFrame` — suggestions array, service_type, latency_ms, process_key, tools_used
 
 ## Process Catalog
 
-Process markdown content lives in `services/orchestrator/process_content`.
+Process markdown content lives in `services/pcc/process_content/`.
 
 - Files use YAML frontmatter (`process_key`, `name`, `domain`, `intents`)
 - Steps are parsed from `## Step N: ...` headings
 - Repository currently contains 9 process content markdown files
+- Detection uses token-overlap matching (no LLM calls)
 
 ## Key Design Patterns
 
-- Listen-only bot: no audio output from orchestrator.
-- Decoupled flows: `SuggestionFlow` gets process context through frames, not direct coupling.
-- Isolated LLM tasks: each flow uses its own FlowManager/LLM pipeline.
-- Non-blocking transcript persistence: `TranscriptWriter` writes via background queue/worker.
-- Latest-turn-wins suggestions: stale suggestion tasks are canceled on newer customer turns.
-- RTVI-first for live guidance: low-latency messages over WebRTC data channel.
+- **Listen-only bot**: No audio output from PCC service.
+- **Stateless PCC**: No database persistence; all data flows through RTVI.
+- **Decoupled flows**: Suggestion generation gets process context through frames, not direct coupling.
+- **Parallel processing**: Suggestions run in a ParallelPipeline branch to avoid blocking transcript delivery.
+- **RTVI-first for live guidance**: Low-latency messages over WebRTC data channel.
+- **Session management in Next.js**: API routes in customer app handle room creation and session insertion.
 
 ## Environment Variables
 
@@ -230,7 +210,7 @@ Process markdown content lives in `services/orchestrator/process_content`.
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
-NEXT_PUBLIC_ORCHESTRATOR_URL   # default http://localhost:8000
+OPENAI_API_KEY              # For AI-generated postcall summaries
 ```
 
 ### Customer App (`apps/customer/.env.local`)
@@ -238,34 +218,29 @@ NEXT_PUBLIC_ORCHESTRATOR_URL   # default http://localhost:8000
 ```bash
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
-NEXT_PUBLIC_ORCHESTRATOR_URL   # default http://localhost:8000
+SUPABASE_SERVICE_ROLE_KEY
+PCC_AGENT_URL=http://localhost:7860
+DAILY_API_KEY
+PIPECAT_CLOUD_API_KEY       # Optional, for cloud deployment
 ```
 
-### Orchestrator (`services/orchestrator/.env`)
+### PCC Service (`services/pcc/.env`)
 
 ```bash
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-SPEECHMATICS_API_KEY
 DAILY_API_KEY
-
-# LLM provider keys (configure based on selected providers)
+DEEPGRAM_API_KEY
 OPENAI_API_KEY
-GOOGLE_API_KEY
-ANTHROPIC_API_KEY
+PIPECAT_CLOUD_API_KEY       # Optional, for cloud deployment
+SUGGESTION_MODEL            # Optional, default: gpt-4.1
 ```
-
-Notes:
-
-- At least one provider key is required for session flows, depending on configured provider (`openai`, `gemini`, or `anthropic`).
-- AI summary generation currently uses Anthropic `SummaryService`; `ANTHROPIC_API_KEY` is required for `POST /sessions/{id}/generate-summary`.
 
 ## Common Gotchas
 
 - Python must be 3.13+; Node must be 24+; pnpm must be 10+.
 - Supabase CLI is required for migration/reset commands.
 - Daily rooms are ephemeral (1-hour expiry on room creation).
-- VAD defaults are tuned in config (`start_secs=0.2`, `stop_secs=0.6`) and strongly affect responsiveness.
-- `SessionSummaryService` allows save/generate only for terminal statuses (`completed`, `abandoned`, `escalated`).
-- First detected speaker defaults to `customer` (`first_speaker_role`) and affects downstream suggestion/process behavior.
-- Current `GET /healthz` implementation reports LLM as `up` only when `ANTHROPIC_API_KEY` is configured.
+- PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
+- PCC service is stateless — no DB persistence, all data flows through RTVI.
+- Process detection uses token-overlap matching (no LLM calls).
+- Summary save/generate is allowed for terminal statuses only (`completed`, `abandoned`, `escalated`).
+- Next.js 16 async params: Route params are Promises and must be awaited in App Router API routes.
