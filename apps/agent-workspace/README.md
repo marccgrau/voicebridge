@@ -10,11 +10,12 @@ Next.js agent workspace with **phase-based procedural UI** for real-time custome
   - **Idle**: Waiting screen for incoming calls
   - **Incoming**: Customer info preview + accept/reject interface
   - **Active (Pre-process)**: Customer info + transcript + suggestions (process detection in progress)
-  - **Active (In-process)**: Full 4-panel workspace with process visualization
+  - **Active (In-process)**: Full workspace with process visualization
   - **Postcall Summary**: Transcript review + AI-generated summary editor
 - **Auto-Return to Idle**: After saving summary, workspace automatically returns to waiting state
 - **Real-time Updates**: Supabase Realtime for session state + RTVI for live data
-- **Incoming Call Notifications**: Toast-style notifications for pending customer calls
+- **Incoming Call Notifications**: Pending customer calls displayed with customer info
+- **Admin Panel**: `/admin` route with session list and transcript inspector
 
 ## Tech Stack
 
@@ -33,12 +34,12 @@ Next.js agent workspace with **phase-based procedural UI** for real-time custome
 ## Setup
 
 ```bash
-# Install dependencies
-pnpm install
+# Install dependencies (from repo root)
+make install
 
 # Configure environment
 cp .env.example .env.local
-# Edit .env.local with your Supabase keys
+# Edit .env.local with your keys
 
 # Run development server
 pnpm dev
@@ -51,37 +52,43 @@ Open http://localhost:3000
 ```bash
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# Orchestrator API
-NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
+# OpenAI (for AI-generated postcall summaries)
+OPENAI_API_KEY=your_openai_api_key
 ```
 
 ## Project Structure
 
 ```
 apps/agent-workspace/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root layout with theme
-│   ├── page.tsx           # Main workspace with phase logic
-│   └── globals.css        # Global styles + Tailwind
+├── app/                        # Next.js App Router
+│   ├── layout.tsx              # Root layout with theme
+│   ├── page.tsx                # Main workspace with phase logic
+│   ├── globals.css             # Global styles + Tailwind
+│   ├── admin/page.tsx          # Admin panel (session list + inspector)
+│   └── api/
+│       └── sessions/
+│           ├── summary/route.ts               # Save postcall summary
+│           └── [sessionId]/
+│               └── generate-summary/route.ts  # AI summary generation
 ├── src/
 │   ├── components/
-│   │   └── workspace/     # Phase-based panels
-│   │       ├── InteractionPanel.tsx       # Transcript
-│   │       ├── SuggestionsPanel.tsx       # Agent guidance
-│   │       ├── ProcessLayer.tsx           # Process visualization layer
-│   │       ├── CustomerInfoPanel.tsx      # Customer profile
+│   │   └── workspace/          # Phase-based panels
+│   │       ├── InteractionPanel.tsx          # Transcript display
+│   │       ├── SuggestionsPanel.tsx          # Agent guidance
+│   │       ├── ProcessLayer.tsx             # Process step visualization
+│   │       ├── CustomerInfoPanel.tsx        # Customer profile
 │   │       ├── IncomingCallNotification.tsx  # Call accept UI
-│   │       └── SummaryEditor.tsx          # Postcall notes
+│   │       └── SummaryEditor.tsx            # Postcall notes
 │   └── lib/
-│       ├── supabase.ts    # Supabase client
-│       ├── session.ts     # Session management hook
-│       ├── rtvi.ts        # RTVI message handling hook
-│       ├── pending-sessions.ts  # Incoming call subscription
-│       ├── use-phase.ts   # Phase detection logic
-│       └── use-summary.ts # Summary editor state
+│       ├── supabase.ts         # Supabase client
+│       ├── session.ts          # Session management hook
+│       ├── rtvi.ts             # RTVI message handling hook
+│       ├── pending-sessions.ts # Incoming call subscription
+│       ├── use-phase.ts        # Phase detection logic
+│       └── use-summary.ts      # Summary editor state
 └── package.json
 ```
 
@@ -98,7 +105,7 @@ apps/agent-workspace/
 **Shows**:
 
 - Incoming call notification (customer info preview)
-- Accept/Reject buttons
+- Accept button
 - Process layer (waiting state)
 - Customer info panel (expanded)
 
@@ -108,7 +115,7 @@ apps/agent-workspace/
 **Shows**:
 
 - Process layer (detecting state)
-- Customer info (compact)
+- Customer info (compact, toggleable)
 - Live transcript (expanded)
 - Suggestions panel
 
@@ -118,7 +125,7 @@ apps/agent-workspace/
 **Shows**:
 
 - Process layer (steps + progress)
-- Customer info (compact)
+- Customer info (compact, toggleable)
 - Live transcript (expanded)
 - Suggestions panel (process-aware)
 
@@ -186,7 +193,7 @@ The workspace receives real-time updates via RTVI (WebRTC data channel):
 ## Real-time Architecture
 
 ```
-Backend Orchestrator (Pipecat Pipeline)
+PCC Service (Pipecat Pipeline)
     ↓ RTVI (WebRTC data channel)
 Agent Workspace (@pipecat-ai/client-js)
     ↓ useRTVI hook
@@ -206,42 +213,24 @@ Phase-based UI re-renders
 - Real-time suggestions
 - Process detection and step tracking
 
-## Development
-
-```bash
-# Start dev server with Turbopack
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Lint code
-pnpm lint
-
-# Type check
-pnpm typecheck
-
-# Run tests
-pnpm test
-```
-
 ## Key Hooks
 
 ### `useSession()`
 
 Manages session lifecycle:
 
-- `acceptSession(id)` - Accept pending call
-- `stopSession()` - End active call
-- `clearSession()` - Return to idle state
+- `acceptSession(id)` — Accept pending call (updates status to active, connects RTVI)
+- `stopSession()` — End active call (updates status to completed)
+- `clearSession()` — Return to idle state
 
-### `useRTVI(roomUrl, roomToken, callbacks)`
+### `useRTVI(roomUrl, roomToken, callbacks, options)`
 
 Connects to RTVI and handles messages:
 
-- `onTranscript` - New transcript segment
-- `onSuggestion` - New agent guidance
-- `onProcessIllustration` - Process update
+- `onTranscript` — New transcript segment
+- `onSuggestion` — New agent guidance
+- `onProcessIllustration` — Process update
+- Options: `{ audioEnabled }` — Enable agent microphone audio
 
 ### `usePendingSessions()`
 
@@ -273,4 +262,14 @@ idle
   → (process detected) → active_inprocess
   → (call ends) → postcall_summary
   → (summary saved) → idle
+```
+
+## Development
+
+```bash
+pnpm dev          # Start dev server with Turbopack
+pnpm build        # Build for production
+pnpm lint         # Lint code
+pnpm typecheck    # Type check
+pnpm test         # Run tests
 ```
