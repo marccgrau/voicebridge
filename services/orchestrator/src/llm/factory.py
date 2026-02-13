@@ -1,7 +1,7 @@
 """Factory for creating LLM service instances based on provider."""
 
 import logging
-from typing import Any, Literal
+from typing import Literal
 
 from pipecat.services.anthropic.llm import AnthropicLLMService
 from pipecat.services.google.llm import GoogleLLMService
@@ -21,7 +21,6 @@ class LLMServiceFactory:
     def create_llm_service(
         provider: LLMProvider,
         model: str,
-        extra_params: dict[str, Any] | None = None,
     ) -> AnthropicLLMService | GoogleLLMService | OpenAILLMService:
         """
         Create an LLM service instance for the specified provider.
@@ -29,7 +28,6 @@ class LLMServiceFactory:
         Args:
             provider: The LLM provider ("gemini", "anthropic", or "openai")
             model: The model identifier to use
-            extra_params: Additional provider-specific parameters (e.g. response_format)
 
         Returns:
             Configured LLM service instance
@@ -62,13 +60,9 @@ class LLMServiceFactory:
                 raise ValueError(
                     "OPENAI_API_KEY environment variable is required for OpenAI provider"
                 )
-            params = OpenAILLMService.InputParams(
-                extra=extra_params or {},
-            )
             return OpenAILLMService(
                 api_key=settings.openai_api_key,
                 model=model,
-                params=params,
             )
         else:
             raise ValueError(

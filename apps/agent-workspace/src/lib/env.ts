@@ -14,8 +14,4 @@ export const env = {
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   ),
-  NEXT_PUBLIC_ORCHESTRATOR_URL: requireEnv(
-    "NEXT_PUBLIC_ORCHESTRATOR_URL",
-    process.env.NEXT_PUBLIC_ORCHESTRATOR_URL
-  ),
 } as const;

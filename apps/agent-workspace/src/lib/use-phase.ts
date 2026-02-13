@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { PendingSession } from "./pending-sessions";
+import { supabase } from "./supabase";
 
 export type UIPhase =
   | "idle"
@@ -48,8 +49,6 @@ const PHASE_DEFAULTS: Record<UIPhase, PanelDensity> = {
 };
 
 const TERMINAL_STATUSES = new Set(["completed", "abandoned", "escalated"]);
-const ORCHESTRATOR_URL =
-  process.env.NEXT_PUBLIC_ORCHESTRATOR_URL || "http://localhost:8000";
 const DISCONNECT_DEBOUNCE_MS = 3000;
 
 interface UsePhaseParams {
@@ -98,21 +97,21 @@ export function usePhase({
     }
 
     // Disconnected but sessionId still set — session was stopped or transient disconnect.
-    // Use debounced fetch to determine if terminal.
+    // Use debounced check to determine if terminal.
     if (!isConnected && sessionId) {
       if (!disconnectTimerRef.current) {
         disconnectTimerRef.current = setTimeout(async () => {
           disconnectTimerRef.current = null;
           try {
-            const res = await fetch(
-              `${ORCHESTRATOR_URL}/sessions/${sessionId}/status`
-            );
-            if (res.ok) {
-              const data = await res.json();
-              if (TERMINAL_STATUSES.has(data.status)) {
-                setPhase("postcall_summary");
-                return;
-              }
+            const { data, error } = await supabase
+              .from("sessions")
+              .select("status")
+              .eq("id", sessionId)
+              .single();
+
+            if (!error && data && TERMINAL_STATUSES.has(data.status)) {
+              setPhase("postcall_summary");
+              return;
             }
           } catch {
             // On fetch failure, assume postcall if we were previously active

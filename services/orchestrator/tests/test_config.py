@@ -37,6 +37,8 @@ class TestSettings:
         # Set only required env vars
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
+        monkeypatch.setenv("SPEECHMATICS_API_KEY", "sm-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
         settings = Settings()
@@ -46,14 +48,7 @@ class TestSettings:
         assert settings.port == 8000
         assert settings.debug is False
         assert settings.stt_language == "en"
-        assert settings.stt_include_partials is False
-        assert settings.stt_enable_diarization is True
-        assert settings.stt_max_speakers == 2
-        assert settings.stt_prefer_current_speaker is True
-        assert settings.default_stt_provider == "deepgram"
-        assert settings.deepgram_model == "nova-3-general"
         assert settings.process_lookup_limit == 5
-        assert settings.transcript_write_queue_size == 256
 
     def test_optional_fields_can_be_overridden(self, monkeypatch):
         """Test that optional fields can be overridden via env vars."""
@@ -67,10 +62,6 @@ class TestSettings:
         monkeypatch.setenv("PORT", "9000")
         monkeypatch.setenv("DEBUG", "true")
         monkeypatch.setenv("STT_LANGUAGE", "es")
-        monkeypatch.setenv("STT_INCLUDE_PARTIALS", "true")
-        monkeypatch.setenv("STT_ENABLE_DIARIZATION", "false")
-        monkeypatch.setenv("STT_MAX_SPEAKERS", "3")
-        monkeypatch.setenv("STT_PREFER_CURRENT_SPEAKER", "false")
         monkeypatch.setenv("PROCESS_LOOKUP_LIMIT", "10")
 
         settings = Settings()
@@ -79,10 +70,6 @@ class TestSettings:
         assert settings.port == 9000
         assert settings.debug is True
         assert settings.stt_language == "es"
-        assert settings.stt_include_partials is True
-        assert settings.stt_enable_diarization is False
-        assert settings.stt_max_speakers == 3
-        assert settings.stt_prefer_current_speaker is False
         assert settings.process_lookup_limit == 10
 
     def test_missing_supabase_url_raises_validation_error(self, monkeypatch):
@@ -115,17 +102,19 @@ class TestSettings:
         errors = exc_info.value.errors()
         assert any(error["loc"] == ("supabase_service_role_key",) for error in errors)
 
-    def test_stt_api_keys_are_optional(self, monkeypatch):
-        """Test that STT API keys are optional in config and validated at runtime."""
+    def test_missing_speechmatics_api_key_raises_error(self, monkeypatch):
+        """Test that missing Speechmatics API key raises validation error."""
         monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
         monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "test-key")
         monkeypatch.delenv("SPEECHMATICS_API_KEY", raising=False)
-        monkeypatch.delenv("DEEPGRAM_API_KEY", raising=False)
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "an-key")
         monkeypatch.setenv("DAILY_API_KEY", "daily-key")
 
-        settings = Settings(_env_file=None)
-        assert settings.speechmatics_api_key is None
-        assert settings.deepgram_api_key is None
+        with pytest.raises(ValidationError) as exc_info:
+            Settings(_env_file=None)
+
+        errors = exc_info.value.errors()
+        assert any(error["loc"] == ("speechmatics_api_key",) for error in errors)
 
     def test_llm_api_keys_are_optional(self, monkeypatch):
         """Test that LLM API keys are optional (at least one provider must be configured at runtime)."""
@@ -242,9 +231,6 @@ class TestSettingsModuleLevel:
         assert hasattr(settings, "supabase_url")
         assert hasattr(settings, "supabase_service_role_key")
         assert hasattr(settings, "speechmatics_api_key")
-        assert hasattr(settings, "deepgram_api_key")
-        assert hasattr(settings, "default_stt_provider")
-        assert hasattr(settings, "deepgram_model")
         assert hasattr(settings, "speechmatics_url")
         assert hasattr(settings, "first_speaker_role")
         assert hasattr(settings, "anthropic_api_key")
@@ -253,8 +239,4 @@ class TestSettingsModuleLevel:
         assert hasattr(settings, "port")
         assert hasattr(settings, "debug")
         assert hasattr(settings, "stt_language")
-        assert hasattr(settings, "stt_include_partials")
-        assert hasattr(settings, "stt_enable_diarization")
-        assert hasattr(settings, "stt_max_speakers")
-        assert hasattr(settings, "stt_prefer_current_speaker")
         assert hasattr(settings, "process_lookup_limit")

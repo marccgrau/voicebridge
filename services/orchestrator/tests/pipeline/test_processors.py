@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pipecat.frames.frames import InterimTranscriptionFrame, TranscriptionFrame
+from pipecat.frames.frames import TranscriptionFrame
 from pipecat.processors.frame_processor import FrameDirection
 
 from src.pipeline.processors import TranscriptWriter
@@ -44,7 +44,6 @@ class TestTranscriptWriter:
 
         # Process frame
         await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
-        await writer.flush_writes()
 
         # Verify speaker was resolved to "customer"
         assert frame.user_id == "customer"
@@ -74,7 +73,6 @@ class TestTranscriptWriter:
             finalized=True,
         )
         await writer.process_frame(frame2, FrameDirection.DOWNSTREAM)
-        await writer.flush_writes()
 
         # Verify second speaker was mapped to "agent"
         assert frame2.user_id == "agent"
@@ -100,7 +98,6 @@ class TestTranscriptWriter:
             text="Hi", user_id="S2", timestamp="2024-01-01T00:00:01Z", finalized=True
         )
         await writer.process_frame(frame2, FrameDirection.DOWNSTREAM)
-        await writer.flush_writes()
 
         # Verify mapping
         assert frame1.user_id == "agent"
@@ -127,7 +124,6 @@ class TestTranscriptWriter:
                 text=text, user_id=speaker_id, timestamp="2024-01-01T00:00:00Z", finalized=True
             )
             await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
-        await writer.flush_writes()
 
         # Verify mapping remained consistent
         insert_calls = mock_supabase.table().insert.call_args_list
@@ -136,17 +132,16 @@ class TestTranscriptWriter:
         assert insert_calls[2][0][0]["speaker"] == "customer"
         assert insert_calls[3][0][0]["speaker"] == "agent"
 
-    async def test_interim_frames_ignored(self, mock_supabase):
-        """Test that interim (partial) frames are not written to database."""
+    async def test_unfinalized_frames_ignored(self, mock_supabase):
+        """Test that unfinalized frames are not written to database."""
         writer = TranscriptWriter(session_id="test-session")
 
-        # Interim frame (partials use InterimTranscriptionFrame, not TranscriptionFrame)
-        frame = InterimTranscriptionFrame(
-            text="Partial...", user_id="S1", timestamp="2024-01-01T00:00:00Z"
+        # Unfinalized frame
+        frame = TranscriptionFrame(
+            text="Partial...", user_id="S1", timestamp="2024-01-01T00:00:00Z", finalized=False
         )
 
         await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
-        await writer.flush_writes()
 
         # Verify no database insert
         mock_supabase.table.assert_not_called()
@@ -161,7 +156,6 @@ class TestTranscriptWriter:
         )
 
         await writer.process_frame(frame, FrameDirection.DOWNSTREAM)
-        await writer.flush_writes()
 
         # Verify speaker was resolved to "customer" (first speaker = unknown)
         insert_call = mock_supabase.table().insert.call_args[0][0]
