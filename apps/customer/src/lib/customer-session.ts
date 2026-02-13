@@ -4,10 +4,6 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-import { env } from "./env";
-
-const ORCHESTRATOR_URL = env.NEXT_PUBLIC_ORCHESTRATOR_URL;
-
 export type CustomerCallState = "idle" | "calling" | "connected" | "ended";
 
 export interface CustomerSessionState {
@@ -86,7 +82,8 @@ export function useCustomerSession() {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const response = await fetch(`${ORCHESTRATOR_URL}/sessions/create`, {
+      // Call Next.js API route which handles PCC bot creation
+      const response = await fetch("/api/sessions/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(customerId ? { customer_id: customerId } : {}),
@@ -126,11 +123,11 @@ export function useCustomerSession() {
     setState((prev) => ({ ...prev, isLoading: true }));
 
     try {
-      await fetch(`${ORCHESTRATOR_URL}/sessions/stop`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: state.sessionId }),
-      });
+      // Update session status to completed via Supabase
+      await supabase
+        .from("sessions")
+        .update({ status: "completed" })
+        .eq("id", state.sessionId);
     } catch {
       // Best-effort stop
     }

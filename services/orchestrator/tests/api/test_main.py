@@ -115,7 +115,6 @@ class TestSessionStartEndpoint:
         assert data["room_url"] == "https://test.daily.co/test-room"
         assert data["room_token"] == "test-token-123"
         assert "created_at" in data
-        assert data["services"]["guidanceMode"] == "direct_call"
 
     @respx.mock
     @patch("src.main.get_supabase_client")
@@ -352,36 +351,6 @@ class TestHealthCheckEndpoint:
     @respx.mock
     @patch("src.main.get_supabase_client")
     @patch("src.main.settings")
-    def test_stt_health_uses_configured_provider(self, mock_settings, mock_get_client, client):
-        """Test STT health check follows default STT provider setting."""
-        mock_client = MagicMock()
-        mock_table = MagicMock()
-        mock_select = MagicMock()
-        mock_select.limit.return_value = mock_select
-        mock_select.execute.return_value = MagicMock(data=[])
-        mock_table.select.return_value = mock_select
-        mock_client.table.return_value = mock_table
-        mock_get_client.return_value = mock_client
-
-        mock_settings.default_stt_provider = "deepgram"
-        mock_settings.speechmatics_api_key = None
-        mock_settings.deepgram_api_key = "deepgram-key"
-        mock_settings.anthropic_api_key = "test-key"
-        mock_settings.daily_api_key = "test-key"
-
-        respx.get("https://api.daily.co/v1").mock(
-            return_value=httpx.Response(200, json={"version": "test"})
-        )
-
-        response = client.get("/healthz")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["services"]["stt"] == "up"
-
-    @respx.mock
-    @patch("src.main.get_supabase_client")
-    @patch("src.main.settings")
     def test_all_services_healthy(self, mock_settings, mock_get_client, client):
         """Test health check when all services are up."""
         # Mock successful database query
@@ -395,7 +364,6 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock settings
-        mock_settings.default_stt_provider = "speechmatics"
         mock_settings.speechmatics_api_key = "test-key"
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.daily_api_key = "test-key"
@@ -432,7 +400,6 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock settings (other services OK)
-        mock_settings.default_stt_provider = "speechmatics"
         mock_settings.speechmatics_api_key = "test-key"
         mock_settings.anthropic_api_key = "test-key"
         mock_settings.daily_api_key = "test-key"
@@ -468,7 +435,6 @@ class TestHealthCheckEndpoint:
         mock_get_client.return_value = mock_client
 
         # Mock missing API keys
-        mock_settings.default_stt_provider = "speechmatics"
         mock_settings.speechmatics_api_key = None
         mock_settings.anthropic_api_key = None
         mock_settings.daily_api_key = None
@@ -841,10 +807,10 @@ class TestSessionSummaryEndpoint:
 class TestGenerateSummaryEndpoint:
     """Tests for POST /sessions/{id}/generate-summary endpoint."""
 
-    @patch("src.main.SummaryService")
+    @patch("src.main.anthropic")
     @patch("src.main.get_supabase_client")
     def test_generates_summary_for_completed_session(
-        self, mock_get_client, mock_summary_service_class, client
+        self, mock_get_client, mock_anthropic_mod, client
     ):
         """Test successful summary generation from transcript."""
         mock_client = MagicMock()
@@ -883,9 +849,7 @@ class TestGenerateSummaryEndpoint:
         def table_router(name):
             call_count["n"] += 1
             if name == "transcript_segments":
-                mock_t = MagicMock()
-                mock_t.select.return_value = mock_transcript_select
-                return mock_t
+                return mock_transcript_select
             # sessions table
             mock_t = MagicMock()
             mock_t.select.return_value = mock_select
@@ -895,12 +859,16 @@ class TestGenerateSummaryEndpoint:
         mock_client.table.side_effect = table_router
         mock_get_client.return_value = mock_client
 
-        # Mock SummaryService
-        mock_summary_service = MagicMock()
-        mock_summary_service.generate_summary.return_value = (
+        # Mock Anthropic
+        mock_llm_client = MagicMock()
+        mock_message = MagicMock()
+        mock_text_block = MagicMock()
+        mock_text_block.text = (
             "The customer requested help with billing. The agent assisted with the issue."
         )
-        mock_summary_service_class.return_value = mock_summary_service
+        mock_message.content = [mock_text_block]
+        mock_llm_client.messages.create.return_value = mock_message
+        mock_anthropic_mod.Anthropic.return_value = mock_llm_client
 
         response = client.post("/sessions/test-session-123/generate-summary")
 
@@ -911,9 +879,8 @@ class TestGenerateSummaryEndpoint:
         assert data["updated_by"] == "ai"
         assert "updated_at" in data
 
-        # Verify SummaryService was instantiated and generate_summary was called
-        mock_summary_service_class.assert_called_once()
-        mock_summary_service.generate_summary.assert_called_once()
+        # Verify LLM was called
+        mock_llm_client.messages.create.assert_called_once()
 
     @patch("src.main.get_supabase_client")
     def test_rejects_active_session(self, mock_get_client, client):
@@ -1012,7 +979,6 @@ class TestSessionAcceptEndpoint:
         assert data["room_url"] == "https://test.daily.co/test-room"
         assert data["agent_token"] == "agent-token-abc"
         assert "rtvi_url" in data
-        assert data["services"]["guidanceMode"] == "direct_call"
 
     @patch("src.main.get_supabase_client")
     def test_rejects_already_accepted_session(self, mock_get_client, client):

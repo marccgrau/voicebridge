@@ -2,9 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 
-const ORCHESTRATOR_URL =
-  process.env.NEXT_PUBLIC_ORCHESTRATOR_URL || "http://localhost:8000";
-
 interface UseSummaryReturn {
   summaryText: string;
   setSummaryText: (text: string) => void;
@@ -48,10 +45,9 @@ export function useSummary(
     setIsSaved(false);
 
     try {
-      const response = await fetch(
-        `${ORCHESTRATOR_URL}/sessions/${sid}/generate-summary`,
-        { method: "POST" }
-      );
+      const response = await fetch(`/api/sessions/${sid}/generate-summary`, {
+        method: "POST",
+      });
 
       if (!response.ok) {
         const data = await response.json();
@@ -101,7 +97,7 @@ export function useSummary(
       setIsSaved(false);
 
       try {
-        const response = await fetch(`${ORCHESTRATOR_URL}/sessions/summary`, {
+        const response = await fetch(`/api/sessions/summary`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -1,13 +1,13 @@
-.PHONY: install dev build lint typecheck test clean db-migrate web-dev customer-dev orchestrator-dev
+.PHONY: install dev build lint typecheck test clean db-migrate web-dev customer-dev pcc-dev
 
 # Install all dependencies
 install:
 	pnpm install
-	cd services/orchestrator && uv sync
+	cd services/pcc && uv sync
 
 # Run all services in dev mode
 dev:
-	$(MAKE) -j3 web-dev customer-dev orchestrator-dev
+	$(MAKE) -j3 web-dev customer-dev pcc-dev
 
 # Build all packages
 build:
@@ -16,7 +16,7 @@ build:
 # Lint all code
 lint:
 	pnpm -r lint
-	cd services/orchestrator && uv run ruff check .
+	cd services/pcc && uv run ruff check .
 
 # Type check
 typecheck:
@@ -25,13 +25,13 @@ typecheck:
 # Run tests
 test:
 	pnpm -r test
-	cd services/orchestrator && uv run pytest
+	cd services/pcc && uv run pytest
 
 # Clean build artifacts
 clean:
 	pnpm -r clean
 	rm -rf node_modules
-	cd services/orchestrator && rm -rf .venv __pycache__
+	cd services/pcc && rm -rf .venv __pycache__
 
 # Database migrations
 db-migrate:
@@ -48,14 +48,14 @@ web-dev:
 customer-dev:
 	pnpm --filter @voicebridge/customer dev --port 3001
 
-# Orchestrator dev server
-orchestrator-dev:
-	cd services/orchestrator && uv run uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+# PCC service dev server
+pcc-dev:
+	cd services/pcc && uv run python bot.py -t daily --port 7860
 
 # Format code
 format:
 	pnpm -r format
-	cd services/orchestrator && uv run ruff format .
+	cd services/pcc && uv run ruff format .
 
 # Pre-commit hooks
 pre-commit-install:

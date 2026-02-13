@@ -6,7 +6,7 @@ VoiceBridge is a proactive guidance workspace for live human-human customer serv
 
 - `apps/agent-workspace` - Next.js agent UI (port `3000`)
 - `apps/customer` - Next.js customer UI (port `3001`)
-- `services/orchestrator` - FastAPI + Pipecat voice pipeline (port `8000`)
+- `services/pcc` - Pipecat Cloud voice pipeline (port `7860`)
 - `packages/contracts` - shared Zod schemas and TypeScript types
 - `packages/db` - Supabase query helpers
 - `supabase/migrations` - database migrations
@@ -14,13 +14,15 @@ VoiceBridge is a proactive guidance workspace for live human-human customer serv
 ## High-Level Flow
 
 ```text
-Daily.co WebRTC -> Silero VAD -> Speechmatics STT -> Pipecat Pipeline -> RTVI + Supabase Realtime -> Next.js UIs
+Daily.co WebRTC -> Deepgram STT -> Pipecat Pipeline -> RTVI + Supabase Realtime -> Next.js UIs
 ```
 
 Realtime channels:
 
 - RTVI (WebRTC data channel): `transcript_segment`, `process_illustration`, `agent_guidance`
 - Supabase Realtime: session lifecycle + pending call notifications
+
+The PCC bot is stateless and runs directly in Pipecat Cloud. Session management (pending → active) lives in Next.js API routes + Supabase.
 
 ## Prerequisites
 
@@ -39,7 +41,7 @@ make install
 # 2) Configure env files
 cp apps/agent-workspace/.env.example apps/agent-workspace/.env.local
 cp apps/customer/.env.example apps/customer/.env.local
-cp services/orchestrator/.env.example services/orchestrator/.env
+cp services/pcc/.env.example services/pcc/.env
 
 # 3) Apply migrations
 make db-migrate
@@ -52,13 +54,13 @@ make dev
 
 ```bash
 # Development
-make dev                  # web + customer + orchestrator
+make dev                  # web + customer + pcc
 make web-dev              # agent workspace only
 make customer-dev         # customer app only
-make orchestrator-dev     # orchestrator only
+make pcc-dev              # pcc service only
 
 # Quality
-make test                 # pnpm workspace tests + orchestrator pytest
+make test                 # pnpm workspace tests + pcc pytest
 make lint                 # eslint + ruff
 make typecheck            # TypeScript typecheck
 make format               # prettier + ruff format
@@ -76,7 +78,7 @@ make db-reset             # supabase db reset
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
-NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
+OPENAI_API_KEY  # For AI-generated call summaries
 ```
 
 ### Customer App (`apps/customer/.env.local`)
@@ -84,64 +86,54 @@ NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
 ```bash
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
-NEXT_PUBLIC_ORCHESTRATOR_URL=http://localhost:8000
+SUPABASE_SERVICE_ROLE_KEY
+PCC_AGENT_URL=http://localhost:7860
+DAILY_API_KEY
+PIPECAT_CLOUD_API_KEY  # Optional, for cloud deployment
 ```
 
-### Orchestrator (`services/orchestrator/.env`)
+### PCC Service (`services/pcc/.env`)
 
 ```bash
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-SPEECHMATICS_API_KEY
 DAILY_API_KEY
-
-# Configure the provider keys you plan to use
-# Defaults for process/suggestion flows use OpenAI unless overridden at session start/accept
+DEEPGRAM_API_KEY
 OPENAI_API_KEY
-GOOGLE_API_KEY
-ANTHROPIC_API_KEY
+
+# Optional: Pipecat Cloud API key (for cloud deployment)
+PIPECAT_CLOUD_API_KEY
+
+# Optional: Override suggestion LLM model (default: gpt-4.1-mini)
+SUGGESTION_MODEL=gpt-4.1-mini
 ```
 
-Note: AI summary generation (`POST /sessions/{session_id}/generate-summary`) currently requires `ANTHROPIC_API_KEY`.
+## API Surface
 
-## API Surface (Orchestrator)
+### Customer App API Routes
 
-Session lifecycle:
+- `POST /api/sessions/create` - Customer-initiated session (creates Daily room, starts PCC bot, stores pending session)
 
-- `POST /sessions/create`
-- `POST /sessions/accept`
-- `POST /sessions/start`
-- `POST /sessions/stop`
-- `GET /sessions/{session_id}/status`
+### Agent Workspace
 
-Post-call:
+- Reads session data directly from Supabase (room_url, agent_token)
+- Updates session status via Supabase (pending → active, active → completed)
 
-- `POST /sessions/summary`
-- `POST /sessions/{session_id}/generate-summary`
+## PCC Service Architecture
 
-Health:
+`services/pcc/` is a stateless Pipecat Cloud bot:
 
-- `GET /healthz`
-
-## Orchestrator Architecture
-
-`services/orchestrator/src` follows modular boundaries:
-
-- `api` - HTTP layer
-- `services` - domain/business logic
-- `ports` - dependency interfaces
-- `adapters` - infrastructure implementations
-- `flows` - Pipecat flow adapters
-- `pipeline` - runtime assembly + processors
-- `composition` - dependency wiring
-- `frames` - custom Pipecat frames
-- `rtvi` - RTVI observer/message publishing
+- `bot.py` - Entry point with full pipeline wiring
+- `src/frames.py` - Custom Pipecat frames
+- `src/processors.py` - Pipeline processors
+- `src/process_catalog.py` - Process loading and matching
+- `process_content/` - Process markdown files
 
 Pipeline processors emit these custom frames:
 
 - `TranscriptSegmentFrame`
 - `ProcessIllustrationFrame`
 - `SuggestionFrame`
+
+All frames are delivered via RTVI (WebRTC data channel) for sub-second latency.
 
 ## Database Notes
 
@@ -173,7 +165,7 @@ Summary save/generate is allowed for terminal statuses only: `completed`, `aband
 
 ## Process Catalog
 
-Process definitions live in `services/orchestrator/process_content` (currently 9 markdown files).
+Process definitions live in `services/pcc/process_content` (currently 9 markdown files).
 
 - YAML frontmatter: `process_key`, `name`, `domain`, `intents`
 - Steps parsed from `## Step N: ...` headings
@@ -181,12 +173,13 @@ Process definitions live in `services/orchestrator/process_content` (currently 9
 ## Testing
 
 - Run full suite: `make test`
-- Orchestrator only: `cd services/orchestrator && uv run pytest`
+- PCC service only: `cd services/pcc && uv run pytest`
 - Contracts only: `pnpm --filter @voicebridge/contracts test`
 
 ## Operational Gotchas
 
 - Daily rooms are ephemeral (1-hour expiry at creation).
-- Orchestrator is listen-only (`audio_out_enabled=False`) and never speaks.
-- VAD defaults in pipeline are `start_secs=0.2` and `stop_secs=0.8`.
-- `GET /healthz` reports `llm: up` only when `ANTHROPIC_API_KEY` is configured.
+- PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
+- PCC service is stateless — no DB persistence, all data flows through RTVI.
+- Process detection uses token-overlap matching (no LLM calls).
+- Suggestion generation uses OpenAI gpt-4.1-mini by default (configurable via `SUGGESTION_MODEL` env var).

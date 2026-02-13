@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 
-const ORCHESTRATOR_URL =
-  process.env.NEXT_PUBLIC_ORCHESTRATOR_URL || "http://localhost:8000";
+import { supabase } from "./supabase";
+
 const SESSION_STORAGE_KEY = "voicebridge_session_id";
 
 export interface SessionState {
@@ -16,7 +16,11 @@ export interface SessionState {
 }
 
 /**
- * Hook for managing voice session state
+ * Hook for managing voice session state.
+ *
+ * Reads session data (room_url, agent_token) directly from Supabase
+ * instead of calling the orchestrator. The PCC bot is already running
+ * when the agent accepts — no need to start anything server-side.
  */
 export function useSession() {
   const [state, setState] = useState<SessionState>({
@@ -32,28 +36,52 @@ export function useSession() {
   useEffect(() => {
     const storedSessionId = localStorage.getItem(SESSION_STORAGE_KEY);
     if (storedSessionId) {
-      // Check if session is still active
       checkSession(storedSessionId);
     }
   }, []);
 
   const checkSession = async (sessionId: string) => {
     try {
-      const response = await fetch(
-        `${ORCHESTRATOR_URL}/sessions/${sessionId}/status`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (data.is_active) {
-          setState((prev) => ({
-            ...prev,
-            sessionId,
-            isConnected: true,
-          }));
-          return;
-        }
+      const { data, error } = await supabase
+        .from("sessions")
+        .select("id, status, room_url, agent_token, created_at")
+        .eq("id", sessionId)
+        .single();
+
+      if (error || !data) {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        return;
       }
-      // Session not active, clear storage
+
+      // Clear terminal states (completed, abandoned, escalated, error)
+      const terminalStatuses = ["completed", "abandoned", "escalated", "error"];
+      if (terminalStatuses.includes(data.status)) {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        return;
+      }
+
+      // Clear stale sessions (>1 hour old)
+      const createdAt = new Date(data.created_at);
+      const ageMs = Date.now() - createdAt.getTime();
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      if (ageMs > ONE_HOUR_MS) {
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        return;
+      }
+
+      // Only restore truly active sessions with complete data
+      if (data.status === "active" && data.room_url && data.agent_token) {
+        setState((prev) => ({
+          ...prev,
+          sessionId: data.id,
+          roomUrl: data.room_url,
+          roomToken: data.agent_token,
+          isConnected: true,
+        }));
+        return;
+      }
+
+      // All other cases: clear localStorage
       localStorage.removeItem(SESSION_STORAGE_KEY);
     } catch {
       localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -64,31 +92,52 @@ export function useSession() {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const response = await fetch(`${ORCHESTRATOR_URL}/sessions/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: sessionId }),
-      });
+      // Read session from Supabase to get room_url and agent_token
+      const { data: session, error: fetchError } = await supabase
+        .from("sessions")
+        .select("id, room_url, agent_token, status")
+        .eq("id", sessionId)
+        .single();
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Failed to accept session");
+      if (fetchError || !session) {
+        throw new Error(fetchError?.message || "Session not found");
       }
 
-      const data = await response.json();
+      if (session.status !== "pending") {
+        throw new Error(`Session is not pending (status: ${session.status})`);
+      }
 
-      localStorage.setItem(SESSION_STORAGE_KEY, data.session_id);
+      if (!session.agent_token || !session.room_url) {
+        throw new Error("Session missing agent_token or room_url");
+      }
+
+      // Update session status to active
+      const { error: updateError } = await supabase
+        .from("sessions")
+        .update({ status: "active" })
+        .eq("id", sessionId)
+        .eq("status", "pending");
+
+      if (updateError) {
+        throw new Error(`Failed to accept session: ${updateError.message}`);
+      }
+
+      localStorage.setItem(SESSION_STORAGE_KEY, session.id);
 
       setState({
-        sessionId: data.session_id,
-        roomUrl: data.room_url,
-        roomToken: data.agent_token,
+        sessionId: session.id,
+        roomUrl: session.room_url,
+        roomToken: session.agent_token,
         isConnected: true,
         isLoading: false,
         error: null,
       });
 
-      return data;
+      return {
+        session_id: session.id,
+        room_url: session.room_url,
+        agent_token: session.agent_token,
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       setState((prev) => ({
@@ -106,15 +155,14 @@ export function useSession() {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const response = await fetch(`${ORCHESTRATOR_URL}/sessions/stop`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_id: state.sessionId }),
-      });
+      // Update session status to completed in Supabase
+      const { error: updateError } = await supabase
+        .from("sessions")
+        .update({ status: "completed" })
+        .eq("id", state.sessionId);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Failed to stop session");
+      if (updateError) {
+        throw new Error(`Failed to stop session: ${updateError.message}`);
       }
 
       // Keep sessionId so postcall_summary phase can activate.

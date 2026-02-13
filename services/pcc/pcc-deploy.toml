@@ -1,0 +1,7 @@
+agent_name = "voicebridge"
+image = "YOUR_DOCKERHUB/voicebridge-pcc:latest"
+secret_set = "voicebridge-secrets"
+agent_profile = "agent-2x"
+
+[scaling]
+    min_agents = 0

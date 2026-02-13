@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes, track step progress, and provide real-time suggestions to agents. The system consists of a Customer App, an Agent Workspace, and a Backend Orchestrator connected through Daily.co WebRTC rooms.
+VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes, track step progress, and provide real-time suggestions to agents. The system consists of a Customer App, an Agent Workspace, and a Pipecat Cloud (PCC) Service connected through Daily.co WebRTC rooms.
 
 ## Development Commands
 
@@ -16,10 +16,10 @@ make db-migrate          # Run Supabase migrations
 
 ### Development
 ```bash
-make dev                 # Run all services (agent-workspace + customer + orchestrator)
+make dev                 # Run all services (agent-workspace + customer + pcc)
 make web-dev             # Agent workspace only (port 3000)
 make customer-dev        # Customer app only (port 3001)
-make orchestrator-dev    # Orchestrator only (port 8000)
+make pcc-dev             # PCC service only (port 7860)
 ```
 
 ### Testing & Quality
@@ -30,10 +30,10 @@ make typecheck          # TypeScript type checking
 make format             # Format code (prettier + ruff)
 ```
 
-### Python Orchestrator Specific
+### PCC Service Specific
 ```bash
-cd services/orchestrator
-uv run uvicorn src.main:app --reload          # Run orchestrator directly
+cd services/pcc
+uv run python bot.py -t daily --port 7860      # Run PCC local dev server (port 7860)
 uv run pytest                                  # Run Python tests
 uv run ruff check .                            # Lint Python code
 uv run ruff format .                           # Format Python code
@@ -52,19 +52,19 @@ make db-migrate         # Push migrations (supabase db push)
 **Always write tests and run them when implementing features.** This is non-negotiable for verifying that implementations work correctly.
 
 - **TypeScript/React**: Write tests for new components and utilities, run with `make test` or `pnpm test`
-- **Python**: Write pytest tests for new processors, services, and utilities, run with `cd services/orchestrator && uv run pytest`
+- **Python**: Write pytest tests for new processors and utilities, run with `cd services/pcc && uv run pytest`
 - **Contracts**: The `packages/contracts` package has vitest tests for schema validation - run these when modifying schemas
 
 After implementing a feature:
-1. Write appropriate tests (unit tests for utilities, integration tests for processors/API endpoints)
+1. Write appropriate tests (unit tests for utilities, integration tests for processors)
 2. Run the relevant test suite to verify functionality
 3. Run the full test suite (`make test`) to ensure no regressions
 4. Only consider the feature complete after tests pass
 
-For the Python orchestrator, tests should cover:
-- Pipeline processor logic (mocking LLM calls and database writes)
-- API endpoint behavior (session lifecycle: create, accept, start, stop)
-- RTVI message delivery
+For the PCC service, tests should cover:
+- Pipeline processor logic (transcript writing, process detection, suggestion generation)
+- Custom frame emission and handling
+- RTVI message delivery via VoiceBridgeRTVIObserver
 
 For the Next.js apps, tests should cover:
 - Component rendering and state management
@@ -76,12 +76,12 @@ For the Next.js apps, tests should cover:
 ### High-Level Data Flow
 
 ```
-Daily.co WebRTC → Silero VAD → Speechmatics STT → Pipecat Pipeline → RTVI / Supabase Realtime → Next.js UI
+Daily.co WebRTC → Deepgram STT → Pipecat Pipeline (PCC) → RTVI / Supabase Realtime → Next.js UI
 ```
 
 The system operates as a **listen-only voice pipeline** that processes audio without responding verbally. All real-time data is delivered to the agent workspace via two channels:
 - **RTVI (WebRTC data channel)**: Suggestions, process illustrations, and transcript segments (low latency)
-- **Supabase Realtime**: Session state changes and pending session notifications
+- **Supabase Realtime**: Session state changes and pending session notifications (agent workspace only)
 
 ### Component Responsibilities
 
@@ -99,24 +99,21 @@ The system operates as a **listen-only voice pipeline** that processes audio wit
 
 **Customer App** (`apps/customer/`)
 - Customer-facing call interface (idle → calling → connected → ended)
-- Creates pending sessions via `POST /sessions/create`
+- Creates bot sessions via `POST ${PCC_AGENT_URL}/start` with session metadata
 - Connects to Daily.co room with audio via `@daily-co/daily-js`
 
-**Python Orchestrator** (`services/orchestrator/`)
-- FastAPI service managing voice session lifecycle
-- API endpoints:
-  - `POST /sessions/create` - Customer-initiated session (creates room, bot joins, status=pending)
-  - `POST /sessions/accept` - Agent accepts pending session (atomic status update, returns agent token)
-  - `POST /sessions/start` - Agent-initiated session (creates room, bot joins, status=active)
-  - `POST /sessions/stop` - Stop session (stops pipeline, status=completed)
-  - `GET /sessions/{id}/status` - Session status
-  - `GET /healthz` - Health check (checks DB, Daily.co, STT, LLM)
-- **Multi-Provider LLM Support**: OpenAI (default), Gemini, Anthropic - configurable per-session for both ProcessFlow and SuggestionFlow independently
+**PCC Service** (`services/pcc/`)
+- Pipecat service handling multi-session voice processing
+- **Standard invocation**: Uses `RunnerArguments` (Pipecat runner pattern)
+- **Local dev**: `python bot.py -t daily --port 7860` runs HTTP server on port 7860 with `/start` endpoint
+- **Production**: `pipecat cloud deploy` deploys to Pipecat Cloud infrastructure
+- **Multi-session support**: Each `/start` call creates a new bot instance
 - Pipecat pipeline with custom FrameProcessors:
-  1. **TranscriptWriter**: Saves finalized STT output to Supabase with speaker role mapping; emits `TranscriptSegmentFrame`
-  2. **ProcessFlow**: LLM-driven process detection and step tracking using `pipecat_flows.FlowManager` with multi-provider support (default: OpenAI gpt-5-nano); emits `ProcessIllustrationFrame`
-  3. **SuggestionFlow**: LLM-driven suggestion generation using `pipecat_flows.FlowManager` with multi-provider support (default: OpenAI gpt-5-nano); listens for `ProcessIllustrationFrame` to inject process context; emits `SuggestionFrame`
-  4. **VoiceBridgeRTVIObserver**: Intercepts custom frames and publishes them to the frontend via RTVI `bot-action` messages with retry logic
+  1. **TranscriptWriter**: Emits `TranscriptSegmentFrame` with live STT output
+  2. **ProcessDetectionProcessor**: Catalog-based process matching; emits `ProcessIllustrationFrame`
+  3. **SuggestionContextBuilder**: Builds context for LLM suggestion generation
+  4. **SuggestionOutputProcessor**: LLM-driven suggestion generation; emits `SuggestionFrame`
+  5. **VoiceBridgeRTVIObserver**: Intercepts custom frames and publishes them to the frontend via RTVI `bot-action` messages with retry logic
 
 **Shared Contracts** (`packages/contracts/`)
 - Zod schemas for RTVI messages: `RTVISuggestionMessageSchema`, `RTVIProcessIllustrationMessageSchema`, `RTVITranscriptSegmentMessageSchema`
@@ -211,20 +208,19 @@ NEXT_PUBLIC_ORCHESTRATOR_URL          # default: http://localhost:8000
 ```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
-NEXT_PUBLIC_ORCHESTRATOR_URL          # default: http://localhost:8000
+PCC_AGENT_URL                         # default: http://localhost:7860 (PCC local dev)
 ```
 
-### Required for Orchestrator
+### Required for PCC Service
 ```
-SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY
-SPEECHMATICS_API_KEY
-DAILY_API_KEY
+DAILY_API_KEY                         # Daily.co API key for room creation
+DEEPGRAM_API_KEY                      # Deepgram STT API key
+OPENAI_API_KEY                        # OpenAI API key for LLM suggestions
 
-# LLM Provider API Keys (at least one required, OpenAI is default)
-OPENAI_API_KEY           # Default provider, used if not specified
-GOOGLE_API_KEY           # Optional: Gemini provider
-ANTHROPIC_API_KEY        # Optional: Claude provider
+# Optional: Pipecat Cloud configuration
+PIPECAT_CLOUD_API_KEY                 # Required for production deployment (pipecat cloud deploy)
+PORT                                  # Local dev server port (default: 7860)
+SUGGESTION_MODEL                      # Override LLM model (default: gpt-4.1)
 ```
 
 ## Common Gotchas
@@ -234,12 +230,16 @@ ANTHROPIC_API_KEY        # Optional: Claude provider
 - **Supabase CLI**: Database migrations require Supabase CLI to be installed
 - **Daily.co rooms**: Sessions create ephemeral rooms with 1-hour expiry
 - **VAD tuning**: Silero VAD parameters (`start_secs`, `stop_secs`) affect responsiveness vs. false positives
-- **Multi-Provider LLM**:
-  - **Factory Pattern**: `LLMServiceFactory.create_llm_service(provider, model)` creates GoogleLLMService, AnthropicLLMService, or OpenAILLMService
-  - **Default**: OpenAI gpt-5-nano for both ProcessFlow and SuggestionFlow
-  - **Per-Session Configuration**: Provider and model can be set independently for each flow via API request
-  - **API Keys**: At least one provider API key must be configured; validation happens at runtime when creating services
-  - **All Pipecat abstractions preserved**: Only LLM service instantiation changes; LLMContext, LLMContextAggregatorPair, Pipeline, PipelineTask, FlowManager remain identical
-- **Speaker mapping**: TranscriptWriter assigns first speaker as `customer` by default; configurable via `first_speaker_role` setting
-- **Pipeline timeout**: Sessions have a 1-hour max lifetime (`pipeline_start_timeout=3600s`)
+- **PCC Standard Invocation**:
+  - Bot entry point uses `RunnerArguments` (Pipecat runner pattern)
+  - Local dev: `python bot.py -t daily --port 7860` starts HTTP server on port 7860 with `/start` endpoint
+  - Production: `pipecat cloud deploy` requires `PIPECAT_CLOUD_API_KEY`
+  - Multi-session support: Each `/start` call creates a new bot instance
+  - The Pipecat runner automatically creates a FastAPI server with `/start` endpoint
+- **Session State Validation**:
+  - Agent workspace checks localStorage on mount and validates against database
+  - Terminal states (completed/abandoned/escalated/error) clear localStorage automatically
+  - Stale sessions (>1 hour old) are cleared on restoration
+  - Only truly active sessions with complete data (room_url, agent_token) are restored
 - **Phase-based UI**: Agent workspace adapts its layout based on call state (idle → incoming → active-preprocess → active-inprocess → postcall), showing only relevant information for the current phase
+- **Next.js 16 Async Params**: Route params are Promises and must be awaited before access in App Router API routes
