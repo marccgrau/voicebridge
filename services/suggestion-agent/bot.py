@@ -35,13 +35,19 @@ logger = logging.getLogger("voicebridge-suggestion")
 
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point compatible with Pipecat runner and Pipecat Cloud."""
-    if not isinstance(runner_args, DailyRunnerArguments):
-        raise ValueError("VoiceBridge only supports Daily transport")
-
-    room_url = runner_args.room_url
-    token = runner_args.token
     body = runner_args.body or {}
     session_id = body.get("session_id", "local")
+
+    # When joining an existing room via dailyRoom, the runner passes base
+    # RunnerArguments (not DailyRunnerArguments). Extract room URL from body.
+    if isinstance(runner_args, DailyRunnerArguments):
+        room_url = runner_args.room_url
+        token = runner_args.token
+    elif body.get("dailyRoom"):
+        room_url = body["dailyRoom"]
+        token = ""
+    else:
+        raise ValueError("No Daily room URL provided (need DailyRunnerArguments or dailyRoom in body)")
 
     transport = DailyTransport(
         room_url,
