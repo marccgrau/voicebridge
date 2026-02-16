@@ -1,0 +1,6 @@
+agent_name = "voicebridge-suggestion"
+secret_set = "voicebridge-secrets"
+agent_profile = "agent-2x"
+
+[scaling]
+    min_agents = 0
