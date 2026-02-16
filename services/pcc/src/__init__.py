@@ -1,1 +1,0 @@
-"""VoiceBridge Pipecat Cloud service."""
