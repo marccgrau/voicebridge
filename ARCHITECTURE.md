@@ -67,32 +67,40 @@ VoiceBridge uses two complementary realtime channels optimized for different pur
 ### Full Call Flow
 
 ```
-1. Customer selects profile, optional entry route (`direct` or `voice_ai`), and clicks "Start Call"
+1. Actor selects persona + scenario (and optional entry route: `direct` or `voice_ai`)
        │
-2. Customer App POST /api/sessions/create
+2. Customer app loads and prepares briefing data
        │
+       ├─ Personas loaded from `customers` (seeded from `personas/customer_profile_*.json`)
+       ├─ Active scenarios loaded from `scenarios` (seeded from `scenarios/scenario_*.json`)
+       └─ Scenario placeholders (for example `{{customer_name}}`) rendered with selected persona values
+       │
+3. Customer App POST /api/sessions/create with `customer_id` + `scenario_id`
+       │
+       ├─ Validates selected customer and scenario rows in Supabase
        ├─ Calls PCC /start → creates Daily room + bot instance
        ├─ Creates Daily tokens (customer + agent) via Daily REST API
-       └─ Inserts 'pending' session into Supabase with `customer_id` and routing context in `state`
+       └─ Inserts `pending` session with customer/scenario metadata
+           (`scenario_id`, `scenario_family`, `civility_condition`) and routing context in `state`
        │
-3. Customer joins Daily room with audio
+4. Customer joins Daily room with audio
        │
-4. Agent Workspace sees pending session via Supabase Realtime
+5. Agent Workspace sees pending session via Supabase Realtime
        │
-5. Agent clicks "Accept"
+6. Agent clicks "Accept"
        │
        ├─ Updates session status to 'active' in Supabase
        └─ Connects to Daily room via RTVI (@pipecat-ai/client-js)
        │
-6. PCC bot processes audio and sends RTVI messages
+7. PCC bot processes audio and sends RTVI messages
        │
        ├─ transcript_segment → live transcript
        ├─ process_illustration → detected process + steps
        └─ agent_guidance → AI suggestions
        │
-7. Agent ends call → status becomes 'completed'
+8. Agent ends call → status becomes 'completed'
        │
-8. Postcall Summary phase
+9. Postcall Summary phase
        │
        ├─ AI generates summary from transcript (OpenAI)
        ├─ Agent reviews/edits and saves
@@ -170,7 +178,7 @@ Process identification is **catalog-informed + LLM-evaluated**:
 6. `ProcessOutputProcessor` validates output and maps step statuses
 7. Valid output is emitted as `process_illustration` with step progress
 
-By default, PCC resolves process markdown from `services/pcc/process_content/` (or `PROCESS_CONTENT_PATH` when set). The repository currently includes 9 banking process definitions (lost/stolen card, e-banking locked, identity verification, legal guardianship, death reporting, large withdrawals, small estates, etc.).
+By default, PCC resolves process markdown from `services/pcc/process_content/` (or `PROCESS_CONTENT_PATH` when set). The repository currently includes four experiment-aligned scenario-family process definitions.
 
 ## Agent Workspace UI
 
@@ -238,27 +246,54 @@ idle → calling → connected → ended
 
 The customer app's `POST /api/sessions/create` API route orchestrates session creation:
 
-1. Calls PCC `/start` endpoint → PCC creates a Daily room and spawns a bot
-2. Generates customer token (non-owner) and agent token (owner) via Daily REST API
-3. Inserts a `pending` session into Supabase with room_url, agent_token, optional `customer_id`, and routing handoff context (`source`, `handoff_summary`, `transfer_reason`) in `state`
-4. Returns `{ session_id, room_url, customer_token }` to the client
-5. Client connects to Daily room with audio via `@daily-co/daily-js`
-6. Subscribes to Supabase Realtime to detect agent acceptance (pending → active)
+1. Validates selected `customer_id` and `scenario_id` against `customers` + active `scenarios`
+2. Calls PCC `/start` endpoint → PCC creates a Daily room and spawns a bot
+3. Generates customer token (non-owner) and agent token (owner) via Daily REST API
+4. Inserts a `pending` session into Supabase with room data, selected persona/scenario metadata (`customer_id`, `scenario_id`, `scenario_family`, `civility_condition`), and routing context in `state`
+5. Returns `{ session_id, room_url, customer_token }` to the client
+6. Client connects to Daily room with audio via `@daily-co/daily-js`
+7. Subscribes to Supabase Realtime to detect agent acceptance (pending → active)
+
+## Experiment Persona and Scenario Definition + Loading
+
+Experiment data follows a file-to-database-to-runtime loading model:
+
+1. **File definitions**
+   - Personas are authored in `personas/customer_profile_*.json`
+   - Scenarios are authored in `scenarios/scenario_*.json`
+2. **Seeding to Supabase**
+   - `scripts/seed-experimental-data.mjs` parses and validates both directories
+   - Personas are written to `customers` and `customer_interactions`
+   - Scenarios are written to `scenarios`
+   - `scenario_family` is derived from `scenario_id` by stripping `_civil` / `_uncivil`
+3. **Runtime loading (customer app)**
+   - `apps/customer/src/lib/use-customers.ts` reads personas from `customers`
+   - `apps/customer/src/lib/use-scenarios.ts` reads active scenarios from `scenarios`
+   - `apps/customer/src/lib/scenario-render.ts` resolves placeholders (for example `{{customer_name}}`, `{{customer_dob_human}}`) into actor-facing script text
+4. **Runtime propagation (session + agent workspace)**
+   - `apps/customer/app/api/sessions/create/route.ts` persists selected scenario metadata on `sessions` and in `sessions.state`
+   - Agent workspace reads `sessions.customer_id` and loads the full customer context from `customers` + `customer_interactions`
 
 ## Database Schema
 
 ### Entity Relationship
 
 ```
+customers
+    │
+    ├── 1:N ──▶ customer_interactions (customer_id FK)
+    │
+    └── 1:N ──▶ sessions (customer_id FK)
+
+scenarios
+    │
+    └── 1:N ──▶ sessions (scenario_id FK)
+
 sessions
     │
     ├── 1:N ──▶ transcript_segments (session_id FK)
     │
-    └── 1:N ──▶ customer_interactions (session_id FK)
-                        │
-                        └── N:1 ──▶ customers (customer_id FK)
-
-process_catalog (standalone, seeded)
+    └── 1:N ──▶ session_events (session_id FK)
 ```
 
 ### Key Tables
@@ -269,7 +304,10 @@ process_catalog (standalone, seeded)
 - `status` (enum: pending/active/completed/abandoned/escalated/error)
 - `room_url`, `room_name` (Daily.co room info)
 - `agent_token` (Daily.co owner token for agent)
-- `state` (JSONB — flexible metadata, includes `customer_id` and routing handoff context)
+- `customer_id` (FK → customers)
+- `scenario_id` (FK → scenarios)
+- `scenario_family`, `civility_condition`
+- `state` (JSONB — flexible metadata, includes scenario + routing handoff context)
 - `summary_text`, `summary_updated_at`, `summary_updated_by`
 - `created_at`, `updated_at`
 
@@ -281,23 +319,31 @@ process_catalog (standalone, seeded)
 - `text`, `is_final`
 - `created_at`
 
-**process_catalog**
-
-- `process_key` (PK)
-- `name`, `domain`, `status`, `version`, `locale`
-- Full-text search via `pg_trgm` extension
-
 **customers**
 
 - `id` (UUID, PK)
-- `name`, `classification` (high/medium/low value), `email`
+- `customer_code`, `name`, `classification`, `email`, `date_of_birth`
+- `address_*`, `preferred_contact_channel`, `quick_internal_note`
 - Row-level security enabled
 
 **customer_interactions**
 
-- `session_id` (FK → sessions)
 - `customer_id` (FK → customers)
-- `interaction_type`
+- `type`, `date`, `summary`, `outcome`
+- `direction`, `topic`, `subtopic`, `sentiment`, `priority`
+
+**scenarios**
+
+- `scenario_id` (PK)
+- `scenario_family`, `title`, `domain`
+- `civility_condition`, `behavior_instruction`
+- `background`, `customer_goal`, `guidelines`, `conversation`, `status`
+
+**session_events**
+
+- `id` (UUID, PK)
+- `session_id` (FK → sessions)
+- `event_type`, `source`, `payload`, `ts`
 
 ### Realtime
 

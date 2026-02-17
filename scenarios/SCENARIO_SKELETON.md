@@ -122,9 +122,10 @@ Test explanation quality, fairness perception, documentation guidance, and escal
 ## Suggested Metadata Fields for JSON Scripts
 
 - `scenario_id`
+- `scenario_family`
 - `title`
 - `domain`
-- `persona`
+- `behavioral_condition.civility_condition`
 - `background`
 - `customer_goal`
 - `guidelines`

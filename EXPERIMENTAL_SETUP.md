@@ -31,7 +31,7 @@ The core research intent is to test if guided agents handle complex calls better
 ### 3) Experimental System
 
 - Routes calls from customer frontend to agent workspace.
-- Loads scenario-specific customer information.
+- Loads persona and scenario catalogs from Supabase (seeded from repository JSON files).
 - Provides real-time support features and post-call summary.
 
 ---
@@ -49,6 +49,26 @@ The core research intent is to test if guided agents handle complex calls better
 
 ---
 
+## How Personas and Scenarios Are Defined and Loaded
+
+### Definition (repo files)
+
+1. **Personas** are defined in `personas/customer_profile_*.json`.
+   - Core sections: `customer_profile`, `case_context`, `interaction_history`.
+2. **Scenarios** are defined in `scenarios/scenario_*.json`.
+   - Core sections: `scenario_id`, `title`, `background`, `customer_goal`, `guidelines`, `conversation`, `behavioral_condition`.
+
+### Load path (seed -> runtime)
+
+1. Seeder script `scripts/seed-experimental-data.mjs` reads both directories.
+2. Personas are loaded into `customers` + `customer_interactions`.
+3. Scenarios are loaded into `scenarios` (`scenario_family` derived from `scenario_id`; `civility_condition` preserved per variant).
+4. Customer app loads personas via `useCustomers()` and scenarios via `useScenarios()`.
+5. Customer app renders scenario placeholders from selected persona values via `scenario-render.ts`.
+6. On call start, `/api/sessions/create` validates `customer_id` + `scenario_id` and writes selected scenario metadata onto `sessions` and `sessions.state`.
+
+---
+
 ## Detailed Step-by-Step Flow
 
 ## Phase A: Actor Preparation
@@ -61,6 +81,7 @@ The core research intent is to test if guided agents handle complex calls better
 
 - Actor chooses one persona (e.g., Alex Meyer, Nina Keller, Marco Steiner, Laura Baumann).
 - Persona determines identity, communication style, and behavior profile.
+- Source at runtime: `customers` table (seeded from `personas/customer_profile_*.json`).
 
 ### Step A3 — Select Scenario
 
@@ -68,6 +89,7 @@ The core research intent is to test if guided agents handle complex calls better
   - Unauthorized transaction / suspicious claim (civil or uncivil),
   - Denied service/claim with appeal request (civil or uncivil).
 - Scenario determines required steps and call objectives.
+- Source at runtime: active rows in `scenarios` (seeded from `scenarios/scenario_*.json`).
 
 ### Step A4 — Review Briefing Page
 
@@ -76,7 +98,7 @@ The core research intent is to test if guided agents handle complex calls better
   - Persona overview,
   - Scenario background,
   - Customer goals,
-  - Tone instructions (civil/uncivil),
+  - Behavior instruction from the selected scenario variant,
   - Must-ask checkpoints.
 
 ### Step A5 — Ready State and Call Start
@@ -89,7 +111,8 @@ The core research intent is to test if guided agents handle complex calls better
 
 ### Step B1 — Route Call to Agent Workspace
 
-- System creates/attaches a call session ID.
+- System creates a call session ID and validates selected persona/scenario IDs.
+- System persists scenario metadata (`scenario_id`, `scenario_family`, `civility_condition`) in session records.
 - Incoming call appears in the agent workspace.
 
 ### Step B2 — Pre-Call Customer Context for Agent
@@ -206,5 +229,9 @@ This flow is designed to create a realistic but controlled service interaction t
 
 For implementation and operational use:
 
-- Scenario files are located in: `/scenarios`
-- Persona files are located in: `/personas`
+- Scenario definitions: `/scenarios/scenario_*.json`
+- Persona definitions: `/personas/customer_profile_*.json`
+- Seed loader: `scripts/seed-experimental-data.mjs`
+- Customer runtime loaders: `apps/customer/src/lib/use-customers.ts`, `apps/customer/src/lib/use-scenarios.ts`
+- Placeholder rendering: `apps/customer/src/lib/scenario-render.ts`
+- Session creation + metadata persistence: `apps/customer/app/api/sessions/create/route.ts`

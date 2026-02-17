@@ -244,31 +244,40 @@ export type ProcessDefinition = z.infer<typeof ProcessDefinitionSchema>;
 /**
  * Customer classification levels
  */
-export const CustomerClassificationSchema = z.enum([
-  "basis",
-  "affluent",
-  "HNWI",
-  "UHNWI",
-]);
+export const CustomerClassificationSchema = z.string().trim().min(1);
 
 export type CustomerClassification = z.infer<
   typeof CustomerClassificationSchema
 >;
+
+export const CustomerAddressSchema = z.object({
+  street: z.string().nullable(),
+  postalCode: z.string().nullable(),
+  city: z.string().nullable(),
+  country: z.string().nullable(),
+});
+
+export type CustomerAddress = z.infer<typeof CustomerAddressSchema>;
 
 /**
  * Customer profile
  */
 export const CustomerSchema = z.object({
   id: z.string().uuid(),
+  customerCode: z.string().nullable().optional(),
   name: z.string(),
   gender: z.enum(["male", "female", "other"]),
+  dateOfBirth: z.string().nullable().optional(),
   email: z.string().email().nullable(),
   phone: z.string().nullable(),
+  address: CustomerAddressSchema.nullable().optional(),
   customerSince: z.string(), // Date string
   classification: CustomerClassificationSchema,
   products: z.array(z.string()),
   preferredLanguage: z.string(),
+  preferredContactChannel: z.string().nullable().optional(),
   notes: z.string().nullable(),
+  quickInternalNote: z.string().nullable().optional(),
 });
 
 export type Customer = z.infer<typeof CustomerSchema>;
@@ -279,7 +288,12 @@ export type Customer = z.infer<typeof CustomerSchema>;
 export const CustomerInteractionTypeSchema = z.enum([
   "phone",
   "chat",
+  "mobile_app_chat",
+  "portal_message",
+  "secure_message",
   "branch_visit",
+  "service_desk",
+  "video_call",
   "email",
 ]);
 
@@ -299,6 +313,18 @@ export const CustomerInteractionSchema = z.object({
   outcome: z.string().nullable(),
   agentName: z.string().nullable(),
   channelDetail: z.string().nullable(),
+  direction: z.enum(["inbound", "outbound"]).nullable().optional(),
+  topic: z.string().nullable().optional(),
+  subtopic: z.string().nullable().optional(),
+  sentiment: z.string().nullable().optional(),
+  priority: z.string().nullable().optional(),
+  ownerTeam: z.string().nullable().optional(),
+  status: z.string().nullable().optional(),
+  resolutionTimeHours: z.number().nullable().optional(),
+  slaBreached: z.boolean().nullable().optional(),
+  followUpRequired: z.boolean().nullable().optional(),
+  relatedCaseId: z.string().nullable().optional(),
+  csat: z.number().nullable().optional(),
 });
 
 export type CustomerInteraction = z.infer<typeof CustomerInteractionSchema>;
@@ -337,7 +363,8 @@ export const SessionCreateRequestSchema = z.object({
   locale: z.string().default("en"),
   domain: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
-  customerId: z.string().uuid().optional(),
+  customerId: z.string().uuid(),
+  scenarioId: z.string().min(1),
 });
 
 export type SessionCreateRequest = z.infer<typeof SessionCreateRequestSchema>;
@@ -352,6 +379,41 @@ export const SessionCreateResponseSchema = z.object({
 });
 
 export type SessionCreateResponse = z.infer<typeof SessionCreateResponseSchema>;
+
+export const ScenarioCivilitySchema = z.enum(["civil", "uncivil"]);
+
+export type ScenarioCivility = z.infer<typeof ScenarioCivilitySchema>;
+
+export const ScenarioConversationStepSchema = z.object({
+  id: z.string(),
+  customerMsg: z.string(),
+  actorIntent: z.string(),
+  tone: z.string(),
+  adviceInstructional: z.string(),
+  nextId: z.string().nullable(),
+});
+
+export type ScenarioConversationStep = z.infer<
+  typeof ScenarioConversationStepSchema
+>;
+
+export const ScenarioSchema = z.object({
+  scenarioId: z.string(),
+  scenarioFamily: z.string(),
+  title: z.string(),
+  domain: z.string(),
+  background: z.string(),
+  customerGoal: z.string(),
+  guidelines: z.record(z.unknown()),
+  conversation: z.array(ScenarioConversationStepSchema),
+  behavioralCondition: z.object({
+    civilityCondition: ScenarioCivilitySchema,
+    instruction: z.string(),
+  }),
+  status: z.enum(["active", "inactive"]).default("active"),
+});
+
+export type Scenario = z.infer<typeof ScenarioSchema>;
 
 /**
  * Agent accepts a pending session

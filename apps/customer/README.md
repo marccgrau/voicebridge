@@ -5,8 +5,10 @@ Next.js customer-facing call interface for initiating support calls with VoiceBr
 ## Features
 
 - **Simple Call Flow**: Idle → Calling → Connected → Ended
-- **Customer Profile Selection**: Dropdown to select a customer profile before calling
-- **Routing Simulation Controls**: Select direct queue vs Voice AI transfer and provide handoff details
+- **Cross-Combinable Setup**: Select any persona + any scenario before calling
+- **Briefing Step**: Actor reviews persona/scenario briefing before starting the call
+- **Actor Script View**: After agent acceptance, the actor sees conversation steps and example utterances
+- **Template Rendering**: Scenario placeholders are resolved from selected persona data before and during the call
 - **Daily.co Audio**: Connects to WebRTC rooms via `@daily-co/daily-js` for live audio
 - **Real-time Status**: Monitors session status via Supabase Realtime to detect agent join/disconnect
 - **PCC Integration**: Starts PCC bot instances via `/start` endpoint for each call
@@ -77,34 +79,64 @@ apps/customer/
 │       ├── supabase.ts         # Supabase client
 │       ├── customer-session.ts # Session lifecycle hook
 │       ├── daily-audio.ts      # Daily.co audio connection hook
-│       └── use-customers.ts    # Customer list fetching hook
+│       ├── scenario-render.ts   # Persona placeholder rendering for scenario text
+│       ├── use-customers.ts     # Persona list fetching hook
+│       └── use-scenarios.ts     # Scenario list fetching hook
 └── package.json
 ```
 
 ## Call Flow
 
-### 1. Idle
+### 1. Idle / Preparation
 
-Customer selects a profile from the dropdown and clicks "Start Call".
+Actor selects a persona and scenario, reviews briefing, then clicks "Start Call".
 
 ### 2. Calling
 
 The app:
 
-1. Sends `POST /api/sessions/create` with optional `customer_id` and optional routing payload (`source`, `handoff_summary`, `transfer_reason`)
-2. API route calls PCC `/start` to create a Daily room and spawn a bot
-3. API route generates customer + agent tokens via Daily REST API
-4. API route inserts a `pending` session into Supabase with customer/routing metadata in `state`
-5. Customer connects to the Daily room with audio
-6. Subscribes to Supabase Realtime for session status changes
+1. Sends `POST /api/sessions/create` with required `customer_id` and `scenario_id`
+2. API route validates both IDs against `customers` and active `scenarios`
+3. API route calls PCC `/start` to create a Daily room and spawn a bot
+4. API route generates customer + agent tokens via Daily REST API
+5. API route inserts a `pending` session with persona/scenario metadata in row columns + `state`
+6. Customer connects to the Daily room with audio
+7. Subscribes to Supabase Realtime for session status changes
 
 ### 3. Connected
 
-When an agent accepts the session (status changes to `active`), the UI updates to show the connected state.
+When an agent accepts the session (status changes to `active`), the actor script is shown with per-step guidance.
 
 ### 4. Ended
 
 When the session status changes to `completed` or `abandoned`, or the customer clicks "End Call", the call ends.
+
+## Persona and Scenario Definition + Loading
+
+### 1) Definition in repository
+
+- Personas: `personas/customer_profile_*.json`
+- Scenarios: `scenarios/scenario_*.json`
+
+### 2) Seeding into Supabase
+
+- Script: `scripts/seed-experimental-data.mjs`
+- Local: `make db-seed-experiment`
+- Linked remote: `make db-seed-experiment-linked`
+- Writes:
+  - Persona profile + notes to `customers`
+  - Persona history to `customer_interactions`
+  - Scenario catalog to `scenarios`
+
+### 3) Runtime loading in this app
+
+- `useCustomers()` reads personas from `customers`
+- `useScenarios()` reads active scenarios from `scenarios`
+- `scenario-render.ts` resolves placeholders like `{{customer_name}}`, `{{customer_dob_human}}`, and address tokens for actor-facing script text
+
+### 4) Session-time persistence
+
+- `/api/sessions/create` stores selected scenario metadata on session columns (`scenario_id`, `scenario_family`, `civility_condition`) and mirrors it in `sessions.state`
 
 ## API Route
 
@@ -112,10 +144,11 @@ When the session status changes to `completed` or `abandoned`, or the customer c
 
 Creates a new customer-initiated session:
 
-1. Calls PCC service `/start` to create a Daily room and bot instance
-2. Generates customer token (non-owner) and agent token (owner) via Daily REST API
-3. Inserts a `pending` session row into Supabase with room URL, agent token, optional customer ID, and routing context in `state`
-4. Returns `{ session_id, room_url, customer_token }` to the client
+1. Validates selected `customer_id` and active `scenario_id`
+2. Calls PCC service `/start` to create a Daily room and bot instance
+3. Generates customer token (non-owner) and agent token (owner) via Daily REST API
+4. Inserts a `pending` session row into Supabase with room URL, agent token, selected persona ID, and selected scenario metadata in both columns and `state`
+5. Returns `{ session_id, room_url, customer_token }` to the client
 
 ## Key Hooks
 
@@ -123,7 +156,7 @@ Creates a new customer-initiated session:
 
 Manages the customer call lifecycle:
 
-- `startCall(customerId?, routing?)` — Initiates a call via API with optional routing context
+- `startCall({ customerId, scenarioId })` — Initiates a call for the selected persona/scenario pair
 - `endCall()` — Ends the current call
 - State: `callState`, `sessionId`, `roomUrl`, `customerToken`, `isLoading`, `error`
 - Subscribes to Supabase Realtime to detect agent join (pending → active)
@@ -138,9 +171,16 @@ Connects to Daily.co room with audio:
 
 ### `useCustomers()`
 
-Fetches available customer profiles from Supabase:
+Fetches available persona profiles from Supabase:
 
-- Returns `{ customers, isLoading }` — List of customer profiles for the dropdown
+- Returns `{ customers, isLoading }` — List of customer profiles for dropdown + briefing
+
+### `useScenarios()`
+
+Fetches active experimental scenarios from Supabase:
+
+- Returns `{ scenarios, isLoading, error }` — List used in scenario selection and briefing
+- Maps DB shape (`scenario_id`, `conversation`, `civility_condition`, `behavior_instruction`) into typed `Scenario` objects
 
 ## Development
 

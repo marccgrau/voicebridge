@@ -138,15 +138,16 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 **Database Package** (`packages/db/`)
 
 - Supabase client wrapper
-- Query helpers for sessions, transcripts, processes
+- Query helpers for sessions, customers, and interactions
 
 ### Session Creation Flow
 
 ```
 POST /api/sessions/create
-  → POST pcc/start  { createDailyRoom: true, body: { session_id } }  ← creates room + starts branches
+  → Validate selected customer_id + scenario_id
+  → POST pcc/start  { createDailyRoom: true, body: { session_id, metadata } }  ← creates room + starts branches
   → Create Daily tokens (customer + agent)
-  → Insert pending session into Supabase
+  → Insert pending session into Supabase with scenario metadata
   ← { session_id, room_url, customer_token }
 ```
 
@@ -160,14 +161,17 @@ Migrations (in `supabase/migrations/`):
 - `004_customers_rls.sql` — Row-level security for customers
 - `005_update_suggestion_service_modes.sql` — Update service type column
 - `006_add_agent_token.sql` — Add agent_token to sessions
+- `007_experiment_schema.sql` — scenarios, session_events, and experiment metadata columns
+- `008_drop_legacy_process_catalog.sql` — remove DB-backed process_catalog table
 
 Key tables:
 
-- `sessions`: Session state (JSONB), status, room URL/name, timestamps, error tracking
+- `sessions`: Session state (JSONB), status, room URL/name, `customer_id`, `scenario_id`, scenario metadata, timestamps
 - `transcript_segments`: STT output segments by speaker (agent/customer)
-- `process_catalog`: Process definitions with full-text search via `pg_trgm`
-- `customers`: Customer profiles with classification
-- `customer_interactions`: Links sessions to customers
+- `customers`: Persona-backed customer profiles
+- `customer_interactions`: Historical interaction context linked to customers
+- `scenarios`: Scenario catalog for experiment selection
+- `session_events`: Experiment telemetry events
 
 Session statuses: `pending` → `active` → `completed` / `abandoned` / `escalated` / `error`
 

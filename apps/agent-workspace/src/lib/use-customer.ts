@@ -38,16 +38,26 @@ export function useCustomer(customerId: string | null) {
         if (customerData) {
           const customer: Customer = {
             id: customerData.id,
+            customerCode: customerData.customer_code,
             name: customerData.name,
             gender: customerData.gender as "male" | "female" | "other",
+            dateOfBirth: customerData.date_of_birth,
             email: customerData.email,
             phone: customerData.phone,
+            address: {
+              street: customerData.address_street,
+              postalCode: customerData.address_postal_code,
+              city: customerData.address_city,
+              country: customerData.address_country,
+            },
             customerSince: customerData.customer_since,
             classification:
               customerData.classification as Customer["classification"],
             products: customerData.products,
             preferredLanguage: customerData.preferred_language,
+            preferredContactChannel: customerData.preferred_contact_channel,
             notes: customerData.notes,
+            quickInternalNote: customerData.quick_internal_note,
           };
           setCustomer(customer);
 
@@ -76,6 +86,21 @@ export function useCustomer(customerId: string | null) {
                 outcome: row.outcome as string | null,
                 agentName: row.agent_name as string | null,
                 channelDetail: row.channel_detail as string | null,
+                direction:
+                  (row.direction as "inbound" | "outbound" | null) ?? null,
+                topic: (row.topic as string | null) ?? null,
+                subtopic: (row.subtopic as string | null) ?? null,
+                sentiment: (row.sentiment as string | null) ?? null,
+                priority: (row.priority as string | null) ?? null,
+                ownerTeam: (row.owner_team as string | null) ?? null,
+                status: (row.status as string | null) ?? null,
+                resolutionTimeHours:
+                  (row.resolution_time_hours as number | null) ?? null,
+                slaBreached: (row.sla_breached as boolean | null) ?? null,
+                followUpRequired:
+                  (row.follow_up_required as boolean | null) ?? null,
+                relatedCaseId: (row.related_case_id as string | null) ?? null,
+                csat: (row.csat as number | null) ?? null,
               })
             );
             setInteractions(interactions);

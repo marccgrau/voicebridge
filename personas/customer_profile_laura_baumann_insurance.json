@@ -24,16 +24,14 @@
       "Rechtsschutz Gesundheit"
     ],
     "preferred_contact_channel": "email",
-    "quick_internal_note": "Responds well to plain-language reason-code explanations and explicit documentation checklists."
+    "quick_internal_note": "Needs plain-language reason-code explanations and explicit documentation checklists."
   },
   "case_context": {
     "authentication_status": "not_started",
     "current_case_id": "APL-INS-2026-02-17-LB-01",
     "case_priority": "high",
     "sla_tier": "standard",
-    "known_constraints": [
-      "concerned_about_out_of_pocket_cost"
-    ],
+    "known_constraints": ["concerned_about_out_of_pocket_cost"],
     "compliance_note": "Explain reason code and policy basis before appeal initiation."
   },
   "interaction_history": [

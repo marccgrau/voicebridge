@@ -129,7 +129,7 @@ Realtime channels:
 #### Customer App (`apps/customer`)
 
 - Customer flow states: `idle → calling → connected → ended`
-- Starts calls via `POST /api/sessions/create` (optional `customer_id`)
+- Starts calls via `POST /api/sessions/create` (requires `customer_id` + `scenario_id`)
 - API route creates PCC bot, Daily tokens, and pending session in Supabase
 - Watches session status via Supabase Realtime to detect agent join/end
 - Connects to Daily room audio using `@daily-co/daily-js`
@@ -157,14 +157,17 @@ Migrations (in `supabase/migrations/`):
 - `004_customers_rls.sql` — Row-level security for customers
 - `005_update_suggestion_service_modes.sql` — Update service type column
 - `006_add_agent_token.sql` — Add agent_token to sessions
+- `007_experiment_schema.sql` — scenarios, session_events, and experiment metadata columns
+- `008_drop_legacy_process_catalog.sql` — remove DB-backed process_catalog table
 
 Primary tables:
 
-- `sessions` — status, room_url, room_name, agent_token, state (JSONB), timestamps
+- `sessions` — status, room_url, room_name, agent_token, customer_id, scenario_id, scenario_family, civility_condition, state (JSONB), timestamps
 - `transcript_segments` — session_id, speaker, text, is_final, timestamps
-- `process_catalog` — process_key, name, domain, status, version
-- `customers` — id, name, classification, email
-- `customer_interactions` — session_id, customer_id, interaction_type
+- `customers` — persona-backed customer profile data (identity, classification, contact, notes)
+- `customer_interactions` — historical interaction context linked to customers
+- `scenarios` — scenario catalog (background, goal, conversation, civility condition)
+- `session_events` — experiment telemetry events linked to sessions
 
 Session statuses: `pending` → `active` → `completed` / `abandoned` / `escalated` / `error`
 
@@ -189,7 +192,7 @@ Process markdown content lives in `services/pcc/process_content/`.
 
 - Files use YAML frontmatter (`process_key`, `name`, `domain`, `intents`)
 - Steps are parsed from `## Step N: ...` headings
-- Repository currently contains 9 process content markdown files
+- Repository currently contains 4 process content markdown files
 - Detection is catalog-informed and LLM-evaluated (`PROCESS_MODEL`, default `gpt-4.1-nano`)
 
 ## Key Design Patterns

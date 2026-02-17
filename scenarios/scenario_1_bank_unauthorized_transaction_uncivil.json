@@ -2,7 +2,6 @@
   "scenario_id": "bank_unauthorized_transaction_high_urgency_uncivil",
   "title": "Unauthorized Card Transaction – Urgent Containment – Uncivil Customer",
   "domain": "banking",
-  "persona": "You are Alex Meyer, born 03 March 1989, living at 45 Lindenstrasse, Zurich.",
   "background": "You noticed a card transaction you do not recognize and are worried your card details are compromised.",
   "customer_goal": "Secure the account immediately, dispute the unauthorized charge, get a replacement card, and understand updates/timing.",
   "guidelines": {
@@ -10,10 +9,7 @@
     "replacement_card_available": true,
     "standard_delivery_days": "3-5 business days",
     "instant_physical_delivery": "not_available",
-    "notification_options": [
-      "sms",
-      "email"
-    ],
+    "notification_options": ["sms", "email"],
     "pin_policy": "same_pin_by_default_unless_reset_requested"
   },
   "conversation": [
@@ -27,7 +23,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Sure. It's Alex Meyer, 03 March 1989, 45 Lindenstrasse in Zurich.",
+      "customer_msg": "Sure. It's {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Provide required verification details promptly. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm verification and execute immediate security action (freeze/block).",
@@ -59,7 +55,7 @@
     },
     {
       "id": "delivery_preference",
-      "customer_msg": "Send it to my home address, . Why is this taking so long?",
+      "customer_msg": "Send it to my home address. Why is this taking so long?",
       "actor_intent": "Confirm preference and ask for timeline. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "irritated",
       "advice_instructional": "Provide standard timeline and set expectations clearly.",
@@ -67,7 +63,7 @@
     },
     {
       "id": "instant_challenge",
-      "customer_msg": "I need you to it faster than that. You better guarantee delivery by tomorrow — this is unacceptable.",
+      "customer_msg": "I need it faster than that. You better guarantee delivery by tomorrow — this is unacceptable.",
       "actor_intent": "Test policy boundary under urgency. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "aggressive",
       "advice_instructional": "Hold policy line (no guaranteed instant physical delivery), offer best alternative and immediate submission.",
@@ -75,7 +71,7 @@
     },
     {
       "id": "notification_setup",
-      "customer_msg": "Okay, then  send me updates by SMS so I know exactly what's happening.",
+      "customer_msg": "Okay, then send me updates by SMS so I know exactly what's happening.",
       "actor_intent": "Set communication channel. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm SMS updates and what milestones will trigger notifications.",
@@ -83,7 +79,7 @@
     },
     {
       "id": "pin_question",
-      "customer_msg": "Will my PIN stay the same, or do I need you to to set a new one?",
+      "customer_msg": "Will my PIN stay the same, or do I need to set a new one?",
       "actor_intent": "Clarify credential continuity. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Explain default PIN policy and offer optional reset.",
@@ -91,7 +87,7 @@
     },
     {
       "id": "closing",
-      "customer_msg": "Great, thanks. Summarize it now what has been done and what I should watch for next.",
+      "customer_msg": "Great, thanks. Summarize now what has been done and what I should watch for next.",
       "actor_intent": "Force structured recap before call ends. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Recap security action, dispute initiation, replacement details, notification plan, and next triggers.",

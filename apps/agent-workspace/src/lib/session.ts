@@ -114,7 +114,10 @@ export function useSession() {
       // Update session status to active
       const { error: updateError } = await supabase
         .from("sessions")
-        .update({ status: "active" })
+        .update({
+          status: "active",
+          agent_joined_at: new Date().toISOString(),
+        })
         .eq("id", sessionId)
         .eq("status", "pending");
 

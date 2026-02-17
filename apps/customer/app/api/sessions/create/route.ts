@@ -18,6 +18,7 @@ interface RoutingPayload {
 
 interface CreateSessionRequestBody {
   customer_id?: string;
+  scenario_id?: string;
   routing?: RoutingPayload;
 }
 
@@ -101,10 +102,52 @@ export async function POST(request: Request) {
     const body = (await request
       .json()
       .catch(() => ({}))) as CreateSessionRequestBody;
-    const customerId = body.customer_id;
-    const normalizedCustomerId = customerId ?? null;
+    const normalizedCustomerId = normalizeText(body.customer_id);
+    const normalizedScenarioId = normalizeText(body.scenario_id);
+
+    if (!normalizedCustomerId || !normalizedScenarioId) {
+      return NextResponse.json(
+        { detail: "customer_id and scenario_id are required" },
+        { status: 400 }
+      );
+    }
+
     const routing = normalizeRouting(body.routing);
     const sessionId = crypto.randomUUID();
+    const supabase = getSupabaseAdmin();
+
+    const [
+      { data: customer, error: customerError },
+      { data: scenario, error: scenarioError },
+    ] = await Promise.all([
+      supabase
+        .from("customers")
+        .select("id")
+        .eq("id", normalizedCustomerId)
+        .single(),
+      supabase
+        .from("scenarios")
+        .select(
+          "scenario_id, scenario_family, domain, civility_condition, title"
+        )
+        .eq("scenario_id", normalizedScenarioId)
+        .eq("status", "active")
+        .single(),
+    ]);
+
+    if (customerError || !customer) {
+      return NextResponse.json(
+        { detail: "Customer not found" },
+        { status: 404 }
+      );
+    }
+
+    if (scenarioError || !scenario) {
+      return NextResponse.json(
+        { detail: "Scenario not found" },
+        { status: 404 }
+      );
+    }
 
     // 1. Start unified PCC service — it creates the Daily room
     const pccResponse = await fetch(`${PCC_AGENT_URL}/start`, {
@@ -114,6 +157,11 @@ export async function POST(request: Request) {
         createDailyRoom: true,
         body: {
           session_id: sessionId,
+          metadata: {
+            scenario_id: scenario.scenario_id,
+            scenario_family: scenario.scenario_family,
+            domain: scenario.domain,
+          },
         },
       }),
     });
@@ -138,17 +186,24 @@ export async function POST(request: Request) {
     ]);
 
     // 3. Insert pending session into Supabase
-    const supabase = getSupabaseAdmin();
-
     const { error: insertError } = await supabase.from("sessions").insert({
       id: sessionId,
       room_url: roomUrl,
       room_name: roomName,
       agent_token: agentToken,
-      customer_id: normalizedCustomerId,
+      customer_id: customer.id,
+      scenario_id: scenario.scenario_id,
+      scenario_family: scenario.scenario_family,
+      civility_condition: scenario.civility_condition,
       status: "pending",
+      customer_joined_at: new Date().toISOString(),
       state: {
-        customer_id: normalizedCustomerId,
+        customer_id: customer.id,
+        scenario_id: scenario.scenario_id,
+        scenario_family: scenario.scenario_family,
+        scenario_title: scenario.title,
+        civility_condition: scenario.civility_condition,
+        domain: scenario.domain,
         routing: {
           source: routing.source,
           handoff_summary: routing.handoffSummary,

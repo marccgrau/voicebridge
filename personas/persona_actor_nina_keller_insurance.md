@@ -1,19 +1,23 @@
 # Persona Brief — Nina Keller (Insurance)
+
 Scenario ID: `insurance_suspicious_claim_high_urgency`
 
 ## 1) Actor Perspective (what the actor needs to know)
 
 ### Core identity
+
 - **Name:** Nina Keller
 - **Gender:** Female
 - **DOB:** 14 July 1992
 - **Address:** 8 Seefeldstrasse, 8008 Zürich, CH
 
 ### Situation at call start
+
 You received a notification about a **medical claim you do not recognize**.
 You suspect misuse of your insurance details and want immediate protection.
 
 ### Main objectives in the call
+
 1. Ensure immediate **policy protection** (lock/flag).
 2. Open a **formal fraud investigation/dispute**.
 3. Add temporary **monitoring/protection notes**.
@@ -22,21 +26,26 @@ You suspect misuse of your insurance details and want immediate protection.
 6. Learn what to do if another suspicious event appears.
 
 ### Behavioral profile
+
 - Start concerned and alert.
-- Communicate clearly and factually.
-- Ask precise follow-up questions.
+- Communicate with clear facts and ask precise follow-up questions.
+- Escalate intensity when ownership is unclear; de-escalate when safeguards and milestones are concrete.
+- Match the civility style (civil or uncivil) to the assigned scenario condition.
 
 ### Information you should reveal when asked
+
 - No treatment this month.
 - Suspicious claim was submitted two days ago.
 - You want both SMS and email updates.
 - You want explicit contingency instructions.
 
 ### Escalation / de-escalation cues
+
 - **Escalate** if there is no ownership or no concrete next steps.
 - **De-escalate** when immediate safeguards and milestones are explained.
 
 ### Must-ask checkpoints
+
 - “Can this be fully resolved today?”
 - “How exactly will I be notified?”
 - “What should I do if another suspicious claim appears?”
@@ -46,6 +55,7 @@ You suspect misuse of your insurance details and want immediate protection.
 ## 2) Company Perspective (what to show agent in UI)
 
 ### Pre-call customer snapshot
+
 - **Customer ID:** INS-CH-992174
 - **Full name:** Nina Keller
 - **Gender:** female
@@ -58,15 +68,17 @@ You suspect misuse of your insurance details and want immediate protection.
 - **Internal classification:** Standard Plus
 - **Products:** Grundversicherung (KVG), Zusatzversicherung Ambulant, Spitalzusatz Halbprivat, Telemedizin-Modul
 - **Previous interactions:** See interaction list below (date, topic, channel, outcome).
-- **Quick internal note:** Detail-oriented; wants explicit process milestones and written confirmation.
+- **Quick internal note:** Detail-oriented; expects explicit process milestones and written confirmation.
 
 ### Previous interactions (internal, with channel)
-- **2026-01-16** — *Benefit clarification (physiotherapy sessions)* — **Channel:** Customer Portal Message — **Outcome:** Resolved
-- **2025-10-02** — *Invoice coding question* — **Channel:** Phone — **Outcome:** Resolved
-- **2025-06-21** — *Hospital add-on coverage scope* — **Channel:** Email — **Outcome:** Resolved
-- **2025-03-11** — *Telemedicine reimbursement check* — **Channel:** Mobile App Chat — **Outcome:** Resolved
+
+- **2026-01-16** — _Benefit clarification (physiotherapy sessions)_ — **Channel:** Customer Portal Message — **Outcome:** Resolved
+- **2025-10-02** — _Invoice coding question_ — **Channel:** Phone — **Outcome:** Resolved
+- **2025-06-21** — _Hospital add-on coverage scope_ — **Channel:** Email — **Outcome:** Resolved
+- **2025-03-11** — _Telemedicine reimbursement check_ — **Channel:** Mobile App Chat — **Outcome:** Resolved
 
 ### Recommended UI additions for this scenario
+
 - **Authentication status** indicator
 - **Fraud case module:** suspicious claim details, lock/flag action, investigation status
 - **Policy guardrail:** no same-day guaranteed final resolution
@@ -101,6 +113,7 @@ Use this schema for each historical interaction item in the agent UI.
 ```
 
 ### Minimal required fields (if you want a lighter version)
+
 - `interaction_id`
 - `date_time`
 - `channel`
@@ -109,6 +122,7 @@ Use this schema for each historical interaction item in the agent UI.
 - `outcome_summary`
 
 ### Optional but high-value fields for your experiment
+
 - `sentiment` (for emotion-aware guidance)
 - `priority` (for urgency-sensitive prompts)
 - `resolution_time_hours` and `sla_breached` (service quality outcomes)

@@ -2,7 +2,6 @@
   "scenario_id": "bank_denial_appeal_structured_recovery_uncivil",
   "title": "Denied Request – Appeal and Reconsideration – Uncivil Customer",
   "domain": "banking",
-  "persona": "You are Marco Steiner, born 21 November 1985, living at 27 Gartenweg, Winterthur.",
   "background": "Your request for a fee reversal and temporary credit limit increase was denied.",
   "customer_goal": "Understand why the denial happened, identify missing criteria, and submit a valid reconsideration request quickly.",
   "guidelines": {
@@ -13,15 +12,12 @@
       "recent account statements",
       "supporting context note"
     ],
-    "notification_options": [
-      "email",
-      "sms"
-    ]
+    "notification_options": ["email", "sms"]
   },
   "conversation": [
     {
       "id": "opening_complaint",
-      "customer_msg": "Listen, my request was denied and This makes no sense. This is ridiculous — this is unacceptable.",
+      "customer_msg": "Listen, my request was denied and this makes no sense. This is ridiculous — this is unacceptable.",
       "actor_intent": "Signal dissatisfaction and demand explanation. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry and confrontational",
       "advice_instructional": "Acknowledge emotion, verify identity, and commit to transparent explanation.",
@@ -29,7 +25,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Sure. Marco Steiner, 21 November 1985, 27 Gartenweg in Winterthur.",
+      "customer_msg": "Sure. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Complete verification. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm identity and access the denial details.",
@@ -93,7 +89,7 @@
     },
     {
       "id": "closing",
-      "customer_msg": "Fine. Please recap what I need you to to submit and what happens next.",
+      "customer_msg": "Fine. Please recap what I need to submit and what happens next.",
       "actor_intent": "Require structured close and action recap. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Summarize requirements, submission method, timeline, and escalation trigger.",

@@ -2,7 +2,6 @@
   "scenario_id": "insurance_suspicious_claim_high_urgency_civil",
   "title": "Suspicious Claim Activity – Immediate Protection Request – Civil Customer",
   "domain": "health_insurance",
-  "persona": "You are Nina Keller, born 14 July 1992, living at 8 Seefeldstrasse, Zurich.",
   "background": "You received a notification about a medical claim that does not match any treatment you had.",
   "customer_goal": "Protect your policy from misuse, open a fraud dispute, and understand monitoring and next steps.",
   "guidelines": {
@@ -10,11 +9,7 @@
     "policy_usage_lock_flag": true,
     "formal_investigation_available": true,
     "instant_final_resolution": "not_available",
-    "notification_options": [
-      "sms",
-      "email",
-      "phone_callback"
-    ]
+    "notification_options": ["sms", "email", "phone_callback"]
   },
   "conversation": [
     {
@@ -27,7 +22,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Yes, of course. Nina Keller, 14 July 1992, 8 Seefeldstrasse in Zurich.",
+      "customer_msg": "Yes, of course. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Provide verification information. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Confirm verification and place protective flag/lock as per policy.",

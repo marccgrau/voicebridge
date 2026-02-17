@@ -1,19 +1,23 @@
 # Persona Brief — Marco Steiner (Bank)
+
 Scenario ID: `bank_denial_appeal_structured_recovery`
 
 ## 1) Actor Perspective (what the actor needs to know)
 
 ### Core identity
+
 - **Name:** Marco Steiner
 - **Gender:** Male
 - **DOB:** 21 November 1985
 - **Address:** 27 Gartenweg, 8400 Winterthur, CH
 
 ### Situation at call start
+
 Your request(s) were denied (fee reversal and temporary credit limit increase).
 You feel the outcome is unfair and unclear, and you want a valid reconsideration path now.
 
 ### Main objectives in the call
+
 1. Understand denial reason in plain language.
 2. Identify missing criteria/documents.
 3. Start formal reconsideration/appeal route.
@@ -23,20 +27,25 @@ You feel the outcome is unfair and unclear, and you want a valid reconsideration
 7. Ask for interim options while review is pending.
 
 ### Behavioral profile
-- Start frustrated but controlled.
-- Fairness-sensitive: accepts strict policy when explanation is clear.
+
+- Start frustrated and focused on perceived unfairness.
+- Require clear rationale and concrete next steps before accepting the decision.
 - Pushes for specifics, not generic statements.
+- Match the civility style (civil or uncivil) to the assigned scenario condition.
 
 ### Information you should reveal when asked
+
 - You can provide supporting income and account documentation.
 - You prefer efficient digital submission.
 - You want clear expectations to avoid a second rejection.
 
 ### Escalation / de-escalation cues
+
 - **Escalate** if explanations are circular or vague.
 - **De-escalate** when you receive concrete, stepwise instructions.
 
 ### Must-ask checkpoints
+
 - “What exactly caused the denial?”
 - “What is missing from my application?”
 - “What is the fastest valid appeal route?”
@@ -47,6 +56,7 @@ You feel the outcome is unfair and unclear, and you want a valid reconsideration
 ## 2) Company Perspective (what to show agent in UI)
 
 ### Pre-call customer snapshot
+
 - **Customer ID:** BK-CH-441028
 - **Full name:** Marco Steiner
 - **Gender:** male
@@ -59,15 +69,17 @@ You feel the outcome is unfair and unclear, and you want a valid reconsideration
 - **Internal classification:** Basis Plus
 - **Products:** Privatkonto, Debitkarte, Kreditkarte Classic, Sparkonto, eBanking
 - **Previous interactions:** See interaction list below (date, topic, channel, outcome).
-- **Quick internal note:** Fairness-sensitive; accepts denial if rationale and next steps are concrete.
+- **Quick internal note:** Fairness-sensitive; requires clear rationale and concrete next steps before accepting a denial decision.
 
 ### Previous interactions (internal, with channel)
-- **2026-02-05** — *Fee reversal request* — **Channel:** Phone — **Outcome:** Denied
-- **2026-02-05** — *Temporary credit limit increase* — **Channel:** Mobile App Chat — **Outcome:** Denied
-- **2025-12-12** — *Overdraft fee explanation* — **Channel:** Secure Message (eBanking) — **Outcome:** Resolved
-- **2025-09-19** — *Card replacement after wear-and-tear* — **Channel:** Phone — **Outcome:** Resolved
+
+- **2026-02-05** — _Fee reversal request_ — **Channel:** Phone — **Outcome:** Denied
+- **2026-02-05** — _Temporary credit limit increase_ — **Channel:** Mobile App Chat — **Outcome:** Denied
+- **2025-12-12** — _Overdraft fee explanation_ — **Channel:** Secure Message (eBanking) — **Outcome:** Resolved
+- **2025-09-19** — _Card replacement after wear-and-tear_ — **Channel:** Phone — **Outcome:** Resolved
 
 ### Recommended UI additions for this scenario
+
 - **Decision explanation panel:** denial reason in plain language + policy reference
 - **Missing criteria checklist:** dynamic, explicit
 - **Appeal initiation widget:** prefilled reconsideration form
@@ -103,6 +115,7 @@ Use this schema for each historical interaction item in the agent UI.
 ```
 
 ### Minimal required fields (if you want a lighter version)
+
 - `interaction_id`
 - `date_time`
 - `channel`
@@ -111,6 +124,7 @@ Use this schema for each historical interaction item in the agent UI.
 - `outcome_summary`
 
 ### Optional but high-value fields for your experiment
+
 - `sentiment` (for emotion-aware guidance)
 - `priority` (for urgency-sensitive prompts)
 - `resolution_time_hours` and `sla_breached` (service quality outcomes)

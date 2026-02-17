@@ -64,8 +64,11 @@ def build_process_system_prompt(catalog: ProcessCatalog) -> str:
             step_labels = ", ".join(
                 f"{idx}:{step.label}" for idx, step in enumerate(definition.steps)
             )
+            intents = ", ".join(definition.intents) if definition.intents else "(none)"
             lines.append(
                 f"- {definition.process_key}: {definition.name} | "
+                f"domain: {definition.domain or '(none)'} | "
+                f"intents: {intents} | "
                 f"steps: {step_labels or '(no steps)'}"
             )
         catalog_summary = "\n".join(lines)

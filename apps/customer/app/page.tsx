@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import {
-  useCustomerSession,
-  type SessionRoutingOptions,
-} from "@/lib/customer-session";
+import { useMemo, useState } from "react";
+import type { ScenarioConversationStep } from "@voicebridge/contracts";
+
+import { useCustomerSession } from "@/lib/customer-session";
 import { useDailyAudio } from "@/lib/daily-audio";
+import {
+  renderScenarioConversation,
+  renderScenarioText,
+} from "@/lib/scenario-render";
 import { useCustomers } from "@/lib/use-customers";
+import { useScenarios } from "@/lib/use-scenarios";
+import { supabase } from "@/lib/supabase";
+
+type PrepStage = "selection" | "briefing";
 
 export default function CustomerCallPage() {
   const {
@@ -24,155 +31,239 @@ export default function CustomerCallPage() {
     roomUrl,
     customerToken
   );
-
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
+  const {
+    scenarios,
+    isLoading: isLoadingScenarios,
+    error: scenarioError,
+  } = useScenarios();
+
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
-  const [callEntrySource, setCallEntrySource] = useState<"direct" | "voice_ai">(
-    "direct"
-  );
-  const [voiceAiSummary, setVoiceAiSummary] = useState<string>(
-    "Customer explained their issue to the Voice AI assistant and requested a specialist review."
-  );
-  const [voiceAiTransferReason, setVoiceAiTransferReason] = useState<string>(
-    "Needs a human agent for account-specific decision and final confirmation."
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string>("");
+  const [prepStage, setPrepStage] = useState<PrepStage>("selection");
+  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+
+  const selectedCustomer = useMemo(
+    () =>
+      customers.find((customer) => customer.id === selectedCustomerId) ?? null,
+    [customers, selectedCustomerId]
   );
 
-  const handleStartCall = () => {
-    const routing: SessionRoutingOptions =
-      callEntrySource === "voice_ai"
-        ? {
-            source: "voice_ai",
-            handoffSummary: voiceAiSummary,
-            transferReason: voiceAiTransferReason,
-          }
-        : { source: "direct" };
+  const selectedScenario = useMemo(
+    () =>
+      scenarios.find(
+        (scenario) => scenario.scenarioId === selectedScenarioId
+      ) ?? null,
+    [scenarios, selectedScenarioId]
+  );
 
-    startCall(selectedCustomerId || undefined, routing);
+  const renderedConversation = useMemo(() => {
+    if (!selectedCustomer || !selectedScenario) {
+      return [];
+    }
+
+    return renderScenarioConversation(selectedScenario, selectedCustomer);
+  }, [selectedCustomer, selectedScenario]);
+
+  const canContinue = Boolean(selectedCustomer && selectedScenario);
+
+  const handleStartCall = async () => {
+    if (!selectedCustomer || !selectedScenario) {
+      return;
+    }
+
+    setCompletedSteps(new Set());
+    try {
+      await startCall({
+        customerId: selectedCustomer.id,
+        scenarioId: selectedScenario.scenarioId,
+      });
+    } catch {
+      // Error state is already set inside useCustomerSession.
+    }
+  };
+
+  const toggleStepCompleted = async (step: ScenarioConversationStep) => {
+    setCompletedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(step.id)) {
+        next.delete(step.id);
+      } else {
+        next.add(step.id);
+      }
+      return next;
+    });
+
+    if (!sessionId || !selectedScenario) {
+      return;
+    }
+
+    const { error } = await supabase.from("session_events").insert({
+      session_id: sessionId,
+      event_type: "actor_step_toggled",
+      source: "customer_app",
+      payload: {
+        step_id: step.id,
+        scenario_id: selectedScenario.scenarioId,
+      },
+    });
+
+    if (error) {
+      console.error("Failed to log actor step event:", error);
+    }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="w-full max-w-md space-y-6 rounded-xl border border-border bg-card p-8 text-center">
-        <h1 className="text-2xl font-semibold">VoiceBridge</h1>
-        <p className="text-sm text-muted-foreground">Customer Support Call</p>
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <div className="w-full max-w-5xl rounded-xl border border-border bg-card p-6 md:p-8">
+        <header className="mb-6 border-b border-border pb-4 text-center">
+          <h1 className="text-2xl font-semibold">VoiceBridge Experiment</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Customer role interface
+          </p>
+        </header>
 
         {error && (
-          <div className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          <div className="mb-4 rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
             {error}
           </div>
         )}
 
-        {/* Idle state */}
-        {callState === "idle" && (
-          <div className="space-y-4">
-            <p className="text-muted-foreground">
-              Select a customer profile and start a call with a support agent.
-            </p>
+        {scenarioError && (
+          <div className="mb-4 rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+            Failed to load scenarios: {scenarioError}
+          </div>
+        )}
 
-            {/* Customer selector */}
-            <div className="space-y-2 text-left">
-              <label
-                htmlFor="customer-select"
-                className="text-sm font-medium text-foreground"
-              >
-                Customer
-              </label>
+        {callState === "idle" && prepStage === "selection" && (
+          <section className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <h2 className="text-lg font-medium">1. Select persona</h2>
               <select
-                id="customer-select"
                 value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(e.target.value)}
+                onChange={(event) => setSelectedCustomerId(event.target.value)}
                 disabled={isLoadingCustomers}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="">Select a customer...</option>
+                <option value="">Choose persona...</option>
                 {customers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name} ({customer.classification})
                   </option>
                 ))}
               </select>
+              {selectedCustomer && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedCustomer.quickInternalNote ?? selectedCustomer.notes}
+                </p>
+              )}
             </div>
 
-            {/* Call routing simulation */}
-            <div className="space-y-2 text-left">
-              <label
-                htmlFor="call-entry-source"
-                className="text-sm font-medium text-foreground"
-              >
-                Entry Route
-              </label>
+            <div className="space-y-4">
+              <h2 className="text-lg font-medium">2. Select scenario</h2>
               <select
-                id="call-entry-source"
-                value={callEntrySource}
-                onChange={(e) =>
-                  setCallEntrySource(e.target.value as "direct" | "voice_ai")
-                }
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                value={selectedScenarioId}
+                onChange={(event) => setSelectedScenarioId(event.target.value)}
+                disabled={isLoadingScenarios}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="direct">Direct to agent queue</option>
-                <option value="voice_ai">Transferred from Voice AI</option>
+                <option value="">Choose scenario...</option>
+                {scenarios.map((scenario) => (
+                  <option key={scenario.scenarioId} value={scenario.scenarioId}>
+                    {scenario.title}
+                  </option>
+                ))}
               </select>
-              <p className="text-xs text-muted-foreground">
-                This controls routing context shown to the agent before accept.
-              </p>
+              {selectedScenario && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedScenario.behavioralCondition.civilityCondition.toUpperCase()}{" "}
+                  condition
+                </p>
+              )}
             </div>
 
-            {callEntrySource === "voice_ai" && (
-              <div className="space-y-3 rounded-md border border-accent/30 bg-accent/5 p-3 text-left">
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="voice-ai-summary"
-                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                  >
-                    Voice AI handoff summary
-                  </label>
-                  <textarea
-                    id="voice-ai-summary"
-                    value={voiceAiSummary}
-                    onChange={(e) => setVoiceAiSummary(e.target.value)}
-                    rows={3}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="voice-ai-transfer-reason"
-                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                  >
-                    Transfer reason
-                  </label>
-                  <textarea
-                    id="voice-ai-transfer-reason"
-                    value={voiceAiTransferReason}
-                    onChange={(e) => setVoiceAiTransferReason(e.target.value)}
-                    rows={2}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={handleStartCall}
-              disabled={isLoading || isLoadingCustomers}
-              className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isLoading ? "Connecting..." : "Start Call"}
-            </button>
-          </div>
+            <div className="md:col-span-2">
+              <button
+                onClick={() => setPrepStage("briefing")}
+                disabled={!canContinue || isLoading}
+                className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                Continue to briefing
+              </button>
+            </div>
+          </section>
         )}
 
-        {/* Calling state — waiting for agent */}
+        {callState === "idle" &&
+          prepStage === "briefing" &&
+          selectedCustomer &&
+          selectedScenario && (
+            <section className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <article className="rounded-lg border border-border bg-muted/20 p-4">
+                  <h2 className="text-base font-medium">Persona briefing</h2>
+                  <p className="mt-2 text-sm">{selectedCustomer.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Customer code: {selectedCustomer.customerCode ?? "N/A"}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {selectedCustomer.quickInternalNote ??
+                      selectedCustomer.notes}
+                  </p>
+                </article>
+
+                <article className="rounded-lg border border-border bg-muted/20 p-4">
+                  <h2 className="text-base font-medium">Scenario briefing</h2>
+                  <p className="mt-2 text-sm">{selectedScenario.background}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Goal: {selectedScenario.customerGoal}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Tone instruction:{" "}
+                    {selectedScenario.behavioralCondition.instruction}
+                  </p>
+                </article>
+              </div>
+
+              <article className="rounded-lg border border-border bg-muted/10 p-4">
+                <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                  First scripted turns
+                </h3>
+                <div className="mt-3 space-y-2">
+                  {renderedConversation.slice(0, 3).map((step) => (
+                    <p key={step.id} className="text-sm">
+                      {renderScenarioText(step.customerMsg, selectedCustomer)}
+                    </p>
+                  ))}
+                </div>
+              </article>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <button
+                  onClick={() => setPrepStage("selection")}
+                  className="rounded-md border border-border px-4 py-3 text-sm font-medium hover:bg-muted/30"
+                >
+                  Back to selection
+                </button>
+                <button
+                  onClick={handleStartCall}
+                  disabled={isLoading}
+                  className="rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isLoading ? "Starting call..." : "Start Call"}
+                </button>
+              </div>
+            </section>
+          )}
+
         {callState === "calling" && (
-          <div className="space-y-4">
-            <div className="flex flex-col items-center gap-3">
-              <span className="h-4 w-4 animate-pulse rounded-full bg-primary" />
-              <p className="text-muted-foreground">
-                {isAudioConnected
-                  ? "Connected. Waiting for an agent to accept..."
-                  : "Connecting to room..."}
-              </p>
-            </div>
+          <section className="space-y-4 text-center">
+            <span className="mx-auto block h-4 w-4 animate-pulse rounded-full bg-primary" />
+            <p className="text-muted-foreground">
+              {isAudioConnected
+                ? "Connected. Waiting for an agent to accept..."
+                : "Connecting to room..."}
+            </p>
             {sessionId && (
               <p className="text-xs text-muted-foreground">
                 Session: {sessionId.slice(0, 8)}...
@@ -185,23 +276,57 @@ export default function CustomerCallPage() {
             >
               Cancel
             </button>
-          </div>
+          </section>
         )}
 
-        {/* Connected state — agent joined */}
         {callState === "connected" && (
-          <div className="space-y-4">
-            <div className="flex flex-col items-center gap-3">
-              <span className="flex items-center gap-2 text-sm text-success">
-                <span className="h-2 w-2 rounded-full bg-success" />
-                Connected with agent
-              </span>
+          <section className="space-y-6">
+            <div className="rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
+              Agent accepted the call. Follow your script below.
             </div>
+
             {sessionId && (
               <p className="text-xs text-muted-foreground">
                 Session: {sessionId.slice(0, 8)}...
               </p>
             )}
+
+            <div className="space-y-3">
+              {renderedConversation.map((step) => {
+                const done = completedSteps.has(step.id);
+                return (
+                  <article
+                    key={step.id}
+                    className={`rounded-lg border px-4 py-3 ${
+                      done
+                        ? "border-success/40 bg-success/5"
+                        : "border-border bg-muted/10"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">
+                          {step.customerMsg}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Intent: {step.actorIntent}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Tone: {step.tone}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => toggleStepCompleted(step)}
+                        className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/30"
+                      >
+                        {done ? "Undo" : "Mark done"}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
             <button
               onClick={endCall}
               disabled={isLoading}
@@ -209,12 +334,11 @@ export default function CustomerCallPage() {
             >
               End Call
             </button>
-          </div>
+          </section>
         )}
 
-        {/* Ended state */}
         {callState === "ended" && (
-          <div className="space-y-4">
+          <section className="space-y-4 text-center">
             <p className="text-muted-foreground">Call ended. Thank you!</p>
             <button
               onClick={() => window.location.reload()}
@@ -222,7 +346,7 @@ export default function CustomerCallPage() {
             >
               Start New Call
             </button>
-          </div>
+          </section>
         )}
       </div>
     </div>

@@ -15,6 +15,7 @@ Next.js agent workspace with **phase-based procedural UI** for real-time custome
 - **Auto-Return to Idle**: After saving summary, workspace automatically returns to waiting state
 - **Real-time Updates**: Supabase Realtime for session state + RTVI for live data
 - **Incoming Queue Preview**: Pending calls can be selected before accept to preview the corresponding customer brief
+- **Persona/Scenario Context**: Session records include selected scenario metadata while customer profile + history are loaded from seeded persona tables
 - **Routing Context Briefing**: Customer panel surfaces direct vs Voice AI transfer context, including handoff summary and transfer reason when present
 - **Admin Panel**: `/admin` route with session list and transcript inspector
 
@@ -207,6 +208,12 @@ Phase-based UI re-renders
 
 - Incoming call notifications (pending session inserts)
 - Session status changes (active → completed)
+
+## Persona + Scenario Data Sources
+
+- Persona profiles come from `customers` and `customer_interactions` (seeded from `personas/customer_profile_*.json`).
+- Scenario metadata (`scenario_id`, `scenario_family`, `civility_condition`) is attached to each session row by the customer app at creation time.
+- Customer panel resolves full profile/history via `useCustomer(customerId)` using `sessions.customer_id`.
 
 **RTVI (WebRTC data channel)** is used for:
 

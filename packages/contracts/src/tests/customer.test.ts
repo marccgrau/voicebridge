@@ -8,24 +8,24 @@ import {
 
 describe("Customer Schemas", () => {
   describe("CustomerClassificationSchema", () => {
-    it("validates valid classifications", () => {
+    it("validates non-empty classifications", () => {
       expect(CustomerClassificationSchema.safeParse("basis").success).toBe(
         true
       );
       expect(CustomerClassificationSchema.safeParse("affluent").success).toBe(
         true
       );
-      expect(CustomerClassificationSchema.safeParse("HNWI").success).toBe(true);
+      expect(
+        CustomerClassificationSchema.safeParse("Standard Plus").success
+      ).toBe(true);
       expect(CustomerClassificationSchema.safeParse("UHNWI").success).toBe(
         true
       );
     });
 
-    it("rejects invalid classifications", () => {
-      expect(CustomerClassificationSchema.safeParse("premium").success).toBe(
-        false
-      );
+    it("rejects empty classifications", () => {
       expect(CustomerClassificationSchema.safeParse("").success).toBe(false);
+      expect(CustomerClassificationSchema.safeParse("   ").success).toBe(false);
     });
   });
 
@@ -130,6 +130,15 @@ describe("Customer Schemas", () => {
       expect(CustomerInteractionTypeSchema.safeParse("email").success).toBe(
         true
       );
+      expect(
+        CustomerInteractionTypeSchema.safeParse("mobile_app_chat").success
+      ).toBe(true);
+      expect(
+        CustomerInteractionTypeSchema.safeParse("portal_message").success
+      ).toBe(true);
+      expect(
+        CustomerInteractionTypeSchema.safeParse("secure_message").success
+      ).toBe(true);
     });
 
     it("rejects invalid interaction types", () => {

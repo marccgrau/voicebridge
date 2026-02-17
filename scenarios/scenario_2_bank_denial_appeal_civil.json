@@ -2,7 +2,6 @@
   "scenario_id": "bank_denial_appeal_structured_recovery_civil",
   "title": "Denied Request – Appeal and Reconsideration – Civil Customer",
   "domain": "banking",
-  "persona": "You are Marco Steiner, born 21 November 1985, living at 27 Gartenweg, Winterthur.",
   "background": "Your request for a fee reversal and temporary credit limit increase was denied.",
   "customer_goal": "Understand why the denial happened, identify missing criteria, and submit a valid reconsideration request quickly.",
   "guidelines": {
@@ -13,10 +12,7 @@
       "recent account statements",
       "supporting context note"
     ],
-    "notification_options": [
-      "email",
-      "sms"
-    ]
+    "notification_options": ["email", "sms"]
   },
   "conversation": [
     {
@@ -29,7 +25,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Sure. Marco Steiner, 21 November 1985, 27 Gartenweg in Winterthur.",
+      "customer_msg": "Sure. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Complete verification. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Confirm identity and access the denial details.",
@@ -93,7 +89,7 @@
     },
     {
       "id": "closing",
-      "customer_msg": "Thank you. Please recap what I’d really appreciate if I could to submit and what happens next.",
+      "customer_msg": "Thank you. Please recap what I need to submit and what happens next.",
       "actor_intent": "Require structured close and action recap. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Summarize requirements, submission method, timeline, and escalation trigger.",

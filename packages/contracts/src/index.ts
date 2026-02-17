@@ -45,9 +45,13 @@ export {
   SessionAcceptRequestSchema,
   SessionAcceptResponseSchema,
   CustomerClassificationSchema,
+  CustomerAddressSchema,
   CustomerSchema,
   CustomerInteractionTypeSchema,
   CustomerInteractionSchema,
+  ScenarioCivilitySchema,
+  ScenarioConversationStepSchema,
+  ScenarioSchema,
 } from "./dto.js";
 
 export type {
@@ -73,7 +77,11 @@ export type {
   SessionAcceptRequest,
   SessionAcceptResponse,
   CustomerClassification,
+  CustomerAddress,
   Customer,
   CustomerInteractionType,
   CustomerInteraction,
+  ScenarioCivility,
+  ScenarioConversationStep,
+  Scenario,
 } from "./dto.js";

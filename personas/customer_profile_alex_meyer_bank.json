@@ -25,16 +25,14 @@
       "Business Lite Account"
     ],
     "preferred_contact_channel": "sms",
-    "quick_internal_note": "Friendly but time-pressured. Expects immediate protective action and clear timelines."
+    "quick_internal_note": "Time-pressured; expects immediate protective action and clear timelines."
   },
   "case_context": {
     "authentication_status": "not_started",
     "current_case_id": "FRD-2026-02-17-AXM-01",
     "case_priority": "high",
     "sla_tier": "priority_queue",
-    "known_constraints": [
-      "time_critical_today"
-    ],
+    "known_constraints": ["time_critical_today"],
     "compliance_note": "Verify identity before account-level actions."
   },
   "interaction_history": [

@@ -182,22 +182,24 @@ describe("DTO Schemas", () => {
   });
 
   describe("SessionCreateRequestSchema", () => {
-    it("validates with defaults", () => {
+    it("requires customer and scenario identifiers", () => {
       const result = SessionCreateRequestSchema.safeParse({});
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.locale).toBe("en");
-      }
+      expect(result.success).toBe(false);
     });
 
     it("validates with all fields", () => {
       const request = {
+        customerId: "123e4567-e89b-12d3-a456-426614174000",
+        scenarioId: "bank_unauthorized_transaction_high_urgency_civil",
         locale: "es",
         domain: "billing",
         metadata: { source: "web" },
       };
       const result = SessionCreateRequestSchema.safeParse(request);
       expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.locale).toBe("es");
+      }
     });
   });
 
