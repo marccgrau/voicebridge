@@ -20,6 +20,103 @@ import type {
   ProcessStep,
 } from "@voicebridge/contracts";
 
+type RoutingSource = "direct" | "voice_ai";
+
+type SessionRoutingContext = {
+  source: RoutingSource;
+  handoffSummary: string | null;
+  transferReason: string | null;
+};
+
+const DEFAULT_ROUTING_CONTEXT: SessionRoutingContext = {
+  source: "direct",
+  handoffSummary: null,
+  transferReason: null,
+};
+
+function normalizeText(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function readCustomerIdFromState(state: unknown): string | null {
+  if (!state || typeof state !== "object") {
+    return null;
+  }
+
+  const record = state as Record<string, unknown>;
+  const customerIdFromState = record.customer_id ?? record.customerId;
+
+  if (
+    typeof customerIdFromState === "string" &&
+    customerIdFromState.trim().length > 0
+  ) {
+    return customerIdFromState;
+  }
+
+  return null;
+}
+
+function readRoutingContextFromState(state: unknown): SessionRoutingContext {
+  if (!state || typeof state !== "object") {
+    return DEFAULT_ROUTING_CONTEXT;
+  }
+
+  const record = state as Record<string, unknown>;
+  const routingRecord =
+    record.routing && typeof record.routing === "object"
+      ? (record.routing as Record<string, unknown>)
+      : null;
+
+  const sourceValue =
+    routingRecord?.source ??
+    record.routing_source ??
+    record.routingSource ??
+    record.source;
+
+  const handoffSummary =
+    normalizeText(routingRecord?.handoff_summary) ??
+    normalizeText(routingRecord?.handoffSummary) ??
+    normalizeText(record.handoff_summary) ??
+    normalizeText(record.handoffSummary);
+
+  const transferReason =
+    normalizeText(routingRecord?.transfer_reason) ??
+    normalizeText(routingRecord?.transferReason) ??
+    normalizeText(record.transfer_reason) ??
+    normalizeText(record.transferReason);
+
+  let source: RoutingSource;
+  if (sourceValue === "voice_ai") {
+    source = "voice_ai";
+  } else if (sourceValue === "direct") {
+    source = "direct";
+  } else {
+    source = handoffSummary || transferReason ? "voice_ai" : "direct";
+  }
+
+  return {
+    source,
+    handoffSummary,
+    transferReason,
+  };
+}
+
+function getSessionCustomerId(session: {
+  customer_id: string | null;
+  state: Record<string, unknown>;
+}): string | null {
+  if (session.customer_id) {
+    return session.customer_id;
+  }
+
+  return readCustomerIdFromState(session.state);
+}
+
 export default function WorkspacePage() {
   const isAgentMicEnabledByEnv =
     (process.env.NEXT_PUBLIC_AGENT_MIC_ENABLED ?? "true").toLowerCase() !==
@@ -144,7 +241,12 @@ function WorkspacePanels({
   const [currentStep, setCurrentStep] = useState<string | null>(null);
   const [steps, setSteps] = useState<ProcessStep[]>([]);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [sessionRoutingContext, setSessionRoutingContext] =
+    useState<SessionRoutingContext>(DEFAULT_ROUTING_CONTEXT);
   const [sessionStatus, setSessionStatus] = useState<string | null>(null);
+  const [incomingSelectionId, setIncomingSelectionId] = useState<string | null>(
+    null
+  );
 
   const { phase, density, toggleDensity } = usePhase({
     sessionId,
@@ -175,6 +277,7 @@ function WorkspacePanels({
       if (!sessionId) {
         if (isMounted) {
           setCustomerId(null);
+          setSessionRoutingContext(DEFAULT_ROUTING_CONTEXT);
         }
         return;
       }
@@ -182,7 +285,7 @@ function WorkspacePanels({
       try {
         const { data, error } = await supabase
           .from("sessions")
-          .select("customer_id")
+          .select("customer_id, state")
           .eq("id", sessionId)
           .single();
 
@@ -192,10 +295,23 @@ function WorkspacePanels({
         }
 
         if (isMounted && data) {
-          setCustomerId(data.customer_id ?? null);
+          const resolvedCustomerId =
+            (typeof data.customer_id === "string" &&
+            data.customer_id.trim().length > 0
+              ? data.customer_id
+              : null) ?? readCustomerIdFromState(data.state);
+          const resolvedRoutingContext = readRoutingContextFromState(
+            data.state
+          );
+
+          setCustomerId(resolvedCustomerId);
+          setSessionRoutingContext(resolvedRoutingContext);
         }
       } catch (error) {
         console.error("Error fetching customer_id:", error);
+        if (isMounted) {
+          setSessionRoutingContext(DEFAULT_ROUTING_CONTEXT);
+        }
       }
     }
 
@@ -278,8 +394,13 @@ function WorkspacePanels({
     { audioEnabled }
   );
 
-  // Select oldest pending session for incoming phase
-  const selectedPendingSession = pendingSessions[pendingSessions.length - 1]; // oldest (sorted desc by created_at)
+  const selectedPendingSession =
+    (incomingSelectionId
+      ? pendingSessions.find((session) => session.id === incomingSelectionId)
+      : undefined) ?? pendingSessions[pendingSessions.length - 1];
+  const selectedIncomingRoutingContext = selectedPendingSession
+    ? readRoutingContextFromState(selectedPendingSession.state)
+    : DEFAULT_ROUTING_CONTEXT;
 
   // --- Phase-based layouts ---
 
@@ -304,24 +425,22 @@ function WorkspacePanels({
         {/* Incoming call notification for selected session */}
         <IncomingCallNotification
           sessions={pendingSessions}
+          selectedSessionId={selectedPendingSession?.id ?? null}
+          onSelectSession={setIncomingSelectionId}
           onAccept={onAccept}
           isLoading={isLoading}
-        />
-
-        {/* Process layer - waiting state */}
-        <ProcessLayer
-          processKey={processKey}
-          processName={processName}
-          currentStep={currentStep}
-          steps={steps}
-          phase={phase}
         />
 
         {/* Customer info - full width expanded */}
         <div className="flex-1 overflow-hidden p-5">
           <div className="h-full overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
             <CustomerInfoPanel
-              customerId={selectedPendingSession?.customer_id ?? null}
+              customerId={
+                selectedPendingSession
+                  ? getSessionCustomerId(selectedPendingSession)
+                  : null
+              }
+              routingContext={selectedIncomingRoutingContext}
               isConnected={false}
             />
           </div>
@@ -348,6 +467,7 @@ function WorkspacePanels({
           <div className="flex flex-col gap-3 overflow-hidden min-h-0">
             <CustomerInfoPanel
               customerId={customerId}
+              routingContext={sessionRoutingContext}
               isConnected={false}
               variant="compact"
               onToggle={() => toggleDensity("customer")}
@@ -403,6 +523,7 @@ function WorkspacePanels({
         <div className="flex flex-col gap-3 overflow-hidden min-h-0">
           <CustomerInfoPanel
             customerId={customerId}
+            routingContext={sessionRoutingContext}
             isConnected={isConnected}
             variant={density.customer}
             onToggle={() => toggleDensity("customer")}

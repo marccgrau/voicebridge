@@ -118,7 +118,7 @@ SUGGESTION_MODEL=gpt-4.1                           # Override suggestion LLM mod
 
 ### Customer App API Routes
 
-- `POST /api/sessions/create` — Customer-initiated session (creates Daily room via PCC, generates tokens, stores pending session in Supabase)
+- `POST /api/sessions/create` — Customer-initiated session (creates Daily room via PCC, generates tokens, stores pending session in Supabase with optional `customer_id` + routing handoff context)
 
 ### Agent Workspace API Routes
 
@@ -127,7 +127,7 @@ SUGGESTION_MODEL=gpt-4.1                           # Override suggestion LLM mod
 
 ### Agent Workspace Data Access
 
-- Reads session data directly from Supabase (room_url, agent_token)
+- Reads session data directly from Supabase (room_url, agent_token, customer/routing metadata in `sessions.state`)
 - Updates session status via Supabase (pending → active, active → completed)
 
 ## PCC Service Architecture
@@ -175,7 +175,7 @@ Summary save/generate is allowed for terminal statuses only: `completed`, `aband
 
 ## Process Catalog
 
-Process definitions currently live in `services/process-agent/process_content/` (9 markdown files).
+Process definitions currently live in `services/pcc/process_content/` (9 markdown files).
 
 - YAML frontmatter: `process_key`, `name`, `domain`, `intents`
 - Steps parsed from `## Step N: ...` headings

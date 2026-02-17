@@ -67,13 +67,13 @@ VoiceBridge uses two complementary realtime channels optimized for different pur
 ### Full Call Flow
 
 ```
-1. Customer selects profile and clicks "Start Call"
+1. Customer selects profile, optional entry route (`direct` or `voice_ai`), and clicks "Start Call"
        │
 2. Customer App POST /api/sessions/create
        │
        ├─ Calls PCC /start → creates Daily room + bot instance
        ├─ Creates Daily tokens (customer + agent) via Daily REST API
-       └─ Inserts 'pending' session into Supabase
+       └─ Inserts 'pending' session into Supabase with `customer_id` and routing context in `state`
        │
 3. Customer joins Daily room with audio
        │
@@ -170,7 +170,7 @@ Process identification is **catalog-informed + LLM-evaluated**:
 6. `ProcessOutputProcessor` validates output and maps step statuses
 7. Valid output is emitted as `process_illustration` with step progress
 
-By default, PCC resolves process markdown from `services/process-agent/process_content/` (or `PROCESS_CONTENT_PATH` when set). The repository currently includes 9 banking process definitions (lost/stolen card, e-banking locked, identity verification, legal guardianship, death reporting, large withdrawals, small estates, etc.).
+By default, PCC resolves process markdown from `services/pcc/process_content/` (or `PROCESS_CONTENT_PATH` when set). The repository currently includes 9 banking process definitions (lost/stolen card, e-banking locked, identity verification, legal guardianship, death reporting, large withdrawals, small estates, etc.).
 
 ## Agent Workspace UI
 
@@ -212,13 +212,13 @@ The agent workspace uses a **phase-based procedural UI** that adapts its layout 
 
 ### Phase Layouts
 
-| Phase                | Layout           | Key Panels                                            |
-| -------------------- | ---------------- | ----------------------------------------------------- |
-| Idle                 | Centered message | Waiting indicator                                     |
-| Incoming             | Full-width       | Call notification, customer info (expanded)           |
-| Active (pre-process) | Two-column       | Customer info, transcript, suggestions                |
-| Active (in-process)  | Two-column       | Customer info, transcript, suggestions, process steps |
-| Postcall summary     | Two-column       | Transcript (read-only), summary editor                |
+| Phase                | Layout           | Key Panels                                             |
+| -------------------- | ---------------- | ------------------------------------------------------ |
+| Idle                 | Centered message | Waiting indicator                                      |
+| Incoming             | Full-width       | Queue selector + accept action, customer brief preview |
+| Active (pre-process) | Two-column       | Customer info, transcript, suggestions                 |
+| Active (in-process)  | Two-column       | Customer info, transcript, suggestions, process steps  |
+| Postcall summary     | Two-column       | Transcript (read-only), summary editor                 |
 
 ### Panel Density
 
@@ -240,7 +240,7 @@ The customer app's `POST /api/sessions/create` API route orchestrates session cr
 
 1. Calls PCC `/start` endpoint → PCC creates a Daily room and spawns a bot
 2. Generates customer token (non-owner) and agent token (owner) via Daily REST API
-3. Inserts a `pending` session into Supabase with room_url, agent_token, and customer_id
+3. Inserts a `pending` session into Supabase with room_url, agent_token, optional `customer_id`, and routing handoff context (`source`, `handoff_summary`, `transfer_reason`) in `state`
 4. Returns `{ session_id, room_url, customer_token }` to the client
 5. Client connects to Daily room with audio via `@daily-co/daily-js`
 6. Subscribes to Supabase Realtime to detect agent acceptance (pending → active)
@@ -269,7 +269,7 @@ process_catalog (standalone, seeded)
 - `status` (enum: pending/active/completed/abandoned/escalated/error)
 - `room_url`, `room_name` (Daily.co room info)
 - `agent_token` (Daily.co owner token for agent)
-- `state` (JSONB — flexible metadata, includes customer_id)
+- `state` (JSONB — flexible metadata, includes `customer_id` and routing handoff context)
 - `summary_text`, `summary_updated_at`, `summary_updated_by`
 - `created_at`, `updated_at`
 

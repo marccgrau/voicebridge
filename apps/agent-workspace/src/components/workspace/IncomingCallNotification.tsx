@@ -4,12 +4,16 @@ import type { PendingSession } from "@/lib/pending-sessions";
 
 interface IncomingCallNotificationProps {
   sessions: PendingSession[];
+  selectedSessionId: string | null;
+  onSelectSession: (sessionId: string) => void;
   onAccept: (sessionId: string) => void;
   isLoading: boolean;
 }
 
 export function IncomingCallNotification({
   sessions,
+  selectedSessionId,
+  onSelectSession,
   onAccept,
   isLoading,
 }: IncomingCallNotificationProps) {
@@ -23,20 +27,46 @@ export function IncomingCallNotification({
         const waitingSince = session.customer_joined_at
           ? new Date(session.customer_joined_at)
           : new Date(session.created_at);
+        const isSelected = selectedSessionId === session.id;
 
         return (
           <div
             key={session.id}
-            className="flex items-center justify-between rounded-2xl border-2 border-accent/30 bg-accent/5 px-5 py-4 shadow-accent"
+            role="button"
+            tabIndex={0}
+            aria-pressed={isSelected}
+            onClick={() => onSelectSession(session.id)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelectSession(session.id);
+              }
+            }}
+            className={`flex cursor-pointer items-center justify-between rounded-2xl border-2 px-5 py-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+              isSelected
+                ? "border-accent/45 bg-accent/10 shadow-accent"
+                : "border-border/70 bg-card hover:border-accent/30 hover:bg-accent/5"
+            }`}
           >
             <div className="flex items-center gap-3">
-              <span className="h-3 w-3 animate-pulse-dot rounded-full gradient-accent" />
+              <span
+                className={`h-3 w-3 rounded-full ${
+                  isSelected
+                    ? "animate-pulse-dot gradient-accent"
+                    : "bg-accent/40"
+                }`}
+              />
               <div>
-                <p className="text-sm font-medium">
+                <p className="text-sm font-medium text-foreground">
                   Incoming call
                   {domain !== "General" && (
                     <span className="font-mono-ui ml-2 rounded-lg bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       {domain}
+                    </span>
+                  )}
+                  {isSelected && (
+                    <span className="ml-2 rounded-lg bg-accent/15 px-2 py-0.5 text-xs text-accent">
+                      Previewing customer
                     </span>
                   )}
                 </p>
@@ -47,7 +77,10 @@ export function IncomingCallNotification({
               </div>
             </div>
             <button
-              onClick={() => onAccept(session.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onAccept(session.id);
+              }}
               disabled={isLoading}
               className="gradient-accent rounded-xl px-5 py-2 text-sm font-medium text-white hover:-translate-y-0.5 hover:shadow-accent-lg disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all"
             >

@@ -14,7 +14,8 @@ Next.js agent workspace with **phase-based procedural UI** for real-time custome
   - **Postcall Summary**: Transcript review + AI-generated summary editor
 - **Auto-Return to Idle**: After saving summary, workspace automatically returns to waiting state
 - **Real-time Updates**: Supabase Realtime for session state + RTVI for live data
-- **Incoming Call Notifications**: Pending customer calls displayed with customer info
+- **Incoming Queue Preview**: Pending calls can be selected before accept to preview the corresponding customer brief
+- **Routing Context Briefing**: Customer panel surfaces direct vs Voice AI transfer context, including handoff summary and transfer reason when present
 - **Admin Panel**: `/admin` route with session list and transcript inspector
 
 ## Tech Stack
@@ -107,7 +108,6 @@ apps/agent-workspace/
 
 - Incoming call notification (customer info preview)
 - Accept button
-- Process layer (waiting state)
 - Customer info panel (expanded)
 
 ### 3. Active (Pre-Process) Phase
