@@ -1,12 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-const PCC_TRANSCRIPT_AGENT_URL =
-  process.env.PCC_TRANSCRIPT_AGENT_URL || "http://localhost:7860";
-const PCC_PROCESS_AGENT_URL =
-  process.env.PCC_PROCESS_AGENT_URL || "http://localhost:7861";
-const PCC_SUGGESTION_AGENT_URL =
-  process.env.PCC_SUGGESTION_AGENT_URL || "http://localhost:7862";
+const PCC_AGENT_URL = process.env.PCC_AGENT_URL || "http://localhost:7860";
 const DAILY_API_KEY = process.env.DAILY_API_KEY || "";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -53,79 +48,44 @@ async function createDailyToken(
   return data.token as string;
 }
 
-async function startSecondaryAgent(
-  agentUrl: string,
-  agentName: string,
-  roomUrl: string,
-  sessionId: string
-): Promise<void> {
-  try {
-    const res = await fetch(`${agentUrl}/start`, {
-      method: "POST",
-      headers: getPccHeaders(),
-      body: JSON.stringify({ dailyRoom: roomUrl, session_id: sessionId }),
-    });
-    if (!res.ok) {
-      const err = await res.text();
-      console.warn(`${agentName} start failed (non-critical): ${err}`);
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.warn(`${agentName} start failed (non-critical): ${message}`);
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const customerId = (body as { customer_id?: string }).customer_id;
     const sessionId = crypto.randomUUID();
 
-    // 1. Start transcript agent — it creates the Daily room
-    const transcriptResponse = await fetch(
-      `${PCC_TRANSCRIPT_AGENT_URL}/start`,
-      {
-        method: "POST",
-        headers: getPccHeaders(),
-        body: JSON.stringify({
-          createDailyRoom: true,
+    // 1. Start unified PCC service — it creates the Daily room
+    const pccResponse = await fetch(`${PCC_AGENT_URL}/start`, {
+      method: "POST",
+      headers: getPccHeaders(),
+      body: JSON.stringify({
+        createDailyRoom: true,
+        body: {
           session_id: sessionId,
-        }),
-      }
-    );
+        },
+      }),
+    });
 
-    if (!transcriptResponse.ok) {
-      const err = await transcriptResponse.text();
-      throw new Error(`Transcript agent start failed: ${err}`);
+    if (!pccResponse.ok) {
+      const err = await pccResponse.text();
+      throw new Error(`PCC agent start failed: ${err}`);
     }
 
-    const transcriptData = await transcriptResponse.json();
-    const roomUrl = transcriptData.dailyRoom as string;
+    const pccData = await pccResponse.json();
+    const roomUrl = pccData.dailyRoom as string | undefined;
+    const roomToken = pccData.dailyToken as string | undefined;
+    if (!roomUrl || !roomToken) {
+      throw new Error("PCC agent returned incomplete Daily room data");
+    }
     const roomName = roomUrl.split("/").pop() || "";
 
-    // 2. Start process + suggestion agents in parallel (join existing room)
-    await Promise.all([
-      startSecondaryAgent(
-        PCC_PROCESS_AGENT_URL,
-        "Process agent",
-        roomUrl,
-        sessionId
-      ),
-      startSecondaryAgent(
-        PCC_SUGGESTION_AGENT_URL,
-        "Suggestion agent",
-        roomUrl,
-        sessionId
-      ),
-    ]);
-
-    // 3. Create customer + agent tokens via Daily REST API
+    // 2. Create customer + agent tokens via Daily REST API
     const [customerToken, agentToken] = await Promise.all([
       createDailyToken(roomName, false),
       createDailyToken(roomName, true),
     ]);
 
-    // 4. Insert pending session into Supabase
+    // 3. Insert pending session into Supabase
     const supabase = getSupabaseAdmin();
 
     const { error: insertError } = await supabase.from("sessions").insert({
@@ -141,7 +101,7 @@ export async function POST(request: Request) {
       throw new Error(`Session insert failed: ${insertError.message}`);
     }
 
-    // 5. Return customer credentials
+    // 4. Return customer credentials
     return NextResponse.json({
       session_id: sessionId,
       room_url: roomUrl,

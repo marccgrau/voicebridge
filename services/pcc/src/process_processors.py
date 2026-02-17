@@ -1,4 +1,4 @@
-"""Pipeline processors for VoiceBridge process agent."""
+"""Process branch processors for unified PCC service."""
 
 import json
 import logging
@@ -70,7 +70,9 @@ class ProcessOutputProcessor(FrameProcessor):
 
             rtvi_data = self._parse_and_build(raw)
             if rtvi_data:
-                await self.push_frame(RTVIServerMessageFrame(data=rtvi_data), direction)
+                await self.push_frame(
+                    RTVIServerMessageFrame(data=rtvi_data), FrameDirection.DOWNSTREAM
+                )
             return
 
         await self.push_frame(frame, direction)

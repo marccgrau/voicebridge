@@ -1,4 +1,4 @@
-"""Pipeline processors for VoiceBridge suggestion agent."""
+"""Suggestion branch processors for unified PCC service."""
 
 import json
 import logging
@@ -78,7 +78,7 @@ class SuggestionOutputProcessor(FrameProcessor):
                     },
                 }
             )
-            await self.push_frame(rtvi_msg, direction)
+            await self.push_frame(rtvi_msg, FrameDirection.DOWNSTREAM)
             return
 
         await self.push_frame(frame, direction)

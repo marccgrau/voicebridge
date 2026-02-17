@@ -54,6 +54,7 @@ Open http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_AGENT_MIC_ENABLED=true  # Set false for local dual-tab testing on one machine
 
 # OpenAI (for AI-generated postcall summaries)
 OPENAI_API_KEY=your_openai_api_key

@@ -1,4 +1,4 @@
-"""Tests for process agent processors."""
+"""Tests for process branch processors."""
 
 from pathlib import Path
 from unittest.mock import AsyncMock
@@ -9,7 +9,7 @@ from pipecat.processors.frame_processor import FrameDirection
 from pipecat.processors.frameworks.rtvi import RTVIServerMessageFrame
 
 from src.process_catalog import ProcessCatalog
-from src.processors import ProcessOutputProcessor
+from src.process_processors import ProcessOutputProcessor
 
 
 def _get_frames_of_type(mock_push: AsyncMock, frame_type: type) -> list:
@@ -161,55 +161,3 @@ async def test_process_output_builds_completed_in_progress_pending_steps(tmp_pat
     steps = rtvi_frames[0].data["data"]["steps"]
     assert [step["status"] for step in steps] == ["completed", "in_progress", "pending"]
     assert rtvi_frames[0].data["data"]["currentStep"] == 1
-
-
-# --- ProcessCatalog Tests ---
-
-
-def test_tool_handler_list_processes(tmp_path: Path):
-    _write_process_file(
-        tmp_path / "lost_stolen_card.md",
-        "lost_stolen_card",
-        "Lost or Stolen Card",
-        ["lost card", "stolen card"],
-    )
-    catalog = ProcessCatalog(process_content_path=str(tmp_path))
-    result = catalog.get_catalog_summary()
-    assert "lost_stolen_card" in result
-    assert "Lost or Stolen Card" in result
-
-
-def test_tool_handler_get_process_details(tmp_path: Path):
-    _write_process_file(
-        tmp_path / "lost_stolen_card.md",
-        "lost_stolen_card",
-        "Lost or Stolen Card",
-        ["lost card", "stolen card"],
-    )
-    catalog = ProcessCatalog(process_content_path=str(tmp_path))
-    result = catalog.get_process_definition("lost_stolen_card")
-    assert "Lost or Stolen Card" in result
-    assert "Step 1: Verify Identity" in result
-    assert "Step 2: Block Card" in result
-
-
-def test_tool_handler_get_process_details_not_found(tmp_path: Path):
-    catalog = ProcessCatalog(process_content_path=str(tmp_path))
-    result = catalog.get_process_definition("nonexistent")
-    assert "not found" in result.lower()
-
-
-def test_tool_handler_report_process_status(tmp_path: Path):
-    """Test that the catalog provides data for process illustration payloads."""
-    _write_process_file(
-        tmp_path / "lost_stolen_card.md",
-        "lost_stolen_card",
-        "Lost or Stolen Card",
-        ["lost card", "stolen card"],
-    )
-    catalog = ProcessCatalog(process_content_path=str(tmp_path))
-    defn = catalog.get_definition("lost_stolen_card")
-    assert defn is not None
-    assert defn.process_key == "lost_stolen_card"
-    assert len(defn.steps) == 2
-    assert defn.steps[0].label == "Verify Identity"

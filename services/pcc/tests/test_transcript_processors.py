@@ -1,4 +1,4 @@
-"""Tests for transcript agent processors."""
+"""Tests for transcript branch processors."""
 
 from unittest.mock import AsyncMock
 
@@ -7,7 +7,7 @@ from pipecat.frames.frames import TranscriptionFrame
 from pipecat.processors.frame_processor import FrameDirection
 from pipecat.processors.frameworks.rtvi import RTVIServerMessageFrame
 
-from src.processors import TranscriptWriter
+from src.transcript_processors import TranscriptWriter
 
 
 def _get_frames_of_type(mock_push: AsyncMock, frame_type: type) -> list:
@@ -16,9 +16,6 @@ def _get_frames_of_type(mock_push: AsyncMock, frame_type: type) -> list:
         for call in mock_push.await_args_list
         if call.args and isinstance(call.args[0], frame_type)
     ]
-
-
-# --- TranscriptWriter Tests ---
 
 
 @pytest.mark.asyncio

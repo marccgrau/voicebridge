@@ -1,8 +1,4 @@
-"""Pipeline processors for VoiceBridge transcript agent.
-
-TranscriptWriter — converts STT transcriptions to RTVIServerMessageFrames
-for delivery to the frontend.
-"""
+"""Transcript branch processors for unified PCC service."""
 
 import logging
 from datetime import UTC, datetime
@@ -15,10 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class TranscriptWriter(FrameProcessor):
-    """Convert finalized STT transcriptions to RTVIServerMessageFrames.
-
-    With customer-only audio, all transcriptions are from the customer.
-    """
+    """Convert finalized STT transcriptions to transcript RTVI messages."""
 
     def __init__(self, session_id: str, **kwargs):
         super().__init__(**kwargs)

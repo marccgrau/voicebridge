@@ -1,15 +1,54 @@
-.PHONY: install dev build lint typecheck test clean db-migrate web-dev customer-dev transcript-agent-dev process-agent-dev suggestion-agent-dev
+.PHONY: install dev build lint typecheck test clean db-migrate web-dev customer-dev pcc-dev
 
 # Install all dependencies
 install:
 	pnpm install
-	cd services/transcript-agent && uv sync
-	cd services/process-agent && uv sync
-	cd services/suggestion-agent && uv sync
+	cd services/pcc && uv sync
 
 # Run all services in dev mode
 dev:
-	$(MAKE) -j5 web-dev customer-dev transcript-agent-dev process-agent-dev suggestion-agent-dev
+	@WEB_PID=""; CUSTOMER_PID=""; PCC_PID=""; CLEANED=0; \
+	kill_tree() { \
+		pid="$$1"; \
+		signal="$$2"; \
+		[ -z "$$pid" ] && return; \
+		children=$$(pgrep -P "$$pid" 2>/dev/null || true); \
+		for child in $$children; do \
+			kill_tree "$$child" "$$signal"; \
+		done; \
+		kill -"$$signal" "$$pid" 2>/dev/null || true; \
+	}; \
+	force_kill_if_alive() { \
+		pid="$$1"; \
+		[ -z "$$pid" ] && return; \
+		if kill -0 "$$pid" 2>/dev/null; then \
+			kill_tree "$$pid" KILL; \
+		fi; \
+	}; \
+	cleanup() { \
+		if [ "$$CLEANED" -eq 1 ]; then \
+			return; \
+		fi; \
+		CLEANED=1; \
+		trap '' INT TERM; \
+		echo ""; \
+		echo "Stopping dev services..."; \
+		kill_tree "$$WEB_PID" TERM; \
+		kill_tree "$$CUSTOMER_PID" TERM; \
+		kill_tree "$$PCC_PID" TERM; \
+		sleep 1; \
+		force_kill_if_alive "$$WEB_PID"; \
+		force_kill_if_alive "$$CUSTOMER_PID"; \
+		force_kill_if_alive "$$PCC_PID"; \
+		wait "$$WEB_PID" "$$CUSTOMER_PID" "$$PCC_PID" 2>/dev/null || true; \
+	}; \
+	trap 'cleanup; exit 130' INT; \
+	trap 'cleanup; exit 143' TERM; \
+	trap 'cleanup' EXIT; \
+	pnpm --filter @voicebridge/agent-workspace dev & WEB_PID=$$!; \
+	pnpm --filter @voicebridge/customer dev --port 3001 & CUSTOMER_PID=$$!; \
+	(cd services/pcc && uv run python bot.py -t daily --port 7860) & PCC_PID=$$!; \
+	wait "$$WEB_PID" "$$CUSTOMER_PID" "$$PCC_PID"
 
 # Build all packages
 build:
@@ -18,9 +57,7 @@ build:
 # Lint all code
 lint:
 	pnpm -r lint
-	cd services/transcript-agent && uv run ruff check .
-	cd services/process-agent && uv run ruff check .
-	cd services/suggestion-agent && uv run ruff check .
+	cd services/pcc && uv run ruff check .
 
 # Type check
 typecheck:
@@ -29,17 +66,13 @@ typecheck:
 # Run tests
 test:
 	pnpm -r test
-	cd services/transcript-agent && uv run pytest
-	cd services/process-agent && uv run pytest
-	cd services/suggestion-agent && uv run pytest
+	cd services/pcc && uv run pytest
 
 # Clean build artifacts
 clean:
 	pnpm -r clean
 	rm -rf node_modules
-	cd services/transcript-agent && rm -rf .venv __pycache__
-	cd services/process-agent && rm -rf .venv __pycache__
-	cd services/suggestion-agent && rm -rf .venv __pycache__
+	cd services/pcc && rm -rf .venv __pycache__
 
 # Database migrations
 db-migrate:
@@ -56,24 +89,14 @@ web-dev:
 customer-dev:
 	pnpm --filter @voicebridge/customer dev --port 3001
 
-# Transcript agent dev server (port 7860)
-transcript-agent-dev:
-	cd services/transcript-agent && uv run python bot.py -t daily --port 7860
-
-# Process agent dev server (port 7861)
-process-agent-dev:
-	cd services/process-agent && uv run python bot.py -t daily --port 7861
-
-# Suggestion agent dev server (port 7862)
-suggestion-agent-dev:
-	cd services/suggestion-agent && uv run python bot.py -t daily --port 7862
+# Unified PCC dev server (port 7860)
+pcc-dev:
+	cd services/pcc && uv run python bot.py -t daily --port 7860
 
 # Format code
 format:
 	pnpm -r format
-	cd services/transcript-agent && uv run ruff format .
-	cd services/process-agent && uv run ruff format .
-	cd services/suggestion-agent && uv run ruff format .
+	cd services/pcc && uv run ruff format .
 
 # Pre-commit hooks
 pre-commit-install:

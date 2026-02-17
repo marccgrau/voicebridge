@@ -21,6 +21,10 @@ import type {
 } from "@voicebridge/contracts";
 
 export default function WorkspacePage() {
+  const isAgentMicEnabledByEnv =
+    (process.env.NEXT_PUBLIC_AGENT_MIC_ENABLED ?? "true").toLowerCase() !==
+    "false";
+
   const {
     sessionId,
     isConnected,
@@ -37,7 +41,7 @@ export default function WorkspacePage() {
   const [audioEnabled, setAudioEnabled] = useState(false);
 
   const handleAccept = async (pendingSessionId: string) => {
-    setAudioEnabled(true);
+    setAudioEnabled(isAgentMicEnabledByEnv);
     try {
       await acceptSession(pendingSessionId);
     } catch (err) {

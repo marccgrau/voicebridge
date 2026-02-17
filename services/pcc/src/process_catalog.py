@@ -1,8 +1,4 @@
-"""Process catalog loading for LLM tool calling.
-
-Loads process definitions from markdown files and exposes functions
-suitable as LLM tool handlers.
-"""
+"""Process catalog loading for process detection prompts."""
 
 import logging
 import re
@@ -61,7 +57,7 @@ def extract_steps_from_markdown(content: str) -> list[ProcessStep]:
 
 
 class ProcessCatalog:
-    """Loads process definitions from markdown files and provides tool handler data."""
+    """Loads process definitions from markdown files."""
 
     def __init__(self, process_content_path: str):
         self._path = Path(process_content_path)
@@ -101,39 +97,6 @@ class ProcessCatalog:
 
         self._loaded = True
         logger.info("Loaded %d process definitions", len(self._definitions))
-
-    def get_catalog_summary(self) -> str:
-        """Return a summary of all processes for the LLM to browse."""
-        self.load()
-        if not self._definitions:
-            return "No processes available in the catalog."
-
-        lines = []
-        for defn in self._definitions.values():
-            intents_str = ", ".join(defn.intents[:5])
-            lines.append(
-                f"- {defn.process_key}: {defn.name} "
-                f"(domain: {defn.domain or 'general'}, "
-                f"intents: {intents_str})"
-            )
-        return "Available processes:\n" + "\n".join(lines)
-
-    def get_process_definition(self, process_key: str) -> str:
-        """Return full process definition for a specific process."""
-        self.load()
-        defn = self._definitions.get(process_key)
-        if not defn:
-            return f"Process '{process_key}' not found in catalog."
-
-        steps_str = "\n".join(
-            f"  Step {s.order}: {s.label}" for s in defn.steps
-        )
-        return (
-            f"Process: {defn.name} ({defn.process_key})\n"
-            f"Domain: {defn.domain or 'general'}\n"
-            f"Steps:\n{steps_str}\n\n"
-            f"Full Content:\n{defn.full_content}"
-        )
 
     def get_definition(self, process_key: str) -> ProcessDefinition | None:
         """Return the ProcessDefinition object for a given key."""

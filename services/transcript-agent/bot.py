@@ -15,12 +15,12 @@ from dotenv import load_dotenv
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.frameworks.rtvi import RTVIProcessor
+from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIProcessor
 from pipecat.runner.types import DailyRunnerArguments, RunnerArguments
 from pipecat.services.deepgram.stt import DeepgramSTTService
 from pipecat.transports.daily.transport import DailyParams, DailyTransport
 
-from src.processors import TranscriptRTVIObserver, TranscriptWriter
+from src.processors import TranscriptWriter
 
 load_dotenv()
 
@@ -39,7 +39,7 @@ async def bot(runner_args: RunnerArguments):
         token = runner_args.token
     elif body.get("dailyRoom"):
         room_url = body["dailyRoom"]
-        token = ""
+        token = body.get("dailyToken") or ""
     else:
         raise ValueError("No Daily room URL provided (need DailyRunnerArguments or dailyRoom in body)")
 
@@ -51,7 +51,9 @@ async def bot(runner_args: RunnerArguments):
             camera_in_enabled=False,
             camera_out_enabled=False,
             audio_in_enabled=True,
+            audio_in_user_tracks=False,
             audio_out_enabled=False,
+            microphone_out_enabled=False,
             transcription_enabled=False,
             # vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
             # turn_analyzer=LocalSmartTurnAnalyzerV3(params=SmartTurnParams()),
@@ -70,17 +72,20 @@ async def bot(runner_args: RunnerArguments):
         ),
     )
 
+    @stt.event_handler("on_connection_error")
+    async def on_stt_connection_error(_stt, error):
+        logger.warning("[session=%s] Deepgram connection error: %s", session_id, error)
+
     transcript_writer = TranscriptWriter(session_id=session_id)
 
-    rtvi_processor = RTVIProcessor()
-    rtvi_observer = TranscriptRTVIObserver(rtvi_processor)
+    rtvi_processor = RTVIProcessor(config=RTVIConfig(config=[]))
 
     pipeline = Pipeline(
         [
             transport.input(),
             stt,
-            # transcript_writer,
-            rtvi_observer,
+            transcript_writer,
+            rtvi_processor,
             transport.output(),
         ]
     )
@@ -88,10 +93,10 @@ async def bot(runner_args: RunnerArguments):
     task = PipelineTask(
         pipeline,
         params=PipelineParams(allow_interruptions=False, enable_metrics=True),
-        rtvi_processor=rtvi_processor,
+        observers=[RTVIObserver(rtvi=rtvi_processor)],
     )
 
-    @task.rtvi.event_handler("on_client_ready")
+    @rtvi_processor.event_handler("on_client_ready")
     async def on_client_ready(rtvi):
         await rtvi.set_bot_ready()
         logger.info("[session=%s] RTVI client connected (transcript agent)", session_id)
