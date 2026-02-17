@@ -195,7 +195,7 @@ Process markdown content lives in `services/pcc/process_content/`.
 ## Key Design Patterns
 
 - **Listen-only bot**: No audio output from PCC service.
-- **Stateless PCC**: No database persistence; all data flows through RTVI.
+- **Async transcript persistence**: Transcript rows are written to Supabase in background batches so live guidance remains low-latency.
 - **Decoupled flows**: Transcript, process identification, and suggestion generation run as independent branches after shared STT.
 - **Parallel processing**: Suggestions run in a ParallelPipeline branch to avoid blocking transcript delivery.
 - **RTVI-first for live guidance**: Low-latency messages over WebRTC data channel.
@@ -229,6 +229,8 @@ PIPECAT_CLOUD_API_KEY       # Optional, for cloud deployment
 DAILY_API_KEY
 DEEPGRAM_API_KEY
 OPENAI_API_KEY
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
 PIPECAT_CLOUD_API_KEY       # Optional, for cloud deployment
 SUGGESTION_MODEL            # Optional, default: gpt-4.1
 ```
@@ -239,7 +241,7 @@ SUGGESTION_MODEL            # Optional, default: gpt-4.1
 - Supabase CLI is required for migration/reset commands.
 - Daily rooms are ephemeral (1-hour expiry on room creation).
 - PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
-- PCC service is stateless — no DB persistence, all data flows through RTVI.
+- PCC persists transcript segments asynchronously to Supabase while guidance flows via RTVI.
 - Process identification uses OpenAI (`PROCESS_MODEL`, default `gpt-4.1-nano`) against the loaded process catalog.
 - Summary save/generate is allowed for terminal statuses only (`completed`, `abandoned`, `escalated`).
 - Next.js 16 async params: Route params are Promises and must be awaited in App Router API routes.

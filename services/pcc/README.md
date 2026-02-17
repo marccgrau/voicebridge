@@ -16,6 +16,10 @@ Each branch emits RTVI bot-action messages:
 - `process_illustration`
 - `agent_guidance`
 
+Transcript segments are also persisted asynchronously to Supabase in
+background batches. RTVI emission remains on the hot path, while database
+writes happen off-path to avoid adding call latency.
+
 ## Run locally
 
 ```bash
@@ -28,6 +32,8 @@ uv run python bot.py -t daily --port 7860
 - `DAILY_API_KEY`
 - `DEEPGRAM_API_KEY`
 - `OPENAI_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
 
 Optional:
 

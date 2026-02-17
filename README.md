@@ -30,7 +30,7 @@ Realtime channels:
 - **RTVI** (WebRTC data channel): `transcript_segment`, `process_illustration`, `agent_guidance`
 - **Supabase Realtime**: session lifecycle + pending call notifications
 
-The PCC bot is stateless and runs in Pipecat Cloud (or locally). Session management (pending → active) lives in Next.js API routes + Supabase.
+The PCC bot runs in Pipecat Cloud (or locally) and keeps the live path low-latency: guidance is delivered via RTVI, while transcript persistence is handled asynchronously to Supabase.
 
 ## Prerequisites
 
@@ -132,10 +132,11 @@ SUGGESTION_MODEL=gpt-4.1                           # Override suggestion LLM mod
 
 ## PCC Service Architecture
 
-`services/pcc/` is a stateless Pipecat Cloud bot:
+`services/pcc/` is a listen-only Pipecat Cloud bot with asynchronous transcript persistence:
 
 - `bot.py` — Entry point with full pipeline wiring
 - `src/transcript_processors.py` — Transcript branch RTVI emission
+- `src/transcript_persistence.py` — Background batched transcript writes to Supabase
 - `src/process_processors.py` — Process branch LLM output parsing + RTVI emission
 - `src/suggestion_processors.py` — Suggestion branch LLM output parsing + RTVI emission
 - `src/process_catalog.py` — Process loading and matching
@@ -195,7 +196,7 @@ pnpm --filter @voicebridge/db test               # DB package only
 
 - Daily rooms are ephemeral (1-hour expiry at creation).
 - PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
-- PCC service is stateless — no DB persistence, all data flows through RTVI.
+- PCC persists transcript segments asynchronously to Supabase; live guidance still flows via RTVI.
 - Process identification uses an OpenAI model (`PROCESS_MODEL`, default `gpt-4.1-nano`).
 - Suggestion generation uses OpenAI `gpt-4.1` by default (configurable via `SUGGESTION_MODEL`).
 - Node must be 24+, Python must be 3.13+, pnpm must be 10+.
