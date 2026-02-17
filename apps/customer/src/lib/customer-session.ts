@@ -6,6 +6,12 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export type CustomerCallState = "idle" | "calling" | "connected" | "ended";
 
+export interface SessionRoutingOptions {
+  source?: "direct" | "voice_ai";
+  handoffSummary?: string;
+  transferReason?: string;
+}
+
 export interface CustomerSessionState {
   callState: CustomerCallState;
   sessionId: string | null;
@@ -78,44 +84,64 @@ export function useCustomerSession() {
     };
   }, [state.sessionId, state.callState]);
 
-  const startCall = useCallback(async (customerId?: string) => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  const startCall = useCallback(
+    async (customerId?: string, routing?: SessionRoutingOptions) => {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-    try {
-      // Call Next.js API route which handles PCC bot creation
-      const response = await fetch("/api/sessions/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(customerId ? { customer_id: customerId } : {}),
-      });
+      try {
+        const requestBody: Record<string, unknown> = {};
+        if (customerId) {
+          requestBody.customer_id = customerId;
+        }
+        if (routing) {
+          requestBody.routing = {
+            ...(routing.source ? { source: routing.source } : {}),
+            ...(routing.handoffSummary
+              ? { handoff_summary: routing.handoffSummary }
+              : {}),
+            ...(routing.transferReason
+              ? { transfer_reason: routing.transferReason }
+              : {}),
+          };
+        }
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Failed to create session");
+        // Call Next.js API route which handles PCC bot creation
+        const response = await fetch("/api/sessions/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || "Failed to create session");
+        }
+
+        const data = await response.json();
+
+        setState({
+          callState: "calling",
+          sessionId: data.session_id,
+          roomUrl: data.room_url,
+          customerToken: data.customer_token,
+          isLoading: false,
+          error: null,
+        });
+
+        return data;
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Unknown error";
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          error: message,
+        }));
+        throw error;
       }
-
-      const data = await response.json();
-
-      setState({
-        callState: "calling",
-        sessionId: data.session_id,
-        roomUrl: data.room_url,
-        customerToken: data.customer_token,
-        isLoading: false,
-        error: null,
-      });
-
-      return data;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        error: message,
-      }));
-      throw error;
-    }
-  }, []);
+    },
+    []
+  );
 
   const endCall = useCallback(async () => {
     if (!state.sessionId) return;

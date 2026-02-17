@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useCustomerSession } from "@/lib/customer-session";
+import {
+  useCustomerSession,
+  type SessionRoutingOptions,
+} from "@/lib/customer-session";
 import { useDailyAudio } from "@/lib/daily-audio";
 import { useCustomers } from "@/lib/use-customers";
 
@@ -24,9 +27,27 @@ export default function CustomerCallPage() {
 
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [callEntrySource, setCallEntrySource] = useState<"direct" | "voice_ai">(
+    "direct"
+  );
+  const [voiceAiSummary, setVoiceAiSummary] = useState<string>(
+    "Customer explained their issue to the Voice AI assistant and requested a specialist review."
+  );
+  const [voiceAiTransferReason, setVoiceAiTransferReason] = useState<string>(
+    "Needs a human agent for account-specific decision and final confirmation."
+  );
 
   const handleStartCall = () => {
-    startCall(selectedCustomerId || undefined);
+    const routing: SessionRoutingOptions =
+      callEntrySource === "voice_ai"
+        ? {
+            source: "voice_ai",
+            handoffSummary: voiceAiSummary,
+            transferReason: voiceAiTransferReason,
+          }
+        : { source: "direct" };
+
+    startCall(selectedCustomerId || undefined, routing);
   };
 
   return (
@@ -71,6 +92,65 @@ export default function CustomerCallPage() {
                 ))}
               </select>
             </div>
+
+            {/* Call routing simulation */}
+            <div className="space-y-2 text-left">
+              <label
+                htmlFor="call-entry-source"
+                className="text-sm font-medium text-foreground"
+              >
+                Entry Route
+              </label>
+              <select
+                id="call-entry-source"
+                value={callEntrySource}
+                onChange={(e) =>
+                  setCallEntrySource(e.target.value as "direct" | "voice_ai")
+                }
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="direct">Direct to agent queue</option>
+                <option value="voice_ai">Transferred from Voice AI</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                This controls routing context shown to the agent before accept.
+              </p>
+            </div>
+
+            {callEntrySource === "voice_ai" && (
+              <div className="space-y-3 rounded-md border border-accent/30 bg-accent/5 p-3 text-left">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="voice-ai-summary"
+                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  >
+                    Voice AI handoff summary
+                  </label>
+                  <textarea
+                    id="voice-ai-summary"
+                    value={voiceAiSummary}
+                    onChange={(e) => setVoiceAiSummary(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="voice-ai-transfer-reason"
+                    className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  >
+                    Transfer reason
+                  </label>
+                  <textarea
+                    id="voice-ai-transfer-reason"
+                    value={voiceAiTransferReason}
+                    onChange={(e) => setVoiceAiTransferReason(e.target.value)}
+                    rows={2}
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleStartCall}

@@ -6,6 +6,7 @@ Next.js customer-facing call interface for initiating support calls with VoiceBr
 
 - **Simple Call Flow**: Idle → Calling → Connected → Ended
 - **Customer Profile Selection**: Dropdown to select a customer profile before calling
+- **Routing Simulation Controls**: Select direct queue vs Voice AI transfer and provide handoff details
 - **Daily.co Audio**: Connects to WebRTC rooms via `@daily-co/daily-js` for live audio
 - **Real-time Status**: Monitors session status via Supabase Realtime to detect agent join/disconnect
 - **PCC Integration**: Starts PCC bot instances via `/start` endpoint for each call
@@ -90,10 +91,10 @@ Customer selects a profile from the dropdown and clicks "Start Call".
 
 The app:
 
-1. Sends `POST /api/sessions/create` with optional `customer_id`
+1. Sends `POST /api/sessions/create` with optional `customer_id` and optional routing payload (`source`, `handoff_summary`, `transfer_reason`)
 2. API route calls PCC `/start` to create a Daily room and spawn a bot
 3. API route generates customer + agent tokens via Daily REST API
-4. API route inserts a `pending` session into Supabase
+4. API route inserts a `pending` session into Supabase with customer/routing metadata in `state`
 5. Customer connects to the Daily room with audio
 6. Subscribes to Supabase Realtime for session status changes
 
@@ -113,7 +114,7 @@ Creates a new customer-initiated session:
 
 1. Calls PCC service `/start` to create a Daily room and bot instance
 2. Generates customer token (non-owner) and agent token (owner) via Daily REST API
-3. Inserts a `pending` session row into Supabase with room URL, agent token, and customer ID
+3. Inserts a `pending` session row into Supabase with room URL, agent token, optional customer ID, and routing context in `state`
 4. Returns `{ session_id, room_url, customer_token }` to the client
 
 ## Key Hooks
@@ -122,7 +123,7 @@ Creates a new customer-initiated session:
 
 Manages the customer call lifecycle:
 
-- `startCall(customerId?)` — Initiates a call via API
+- `startCall(customerId?, routing?)` — Initiates a call via API with optional routing context
 - `endCall()` — Ends the current call
 - State: `callState`, `sessionId`, `roomUrl`, `customerToken`, `isLoading`, `error`
 - Subscribes to Supabase Realtime to detect agent join (pending → active)

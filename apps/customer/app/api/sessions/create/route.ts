@@ -6,6 +6,21 @@ const DAILY_API_KEY = process.env.DAILY_API_KEY || "";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
+type RoutingSource = "direct" | "voice_ai";
+
+interface RoutingPayload {
+  source?: RoutingSource;
+  handoff_summary?: string;
+  handoffSummary?: string;
+  transfer_reason?: string;
+  transferReason?: string;
+}
+
+interface CreateSessionRequestBody {
+  customer_id?: string;
+  routing?: RoutingPayload;
+}
+
 function getSupabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
@@ -48,10 +63,47 @@ async function createDailyToken(
   return data.token as string;
 }
 
+function normalizeText(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeRouting(payload?: RoutingPayload) {
+  const handoffSummary =
+    normalizeText(payload?.handoff_summary) ??
+    normalizeText(payload?.handoffSummary);
+  const transferReason =
+    normalizeText(payload?.transfer_reason) ??
+    normalizeText(payload?.transferReason);
+
+  let source: RoutingSource;
+  if (payload?.source === "voice_ai") {
+    source = "voice_ai";
+  } else if (payload?.source === "direct") {
+    source = "direct";
+  } else {
+    source = handoffSummary || transferReason ? "voice_ai" : "direct";
+  }
+
+  return {
+    source,
+    handoffSummary,
+    transferReason,
+  };
+}
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const customerId = (body as { customer_id?: string }).customer_id;
+    const body = (await request
+      .json()
+      .catch(() => ({}))) as CreateSessionRequestBody;
+    const customerId = body.customer_id;
+    const normalizedCustomerId = customerId ?? null;
+    const routing = normalizeRouting(body.routing);
     const sessionId = crypto.randomUUID();
 
     // 1. Start unified PCC service — it creates the Daily room
@@ -93,8 +145,19 @@ export async function POST(request: Request) {
       room_url: roomUrl,
       room_name: roomName,
       agent_token: agentToken,
+      customer_id: normalizedCustomerId,
       status: "pending",
-      state: { customer_id: customerId || null },
+      state: {
+        customer_id: normalizedCustomerId,
+        routing: {
+          source: routing.source,
+          handoff_summary: routing.handoffSummary,
+          transfer_reason: routing.transferReason,
+        },
+        routing_source: routing.source,
+        handoff_summary: routing.handoffSummary,
+        transfer_reason: routing.transferReason,
+      },
     });
 
     if (insertError) {
