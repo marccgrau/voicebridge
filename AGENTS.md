@@ -67,8 +67,9 @@ For every new feature:
 
 1. Create a new git branch before making code changes.
 2. Implement the feature on that branch only.
-3. Fully test the feature with all relevant automated tests.
-4. Prepare a pull request with a clear summary and test evidence.
+3. Commit regularly.
+4. Fully test the feature with all relevant automated tests.
+5. Prepare a pull request with a clear summary and test evidence.
 
 ### Testing Requirements
 

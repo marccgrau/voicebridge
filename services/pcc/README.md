@@ -33,4 +33,4 @@ Optional:
 
 - `PROCESS_MODEL` (default: `gpt-4.1-nano`)
 - `SUGGESTION_MODEL` (default: `gpt-4.1`)
-- `PROCESS_CONTENT_PATH` (override process markdown path, default fallback is `services/process-agent/process_content/`)
+- `PROCESS_CONTENT_PATH` (override process markdown path, default is `services/pcc/process_content/`)

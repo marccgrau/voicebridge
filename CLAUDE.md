@@ -52,6 +52,9 @@ make db-migrate         # Push migrations (supabase db push)
 
 ### Testing Requirements
 
+- Always implement new features, changes etc. in a new branch that we can later merge with main once accepted
+- Commit regularly and often
+
 **Always write tests and run them when implementing features.** This is non-negotiable for verifying that implementations work correctly.
 
 - **TypeScript/React**: Write tests for new components and utilities, run with `make test` or `pnpm test`
@@ -180,7 +183,7 @@ The unified service emits three RTVI action payloads:
 
 ### Process Catalog
 
-Process definitions are loaded from markdown files under `services/pcc/process_content/` when present, with fallback to `services/process-agent/process_content/` for compatibility. Each file uses YAML frontmatter (`process_key`, `name`, `domain`, `intents`) and `## Step N: Label` headings for step extraction.
+Process definitions are loaded from markdown files under `services/pcc/process_content/`. Each file uses YAML frontmatter (`process_key`, `name`, `domain`, `intents`) and `## Step N: Label` headings for step extraction.
 
 ## Key Design Patterns
 
