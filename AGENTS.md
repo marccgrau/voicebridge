@@ -80,9 +80,9 @@ Always add tests for new behavior and run relevant suites before considering wor
 
 For PCC service work, prioritize tests for:
 
-- Pipeline processor logic (transcript writing, process detection, suggestion generation)
-- Custom frame emission and handling
-- RTVI message delivery via VoiceBridgeRTVIObserver
+- Pipeline processor logic (transcript, process LLM output parsing, suggestion LLM output parsing)
+- RTVI bot-action payload shape and validation (`transcript_segment`, `process_illustration`, `agent_guidance`)
+- Process catalog loading and prompt/catalog alignment for process identification
 
 For Next.js apps, prioritize tests for:
 
@@ -139,13 +139,12 @@ Realtime channels:
 - Entry point: `bot.py` with `RunnerArguments`
 - Local dev: `python bot.py -t daily --port 7860` (HTTP server with `/start` endpoint)
 - Production: `pipecat cloud deploy`
-- Pipeline processors:
-  1. `TranscriptWriter` (emits `TranscriptSegmentFrame`)
-  2. `ProcessDetectionProcessor` (catalog-based matching, emits `ProcessIllustrationFrame`)
-  3. `SuggestionContextBuilder` (aggregates context for LLM)
-  4. `SuggestionOutputProcessor` (emits `SuggestionFrame`)
-  5. `VoiceBridgeRTVIObserver` (publishes frames as RTVI bot-action messages with retries)
-- `ParallelPipeline` ensures suggestions don't block transcript/process delivery
+- Pipeline: `transport.input() -> DeepgramSTTService -> ParallelPipeline(...) -> transport.output()`
+- Parallel branches:
+  1. Transcript branch: `TranscriptWriter` emits `transcript_segment`
+  2. Process branch: `LLMContextAggregatorPair.user()` -> `OpenAILLMService(PROCESS_MODEL)` -> `ProcessOutputProcessor` emits `process_illustration`
+  3. Suggestion branch: `LLMContextAggregatorPair.user()` -> `OpenAILLMService(SUGGESTION_MODEL)` -> `SuggestionOutputProcessor` emits `agent_guidance`
+- Shared STT + parallel branches keep transcript delivery low-latency while LLM branches run concurrently
 
 ## Database Schema
 
@@ -170,7 +169,7 @@ Session statuses: `pending` → `active` → `completed` / `abandoned` / `escala
 
 Supabase Realtime enabled on `sessions` and `transcript_segments`.
 
-## Contracts and Frames
+## Contracts and RTVI Actions
 
 ### Shared Contracts (`packages/contracts`)
 
@@ -178,11 +177,10 @@ Supabase Realtime enabled on `sessions` and `transcript_segments`.
 - DTO schemas for session lifecycle, summary updates, and customer data
 - Cross-package TypeScript type source of truth
 
-### Custom Pipecat Frames (`services/pcc/src/frames.py`)
-
-- `TranscriptSegmentFrame` — session_id, speaker, text, timestamp, is_final
-- `ProcessIllustrationFrame` — process_key, process_name, steps, current_step, content
-- `SuggestionFrame` — suggestions array, service_type, latency_ms, process_key, tools_used
+- Runtime payloads emitted by PCC are RTVI bot-action messages:
+  - `transcript_segment`
+  - `process_illustration`
+  - `agent_guidance`
 
 ## Process Catalog
 
@@ -191,13 +189,13 @@ Process markdown content lives in `services/pcc/process_content/`.
 - Files use YAML frontmatter (`process_key`, `name`, `domain`, `intents`)
 - Steps are parsed from `## Step N: ...` headings
 - Repository currently contains 9 process content markdown files
-- Detection uses token-overlap matching (no LLM calls)
+- Detection is catalog-informed and LLM-evaluated (`PROCESS_MODEL`, default `gpt-4.1-nano`)
 
 ## Key Design Patterns
 
 - **Listen-only bot**: No audio output from PCC service.
 - **Stateless PCC**: No database persistence; all data flows through RTVI.
-- **Decoupled flows**: Suggestion generation gets process context through frames, not direct coupling.
+- **Decoupled flows**: Transcript, process identification, and suggestion generation run as independent branches after shared STT.
 - **Parallel processing**: Suggestions run in a ParallelPipeline branch to avoid blocking transcript delivery.
 - **RTVI-first for live guidance**: Low-latency messages over WebRTC data channel.
 - **Session management in Next.js**: API routes in customer app handle room creation and session insertion.
@@ -241,6 +239,6 @@ SUGGESTION_MODEL            # Optional, default: gpt-4.1
 - Daily rooms are ephemeral (1-hour expiry on room creation).
 - PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
 - PCC service is stateless — no DB persistence, all data flows through RTVI.
-- Process detection uses token-overlap matching (no LLM calls).
+- Process identification uses OpenAI (`PROCESS_MODEL`, default `gpt-4.1-nano`) against the loaded process catalog.
 - Summary save/generate is allowed for terminal statuses only (`completed`, `abandoned`, `escalated`).
 - Next.js 16 async params: Route params are Promises and must be awaited in App Router API routes.

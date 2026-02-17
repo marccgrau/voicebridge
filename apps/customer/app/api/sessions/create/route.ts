@@ -10,6 +10,16 @@ function getSupabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
+function getPccHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (process.env.PIPECAT_CLOUD_API_KEY) {
+    headers["Authorization"] = `Bearer ${process.env.PIPECAT_CLOUD_API_KEY}`;
+  }
+  return headers;
+}
+
 async function createDailyToken(
   roomName: string,
   isOwner: boolean
@@ -42,29 +52,31 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
     const customerId = (body as { customer_id?: string }).customer_id;
+    const sessionId = crypto.randomUUID();
 
-    // 1. Start PCC bot — it creates a Daily room and joins
-    const pccHeaders: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (process.env.PIPECAT_CLOUD_API_KEY) {
-      pccHeaders["Authorization"] =
-        `Bearer ${process.env.PIPECAT_CLOUD_API_KEY}`;
-    }
-
+    // 1. Start unified PCC service — it creates the Daily room
     const pccResponse = await fetch(`${PCC_AGENT_URL}/start`, {
       method: "POST",
-      headers: pccHeaders,
-      body: JSON.stringify({ createDailyRoom: true }),
+      headers: getPccHeaders(),
+      body: JSON.stringify({
+        createDailyRoom: true,
+        body: {
+          session_id: sessionId,
+        },
+      }),
     });
 
     if (!pccResponse.ok) {
       const err = await pccResponse.text();
-      throw new Error(`PCC start failed: ${err}`);
+      throw new Error(`PCC agent start failed: ${err}`);
     }
 
     const pccData = await pccResponse.json();
-    const roomUrl = pccData.dailyRoom as string;
+    const roomUrl = pccData.dailyRoom as string | undefined;
+    const roomToken = pccData.dailyToken as string | undefined;
+    if (!roomUrl || !roomToken) {
+      throw new Error("PCC agent returned incomplete Daily room data");
+    }
     const roomName = roomUrl.split("/").pop() || "";
 
     // 2. Create customer + agent tokens via Daily REST API
@@ -75,7 +87,6 @@ export async function POST(request: Request) {
 
     // 3. Insert pending session into Supabase
     const supabase = getSupabaseAdmin();
-    const sessionId = crypto.randomUUID();
 
     const { error: insertError } = await supabase.from("sessions").insert({
       id: sessionId,

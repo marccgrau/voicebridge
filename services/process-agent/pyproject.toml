@@ -1,14 +1,13 @@
 [project]
-name = "voicebridge-pcc"
+name = "voicebridge-process-agent"
 version = "0.1.0"
-description = "VoiceBridge unified Pipecat service"
+description = "VoiceBridge Process Agent — LLM-based process detection with tool calling"
 requires-python = ">=3.13"
 dependencies = [
-    "pipecat-ai[daily,deepgram,local-smart-turn-v3,openai,silero]>=0.0.50",
+    "pipecat-ai[daily,deepgram,openai,silero]>=0.0.50",
     "pipecatcloud>=0.2.20",
     "python-dotenv>=1.0.0",
     "python-frontmatter>=1.0.0",
-    "torch>=2.10.0",
 ]
 
 [build-system]
@@ -24,19 +23,19 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = [
-    "E",
-    "W",
-    "F",
-    "I",
-    "B",
-    "C4",
-    "UP",
-    "ARG",
-    "SIM",
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
 ]
 ignore = [
-    "E501",
-    "B008",
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
 ]
 
 [tool.ruff.lint.isort]

@@ -1,1 +1,1 @@
-"""VoiceBridge Pipecat Cloud service."""
+"""VoiceBridge unified PCC service package."""

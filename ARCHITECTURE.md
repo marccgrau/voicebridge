@@ -10,17 +10,17 @@ The system does **not** replace the human agent. It augments them with contextua
 
 ### Components
 
-| Component | Tech | Port | Purpose |
-|-----------|------|------|---------|
-| Agent Workspace | Next.js 16 | 3000 | Phase-based agent UI with real-time guidance |
-| Customer App | Next.js 16 | 3001 | Customer-facing call interface |
-| PCC Service | Python / Pipecat | 7860 | Stateless voice pipeline (listen-only bot) |
-| Contracts | TypeScript / Zod | — | Shared schemas and types |
-| DB Package | TypeScript | — | Supabase query helpers |
-| Supabase | PostgreSQL | 54321 | Database + Realtime subscriptions |
-| Daily.co | WebRTC | — | Audio transport (rooms + tokens) |
-| Deepgram | API | — | Speech-to-text (STT) |
-| OpenAI | API | — | LLM for suggestion generation + postcall summaries |
+| Component       | Tech             | Port  | Purpose                                            |
+| --------------- | ---------------- | ----- | -------------------------------------------------- |
+| Agent Workspace | Next.js 16       | 3000  | Phase-based agent UI with real-time guidance       |
+| Customer App    | Next.js 16       | 3001  | Customer-facing call interface                     |
+| PCC Service     | Python / Pipecat | 7860  | Stateless voice pipeline (listen-only bot)         |
+| Contracts       | TypeScript / Zod | —     | Shared schemas and types                           |
+| DB Package      | TypeScript       | —     | Supabase query helpers                             |
+| Supabase        | PostgreSQL       | 54321 | Database + Realtime subscriptions                  |
+| Daily.co        | WebRTC           | —     | Audio transport (rooms + tokens)                   |
+| Deepgram        | API              | —     | Speech-to-text (STT)                               |
+| OpenAI          | API              | —     | LLM for suggestion generation + postcall summaries |
 
 ## High-Level Data Flow
 
@@ -29,12 +29,11 @@ The system does **not** replace the human agent. It augments them with contextua
 │  Customer    │     │  Daily.co   │     │  PCC Service (Pipecat Pipeline)      │
 │  App         │────▶│  WebRTC     │────▶│                                      │
 │  (audio in)  │     │  Room       │     │  Deepgram STT                        │
-└─────────────┘     └─────────────┘     │    → TranscriptWriter                │
-                          │              │    → ProcessDetectionProcessor        │
-                          │              │    → ParallelPipeline                 │
-                          │              │        ├─ passthrough                 │
+└─────────────┘     └─────────────┘     │    → ParallelPipeline                 │
+                          │              │        ├─ transcript branch           │
+                          │              │        ├─ process branch (LLM)        │
                           │              │        └─ suggestion branch (LLM)     │
-                          │              │    → VoiceBridgeRTVIObserver          │
+                          │              │    → RTVI bot-action messages         │
                           │              └────────────────┬─────────────────────┘
                           │                               │
                           │                    RTVI (WebRTC data channel)
@@ -52,11 +51,13 @@ The system does **not** replace the human agent. It augments them with contextua
 VoiceBridge uses two complementary realtime channels optimized for different purposes:
 
 **RTVI (WebRTC data channel)** — Sub-second latency for live call guidance:
-- `transcript_segment` — Live transcription of customer/agent speech
+
+- `transcript_segment` — Live transcription segments
 - `process_illustration` — Detected process with step progress tracking
 - `agent_guidance` — AI-generated suggestions for the agent
 
 **Supabase Realtime** — Session lifecycle and notifications:
+
 - Pending session inserts (incoming call notifications for agents)
 - Session status changes (pending → active → completed)
 - Used by both agent workspace and customer app
@@ -127,60 +128,49 @@ transport.input()
 DeepgramSTTService (nova-3-general, streaming)
     │
     ▼
-TranscriptWriter
-    │ Converts STT output → TranscriptSegmentFrame
-    │ Fields: session_id, speaker, text, timestamp, is_final
-    ▼
-ProcessDetectionProcessor
-    │ Token-overlap matching against process catalog
-    │ Emits ProcessIllustrationFrame when a process is detected
-    │ Tracks step progress as conversation evolves
-    ▼
 ParallelPipeline
-    ├─ Branch 1: passthrough
-    │   Frames pass through immediately (no delay)
+    ├─ Branch 1: transcript
+    │   TranscriptWriter
+    │   └─ Emits `transcript_segment` RTVI messages
     │
-    └─ Branch 2: suggestion generation
-        SuggestionContextBuilder
-            │ Aggregates transcript + process context
-            ▼
-        OpenAILLMService (gpt-4.1)
-            │ Generates structured suggestions
-            ▼
+    ├─ Branch 2: process identification
+    │   LLMContextAggregatorPair.user()
+    │   OpenAILLMService (PROCESS_MODEL, default gpt-4.1-nano)
+    │   ProcessOutputProcessor
+    │   └─ Parses strict JSON and emits `process_illustration` messages
+    │
+    └─ Branch 3: suggestion generation
+        LLMContextAggregatorPair.user()
+        OpenAILLMService (SUGGESTION_MODEL, default gpt-4.1)
         SuggestionOutputProcessor
-            │ Parses LLM output → SuggestionFrame
-            ▼
-VoiceBridgeRTVIObserver
-    │ Intercepts custom frames
-    │ Publishes as RTVI bot-action messages
-    │ Includes retry logic (configurable max retries, 0.2s base delay)
+        └─ Parses strict JSON and emits `agent_guidance` messages
     ▼
 transport.output()
 ```
 
-### Custom Frames
+### RTVI Messages
 
-Three domain-specific frames flow through the pipeline:
+The PCC service emits three bot-action messages over RTVI:
 
-| Frame | Fields | Purpose |
-|-------|--------|---------|
-| `TranscriptSegmentFrame` | session_id, speaker, text, timestamp, is_final | Live transcript |
-| `ProcessIllustrationFrame` | process_key, process_name, steps[], current_step, content | Process tracking |
-| `SuggestionFrame` | suggestions[], service_type, latency_ms, process_key, tools_used | Agent guidance |
+| Action                 | Key fields                                             | Purpose          |
+| ---------------------- | ------------------------------------------------------ | ---------------- |
+| `transcript_segment`   | sessionId, speaker, text, timestamp, isFinal           | Live transcript  |
+| `process_illustration` | processKey, processName, steps[], currentStep, content | Process tracking |
+| `agent_guidance`       | suggestions[], serviceType, toolsUsed                  | Agent guidance   |
 
 ### Process Detection
 
-Process detection is **catalog-based** (no LLM calls required):
+Process identification is **catalog-informed + LLM-evaluated**:
 
 1. Process definitions are loaded from markdown files in `process_content/` on startup
 2. Each file has YAML frontmatter with `process_key`, `name`, `domain`, and `intents`
 3. Steps are extracted from `## Step N: Label` headings
-4. `ProcessCatalogIndexService` indexes all processes
-5. Customer speech is matched against intent keywords using token-overlap scoring
-6. When a match is found, a `ProcessIllustrationFrame` is emitted with step tracking
-7. Steps are tracked and updated as the conversation progresses
+4. Catalog summaries are embedded into the process system prompt
+5. `OpenAILLMService` returns strict JSON (`processKey`, `currentStep`)
+6. `ProcessOutputProcessor` validates output and maps step statuses
+7. Valid output is emitted as `process_illustration` with step progress
 
-Currently includes 9 banking process definitions (lost/stolen card, e-banking locked, identity verification, legal guardianship, death reporting, large withdrawals, small estates, etc.).
+By default, PCC resolves process markdown from `services/process-agent/process_content/` (or `PROCESS_CONTENT_PATH` when set). The repository currently includes 9 banking process definitions (lost/stolen card, e-banking locked, identity verification, legal guardianship, death reporting, large withdrawals, small estates, etc.).
 
 ## Agent Workspace UI
 
@@ -222,13 +212,13 @@ The agent workspace uses a **phase-based procedural UI** that adapts its layout 
 
 ### Phase Layouts
 
-| Phase | Layout | Key Panels |
-|-------|--------|------------|
-| Idle | Centered message | Waiting indicator |
-| Incoming | Full-width | Call notification, customer info (expanded) |
-| Active (pre-process) | Two-column | Customer info, transcript, suggestions |
-| Active (in-process) | Two-column | Customer info, transcript, suggestions, process steps |
-| Postcall summary | Two-column | Transcript (read-only), summary editor |
+| Phase                | Layout           | Key Panels                                            |
+| -------------------- | ---------------- | ----------------------------------------------------- |
+| Idle                 | Centered message | Waiting indicator                                     |
+| Incoming             | Full-width       | Call notification, customer info (expanded)           |
+| Active (pre-process) | Two-column       | Customer info, transcript, suggestions                |
+| Active (in-process)  | Two-column       | Customer info, transcript, suggestions, process steps |
+| Postcall summary     | Two-column       | Transcript (read-only), summary editor                |
 
 ### Panel Density
 
@@ -274,6 +264,7 @@ process_catalog (standalone, seeded)
 ### Key Tables
 
 **sessions**
+
 - `id` (UUID, PK)
 - `status` (enum: pending/active/completed/abandoned/escalated/error)
 - `room_url`, `room_name` (Daily.co room info)
@@ -283,6 +274,7 @@ process_catalog (standalone, seeded)
 - `created_at`, `updated_at`
 
 **transcript_segments**
+
 - `id` (UUID, PK)
 - `session_id` (FK → sessions)
 - `speaker` (agent/customer)
@@ -290,16 +282,19 @@ process_catalog (standalone, seeded)
 - `created_at`
 
 **process_catalog**
+
 - `process_key` (PK)
 - `name`, `domain`, `status`, `version`, `locale`
 - Full-text search via `pg_trgm` extension
 
 **customers**
+
 - `id` (UUID, PK)
 - `name`, `classification` (high/medium/low value), `email`
 - Row-level security enabled
 
 **customer_interactions**
+
 - `session_id` (FK → sessions)
 - `customer_id` (FK → customers)
 - `interaction_type`
@@ -307,6 +302,7 @@ process_catalog (standalone, seeded)
 ### Realtime
 
 Supabase Realtime publications are enabled on:
+
 - `sessions` — For pending call notifications and status changes
 - `transcript_segments` — For live transcript updates (currently unused in favor of RTVI)
 
@@ -319,10 +315,10 @@ The `packages/contracts` package is the **single source of truth** for TypeScrip
 ```typescript
 // Discriminated union on 'action' field
 RTVIMessageSchema = z.discriminatedUnion("action", [
-  RTVISuggestionMessageSchema,         // action: "agent_guidance"
+  RTVISuggestionMessageSchema, // action: "agent_guidance"
   RTVIProcessIllustrationMessageSchema, // action: "process_illustration"
-  RTVITranscriptSegmentMessageSchema,   // action: "transcript_segment"
-])
+  RTVITranscriptSegmentMessageSchema, // action: "transcript_segment"
+]);
 ```
 
 ### DTO Schemas
@@ -344,6 +340,7 @@ The Pipecat pipeline is configured with `audio_out_enabled=False`. The bot never
 ### Stateless PCC Service
 
 The PCC service has no database connection. All data flows through the pipeline as frames and exits via RTVI. This makes it:
+
 - Easy to scale horizontally (each bot instance is independent)
 - Simple to deploy (no database migrations or connection pooling)
 - Resilient (bot crashes don't corrupt persistent state)
@@ -351,26 +348,26 @@ The PCC service has no database connection. All data flows through the pipeline 
 ### Parallel Processing
 
 The `ParallelPipeline` is critical for latency:
-- **Branch 1 (passthrough)**: Transcript segments and process detections flow through immediately
-- **Branch 2 (LLM)**: Suggestion generation runs asynchronously without blocking
 
-This ensures agents see transcript updates in real time even while the LLM is generating suggestions.
+- **Branch 1 (transcript)**: emits transcript updates as STT frames arrive
+- **Branch 2 (process LLM)**: identifies process + current step
+- **Branch 3 (suggestion LLM)**: generates a single next-best suggestion
+
+This ensures transcript updates are delivered in real time while process and suggestion LLM work runs in parallel.
 
 ### RTVI Over Supabase Realtime
 
 Live call data (transcripts, suggestions, process updates) is delivered via RTVI (WebRTC data channel) for sub-second latency. Supabase Realtime is reserved for:
+
 - Session lifecycle events (pending/active/completed)
 - Pending call notifications to agents
 
 This separation ensures the highest-frequency, most latency-sensitive data takes the fastest path.
 
-### Decoupled Flows
-
-The process detection and suggestion generation flows communicate only through frames in the pipeline. The `SuggestionContextBuilder` reads `ProcessIllustrationFrame` to incorporate process context, but has no direct reference to `ProcessDetectionProcessor`. This keeps the processors independently testable and replaceable.
-
 ### Session Management in Next.js
 
 Session creation and management is handled entirely by Next.js API routes and Supabase, not the PCC service. The customer app's `/api/sessions/create` route orchestrates:
+
 1. PCC bot creation
 2. Daily token generation
 3. Supabase session insertion
@@ -383,19 +380,20 @@ TypeScript Zod schemas in `packages/contracts` define the contract for all RTVI 
 
 ## Technology Choices
 
-| Concern | Choice | Rationale |
-|---------|--------|-----------|
-| Audio transport | Daily.co WebRTC | Managed rooms, ephemeral rooms, token-based auth |
-| Speech-to-text | Deepgram (nova-3-general) | Low-latency streaming, smart formatting |
-| Voice pipeline | Pipecat | Frame-based processing, built-in RTVI support, cloud deployment |
-| LLM (suggestions) | OpenAI (gpt-4.1) | Fast, cost-effective for structured suggestions |
-| LLM (summaries) | OpenAI | Used in agent workspace API route for postcall summaries |
-| Frontend | Next.js 16 + React 19.2 | App Router, server components, API routes |
-| Database | Supabase (PostgreSQL) | Realtime subscriptions, RLS, managed hosting |
-| Schema validation | Zod | TypeScript-native, runtime validation, type inference |
-| Styling | Tailwind CSS v4 | Utility-first, fast iteration |
-| Python packaging | uv | Fast dependency resolution, Python 3.13+ |
-| Monorepo | pnpm workspaces | Efficient, supports workspace protocol |
+| Concern                      | Choice                        | Rationale                                                       |
+| ---------------------------- | ----------------------------- | --------------------------------------------------------------- |
+| Audio transport              | Daily.co WebRTC               | Managed rooms, ephemeral rooms, token-based auth                |
+| Speech-to-text               | Deepgram (nova-3-general)     | Low-latency streaming, smart formatting                         |
+| Voice pipeline               | Pipecat                       | Frame-based processing, built-in RTVI support, cloud deployment |
+| LLM (process identification) | OpenAI (gpt-4.1-nano default) | Structured JSON classification against process catalog          |
+| LLM (suggestions)            | OpenAI (gpt-4.1 default)      | Fast, cost-effective structured next-action guidance            |
+| LLM (summaries)              | OpenAI                        | Used in agent workspace API route for postcall summaries        |
+| Frontend                     | Next.js 16 + React 19.2       | App Router, server components, API routes                       |
+| Database                     | Supabase (PostgreSQL)         | Realtime subscriptions, RLS, managed hosting                    |
+| Schema validation            | Zod                           | TypeScript-native, runtime validation, type inference           |
+| Styling                      | Tailwind CSS v4               | Utility-first, fast iteration                                   |
+| Python packaging             | uv                            | Fast dependency resolution, Python 3.13+                        |
+| Monorepo                     | pnpm workspaces               | Efficient, supports workspace protocol                          |
 
 ## Deployment
 

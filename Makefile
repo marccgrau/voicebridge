@@ -7,7 +7,48 @@ install:
 
 # Run all services in dev mode
 dev:
-	$(MAKE) -j3 web-dev customer-dev pcc-dev
+	@WEB_PID=""; CUSTOMER_PID=""; PCC_PID=""; CLEANED=0; \
+	kill_tree() { \
+		pid="$$1"; \
+		signal="$$2"; \
+		[ -z "$$pid" ] && return; \
+		children=$$(pgrep -P "$$pid" 2>/dev/null || true); \
+		for child in $$children; do \
+			kill_tree "$$child" "$$signal"; \
+		done; \
+		kill -"$$signal" "$$pid" 2>/dev/null || true; \
+	}; \
+	force_kill_if_alive() { \
+		pid="$$1"; \
+		[ -z "$$pid" ] && return; \
+		if kill -0 "$$pid" 2>/dev/null; then \
+			kill_tree "$$pid" KILL; \
+		fi; \
+	}; \
+	cleanup() { \
+		if [ "$$CLEANED" -eq 1 ]; then \
+			return; \
+		fi; \
+		CLEANED=1; \
+		trap '' INT TERM; \
+		echo ""; \
+		echo "Stopping dev services..."; \
+		kill_tree "$$WEB_PID" TERM; \
+		kill_tree "$$CUSTOMER_PID" TERM; \
+		kill_tree "$$PCC_PID" TERM; \
+		sleep 1; \
+		force_kill_if_alive "$$WEB_PID"; \
+		force_kill_if_alive "$$CUSTOMER_PID"; \
+		force_kill_if_alive "$$PCC_PID"; \
+		wait "$$WEB_PID" "$$CUSTOMER_PID" "$$PCC_PID" 2>/dev/null || true; \
+	}; \
+	trap 'cleanup; exit 130' INT; \
+	trap 'cleanup; exit 143' TERM; \
+	trap 'cleanup' EXIT; \
+	pnpm --filter @voicebridge/agent-workspace dev & WEB_PID=$$!; \
+	pnpm --filter @voicebridge/customer dev --port 3001 & CUSTOMER_PID=$$!; \
+	(cd services/pcc && uv run python bot.py -t daily --port 7860) & PCC_PID=$$!; \
+	wait "$$WEB_PID" "$$CUSTOMER_PID" "$$PCC_PID"
 
 # Build all packages
 build:
@@ -48,7 +89,7 @@ web-dev:
 customer-dev:
 	pnpm --filter @voicebridge/customer dev --port 3001
 
-# PCC service dev server
+# Unified PCC dev server (port 7860)
 pcc-dev:
 	cd services/pcc && uv run python bot.py -t daily --port 7860
 

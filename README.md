@@ -86,6 +86,7 @@ make db-reset             # supabase db reset
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_AGENT_MIC_ENABLED=true  # Set false for local dual-tab testing on one machine
 OPENAI_API_KEY=your_openai_api_key  # For AI-generated call summaries
 ```
 
@@ -109,6 +110,7 @@ OPENAI_API_KEY=your_openai_api_key
 
 # Optional
 PIPECAT_CLOUD_API_KEY=your_pipecat_cloud_api_key  # For cloud deployment
+PROCESS_MODEL=gpt-4.1-nano                         # Process identification model
 SUGGESTION_MODEL=gpt-4.1                           # Override suggestion LLM model (default: gpt-4.1)
 ```
 
@@ -133,18 +135,18 @@ SUGGESTION_MODEL=gpt-4.1                           # Override suggestion LLM mod
 `services/pcc/` is a stateless Pipecat Cloud bot:
 
 - `bot.py` — Entry point with full pipeline wiring
-- `src/frames.py` — Custom Pipecat frames
-- `src/processors.py` — Pipeline processors
+- `src/transcript_processors.py` — Transcript branch RTVI emission
+- `src/process_processors.py` — Process branch LLM output parsing + RTVI emission
+- `src/suggestion_processors.py` — Suggestion branch LLM output parsing + RTVI emission
 - `src/process_catalog.py` — Process loading and matching
-- `process_content/` — Process markdown files (9 processes)
 
-Pipeline processors emit three custom frames:
+Pipeline branches emit RTVI bot-action messages:
 
-- `TranscriptSegmentFrame` — Live transcript with speaker role
-- `ProcessIllustrationFrame` — Detected process with step progress
-- `SuggestionFrame` — Agent guidance suggestions
+- `transcript_segment` — Live transcript segment
+- `process_illustration` — Detected process with step progress
+- `agent_guidance` — Agent guidance suggestions
 
-All frames are delivered via RTVI (WebRTC data channel) for sub-second latency.
+All live guidance messages are delivered via RTVI (WebRTC data channel) for sub-second latency.
 
 ## Database
 
@@ -173,11 +175,12 @@ Summary save/generate is allowed for terminal statuses only: `completed`, `aband
 
 ## Process Catalog
 
-Process definitions live in `services/pcc/process_content/` (9 markdown files).
+Process definitions currently live in `services/process-agent/process_content/` (9 markdown files).
 
 - YAML frontmatter: `process_key`, `name`, `domain`, `intents`
 - Steps parsed from `## Step N: ...` headings
-- Detection uses token-overlap matching against customer speech (no LLM calls)
+- Catalog content is embedded into the process-LLM system prompt (`PROCESS_MODEL`)
+- `PROCESS_CONTENT_PATH` can override the default markdown directory
 
 ## Testing
 
@@ -193,7 +196,7 @@ pnpm --filter @voicebridge/db test               # DB package only
 - Daily rooms are ephemeral (1-hour expiry at creation).
 - PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
 - PCC service is stateless — no DB persistence, all data flows through RTVI.
-- Process detection uses token-overlap matching (no LLM calls).
+- Process identification uses an OpenAI model (`PROCESS_MODEL`, default `gpt-4.1-nano`).
 - Suggestion generation uses OpenAI `gpt-4.1` by default (configurable via `SUGGESTION_MODEL`).
 - Node must be 24+, Python must be 3.13+, pnpm must be 10+.
 
