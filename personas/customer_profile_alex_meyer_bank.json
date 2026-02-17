@@ -1,0 +1,80 @@
+{
+  "scenario_id": "bank_unauthorized_transaction_high_urgency",
+  "domain": "banking",
+  "customer_profile": {
+    "customer_id": "BK-CH-784291",
+    "full_name": "Alex Meyer",
+    "gender": "male",
+    "date_of_birth": "1989-03-03",
+    "language": "DE",
+    "email": "alex.meyer@examplemail.ch",
+    "phone": "+41 79 555 41 22",
+    "address": {
+      "street": "45 Lindenstrasse",
+      "postal_code": "8001",
+      "city": "Zürich",
+      "country": "CH"
+    },
+    "customer_since": "2018-09-01",
+    "internal_classification": "Affluent",
+    "products": [
+      "Privatkonto Plus",
+      "Debitkarte Visa",
+      "Sparkonto",
+      "eBanking + Mobile Banking",
+      "Business Lite Account"
+    ],
+    "preferred_contact_channel": "sms",
+    "quick_internal_note": "Friendly but time-pressured. Expects immediate protective action and clear timelines."
+  },
+  "case_context": {
+    "authentication_status": "not_started",
+    "current_case_id": "FRD-2026-02-17-AXM-01",
+    "case_priority": "high",
+    "sla_tier": "priority_queue",
+    "known_constraints": [
+      "time_critical_today"
+    ],
+    "compliance_note": "Verify identity before account-level actions."
+  },
+  "interaction_history": [
+    {
+      "interaction_id": "INT-BK-AXM-0001",
+      "date_time": "2026-01-28T09:41:00Z",
+      "channel": "mobile_app_chat",
+      "direction": "inbound",
+      "topic": "Card services",
+      "subtopic": "Card limit clarification",
+      "sentiment": "neutral",
+      "priority": "medium",
+      "owner_team": "cards",
+      "agent_id": "AGT-114",
+      "status": "resolved",
+      "outcome_summary": "Clarified temporary spending limit and travel usage behavior.",
+      "resolution_time_hours": 3,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-BK-12091",
+      "csat": 4
+    },
+    {
+      "interaction_id": "INT-BK-AXM-0002",
+      "date_time": "2025-11-09T14:22:00Z",
+      "channel": "branch_visit",
+      "direction": "inbound",
+      "topic": "Profile maintenance",
+      "subtopic": "Address update",
+      "sentiment": "positive",
+      "priority": "low",
+      "owner_team": "service_desk",
+      "agent_id": "AGT-041",
+      "status": "resolved",
+      "outcome_summary": "Address updated and confirmation sent by email.",
+      "resolution_time_hours": 2,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-BK-11302",
+      "csat": 5
+    }
+  ]
+}

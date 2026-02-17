@@ -1,0 +1,80 @@
+{
+  "scenario_id": "bank_denial_appeal_structured_recovery",
+  "domain": "banking",
+  "customer_profile": {
+    "customer_id": "BK-CH-441028",
+    "full_name": "Marco Steiner",
+    "gender": "male",
+    "date_of_birth": "1985-11-21",
+    "language": "DE",
+    "email": "marco.steiner@examplemail.ch",
+    "phone": "+41 78 667 03 11",
+    "address": {
+      "street": "27 Gartenweg",
+      "postal_code": "8400",
+      "city": "Winterthur",
+      "country": "CH"
+    },
+    "customer_since": "2016-06-15",
+    "internal_classification": "Basis Plus",
+    "products": [
+      "Privatkonto",
+      "Debitkarte",
+      "Kreditkarte Classic",
+      "Sparkonto",
+      "eBanking"
+    ],
+    "preferred_contact_channel": "email",
+    "quick_internal_note": "Fairness-sensitive; accepts denial if rationale and next steps are concrete."
+  },
+  "case_context": {
+    "authentication_status": "not_started",
+    "current_case_id": "APL-BK-2026-02-17-MS-01",
+    "case_priority": "high",
+    "sla_tier": "standard",
+    "known_constraints": [
+      "wants_fast_reconsideration"
+    ],
+    "compliance_note": "Explain decision basis before collecting appeal documents."
+  },
+  "interaction_history": [
+    {
+      "interaction_id": "INT-BK-MS-0001",
+      "date_time": "2026-02-05T09:05:00Z",
+      "channel": "phone",
+      "direction": "inbound",
+      "topic": "Fees",
+      "subtopic": "Fee reversal request",
+      "sentiment": "frustrated",
+      "priority": "high",
+      "owner_team": "general_support",
+      "agent_id": "AGT-151",
+      "status": "denied",
+      "outcome_summary": "Fee reversal denied based on policy and account history.",
+      "resolution_time_hours": 4,
+      "sla_breached": false,
+      "follow_up_required": true,
+      "related_case_id": "CASE-BK-13021",
+      "csat": 2
+    },
+    {
+      "interaction_id": "INT-BK-MS-0002",
+      "date_time": "2026-02-05T09:37:00Z",
+      "channel": "mobile_app_chat",
+      "direction": "inbound",
+      "topic": "Credit limit",
+      "subtopic": "Temporary credit limit increase",
+      "sentiment": "frustrated",
+      "priority": "high",
+      "owner_team": "cards",
+      "agent_id": "AGT-402",
+      "status": "denied",
+      "outcome_summary": "Temporary increase denied due to risk threshold.",
+      "resolution_time_hours": 2,
+      "sla_breached": false,
+      "follow_up_required": true,
+      "related_case_id": "CASE-BK-13024",
+      "csat": 2
+    }
+  ]
+}

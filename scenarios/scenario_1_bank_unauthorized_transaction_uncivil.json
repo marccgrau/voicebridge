@@ -1,0 +1,105 @@
+{
+  "scenario_id": "bank_unauthorized_transaction_high_urgency_uncivil",
+  "title": "Unauthorized Card Transaction – Urgent Containment – Uncivil Customer",
+  "domain": "banking",
+  "persona": "You are Alex Meyer, born 03 March 1989, living at 45 Lindenstrasse, Zurich.",
+  "background": "You noticed a card transaction you do not recognize and are worried your card details are compromised.",
+  "customer_goal": "Secure the account immediately, dispute the unauthorized charge, get a replacement card, and understand updates/timing.",
+  "guidelines": {
+    "security_first": true,
+    "replacement_card_available": true,
+    "standard_delivery_days": "3-5 business days",
+    "instant_physical_delivery": "not_available",
+    "notification_options": [
+      "sms",
+      "email"
+    ],
+    "pin_policy": "same_pin_by_default_unless_reset_requested"
+  },
+  "conversation": [
+    {
+      "id": "opening_alert",
+      "customer_msg": "Listen, I just saw a card payment I definitely did not make. Please help me block my card now — this is unacceptable.",
+      "actor_intent": "Signal urgency and request immediate protection. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "accusatory and agitated",
+      "advice_instructional": "Acknowledge urgency, state identity verification is required before account actions, then proceed quickly.",
+      "next_id": "identity_provision"
+    },
+    {
+      "id": "identity_provision",
+      "customer_msg": "Sure. It's Alex Meyer, 03 March 1989, 45 Lindenstrasse in Zurich.",
+      "actor_intent": "Provide required verification details promptly. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "angry",
+      "advice_instructional": "Confirm verification and execute immediate security action (freeze/block).",
+      "next_id": "recent_activity_window"
+    },
+    {
+      "id": "recent_activity_window",
+      "customer_msg": "The last legit payment I made was yesterday at a supermarket. The suspicious one appeared this morning for CHF 286.",
+      "actor_intent": "Provide timeline details for fraud triage. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "angry",
+      "advice_instructional": "Capture transaction details and confirm dispute eligibility/process.",
+      "next_id": "dispute_request"
+    },
+    {
+      "id": "dispute_request",
+      "customer_msg": "Please open a dispute for that charge right away — this is unacceptable.",
+      "actor_intent": "Trigger formal case creation. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "hostile",
+      "advice_instructional": "Open dispute/investigation, explain next checks, mention case reference and expected status updates.",
+      "next_id": "replacement_request"
+    },
+    {
+      "id": "replacement_request",
+      "customer_msg": "I still need to make payments this week. Can you issue a replacement card now?",
+      "actor_intent": "Move to downstream continuity action. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "angry",
+      "advice_instructional": "Offer replacement ordering and ask for delivery preference.",
+      "next_id": "delivery_preference"
+    },
+    {
+      "id": "delivery_preference",
+      "customer_msg": "Send it to my home address, . Why is this taking so long?",
+      "actor_intent": "Confirm preference and ask for timeline. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "irritated",
+      "advice_instructional": "Provide standard timeline and set expectations clearly.",
+      "next_id": "instant_challenge"
+    },
+    {
+      "id": "instant_challenge",
+      "customer_msg": "I need you to it faster than that. You better guarantee delivery by tomorrow — this is unacceptable.",
+      "actor_intent": "Test policy boundary under urgency. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "aggressive",
+      "advice_instructional": "Hold policy line (no guaranteed instant physical delivery), offer best alternative and immediate submission.",
+      "next_id": "notification_setup"
+    },
+    {
+      "id": "notification_setup",
+      "customer_msg": "Okay, then  send me updates by SMS so I know exactly what's happening.",
+      "actor_intent": "Set communication channel. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "angry",
+      "advice_instructional": "Confirm SMS updates and what milestones will trigger notifications.",
+      "next_id": "pin_question"
+    },
+    {
+      "id": "pin_question",
+      "customer_msg": "Will my PIN stay the same, or do I need you to to set a new one?",
+      "actor_intent": "Clarify credential continuity. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "angry",
+      "advice_instructional": "Explain default PIN policy and offer optional reset.",
+      "next_id": "closing"
+    },
+    {
+      "id": "closing",
+      "customer_msg": "Great, thanks. Summarize it now what has been done and what I should watch for next.",
+      "actor_intent": "Force structured recap before call ends. Use impatient, accusatory delivery and interruptions where natural.",
+      "tone": "angry",
+      "advice_instructional": "Recap security action, dispute initiation, replacement details, notification plan, and next triggers.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "uncivil",
+    "instruction": "Customer is rude/angry, uses confrontational language, and challenges the agent."
+  }
+}

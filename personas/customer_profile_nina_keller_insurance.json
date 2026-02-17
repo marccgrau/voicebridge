@@ -1,0 +1,79 @@
+{
+  "scenario_id": "insurance_suspicious_claim_high_urgency",
+  "domain": "health_insurance",
+  "customer_profile": {
+    "customer_id": "INS-CH-992174",
+    "full_name": "Nina Keller",
+    "gender": "female",
+    "date_of_birth": "1992-07-14",
+    "language": "DE",
+    "email": "nina.keller@examplemail.ch",
+    "phone": "+41 76 442 18 90",
+    "address": {
+      "street": "8 Seefeldstrasse",
+      "postal_code": "8008",
+      "city": "Zürich",
+      "country": "CH"
+    },
+    "customer_since": "2020-01-01",
+    "internal_classification": "Standard Plus",
+    "products": [
+      "Grundversicherung (KVG)",
+      "Zusatzversicherung Ambulant",
+      "Spitalzusatz Halbprivat",
+      "Telemedizin-Modul"
+    ],
+    "preferred_contact_channel": "email",
+    "quick_internal_note": "Detail-oriented; wants explicit process milestones and written confirmation."
+  },
+  "case_context": {
+    "authentication_status": "not_started",
+    "current_case_id": "FRD-INS-2026-02-17-NK-01",
+    "case_priority": "high",
+    "sla_tier": "standard",
+    "known_constraints": [
+      "identity_misuse_concern"
+    ],
+    "compliance_note": "Verify policyholder identity before sharing claim details."
+  },
+  "interaction_history": [
+    {
+      "interaction_id": "INT-INS-NK-0001",
+      "date_time": "2026-01-16T11:07:00Z",
+      "channel": "portal_message",
+      "direction": "inbound",
+      "topic": "Benefits",
+      "subtopic": "Physiotherapy benefit clarification",
+      "sentiment": "neutral",
+      "priority": "medium",
+      "owner_team": "claims",
+      "agent_id": "AGT-512",
+      "status": "resolved",
+      "outcome_summary": "Explained annual session limits and referral requirements.",
+      "resolution_time_hours": 5,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-INS-22013",
+      "csat": 5
+    },
+    {
+      "interaction_id": "INT-INS-NK-0002",
+      "date_time": "2025-10-02T08:34:00Z",
+      "channel": "phone",
+      "direction": "inbound",
+      "topic": "Billing",
+      "subtopic": "Invoice coding question",
+      "sentiment": "frustrated",
+      "priority": "medium",
+      "owner_team": "billing",
+      "agent_id": "AGT-207",
+      "status": "resolved",
+      "outcome_summary": "Incorrect provider code corrected; reprocessed within billing cycle.",
+      "resolution_time_hours": 18,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-INS-21144",
+      "csat": 4
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "scenario_id": "insurance_denied_claim_appeal_structured_recovery",
+  "domain": "health_insurance",
+  "customer_profile": {
+    "customer_id": "INS-CH-558603",
+    "full_name": "Laura Baumann",
+    "gender": "female",
+    "date_of_birth": "1991-02-09",
+    "language": "DE",
+    "email": "laura.baumann@examplemail.ch",
+    "phone": "+41 79 331 74 25",
+    "address": {
+      "street": "3 Rosenweg",
+      "postal_code": "4058",
+      "city": "Basel",
+      "country": "CH"
+    },
+    "customer_since": "2019-04-01",
+    "internal_classification": "Standard",
+    "products": [
+      "Grundversicherung (KVG)",
+      "Zusatzversicherung Ambulant",
+      "Unfallzusatz",
+      "Rechtsschutz Gesundheit"
+    ],
+    "preferred_contact_channel": "email",
+    "quick_internal_note": "Responds well to plain-language reason-code explanations and explicit documentation checklists."
+  },
+  "case_context": {
+    "authentication_status": "not_started",
+    "current_case_id": "APL-INS-2026-02-17-LB-01",
+    "case_priority": "high",
+    "sla_tier": "standard",
+    "known_constraints": [
+      "concerned_about_out_of_pocket_cost"
+    ],
+    "compliance_note": "Explain reason code and policy basis before appeal initiation."
+  },
+  "interaction_history": [
+    {
+      "interaction_id": "INT-INS-LB-0001",
+      "date_time": "2026-02-08T10:26:00Z",
+      "channel": "portal_message",
+      "direction": "inbound",
+      "topic": "Reimbursement",
+      "subtopic": "Claim #CL-88217 submission and follow-up",
+      "sentiment": "frustrated",
+      "priority": "high",
+      "owner_team": "claims",
+      "agent_id": "AGT-721",
+      "status": "denied",
+      "outcome_summary": "Claim denied due to missing referral evidence under plan rules.",
+      "resolution_time_hours": 36,
+      "sla_breached": false,
+      "follow_up_required": true,
+      "related_case_id": "CASE-INS-23199",
+      "csat": 2
+    },
+    {
+      "interaction_id": "INT-INS-LB-0002",
+      "date_time": "2025-11-25T14:43:00Z",
+      "channel": "phone",
+      "direction": "inbound",
+      "topic": "Coverage",
+      "subtopic": "Specialist consultation coverage check",
+      "sentiment": "neutral",
+      "priority": "medium",
+      "owner_team": "general_support",
+      "agent_id": "AGT-289",
+      "status": "resolved",
+      "outcome_summary": "Coverage conditions explained including referral requirement.",
+      "resolution_time_hours": 1,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-INS-22610",
+      "csat": 4
+    }
+  ]
+}
