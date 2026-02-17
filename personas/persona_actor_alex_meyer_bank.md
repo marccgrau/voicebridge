@@ -1,9 +1,11 @@
 # Persona Brief — Alex Meyer (Bank)
+
 Scenario ID: `bank_unauthorized_transaction_high_urgency`
 
 ## 1) Actor Perspective (what the actor needs to know)
 
 ### Core identity
+
 - **Name:** Alex Meyer
 - **Gender:** Male
 - **DOB:** 03 March 1989
@@ -11,10 +13,12 @@ Scenario ID: `bank_unauthorized_transaction_high_urgency`
 - **Language in call:** German-speaking customer context (DE), but you can use concise neutral wording in rehearsal.
 
 ### Situation at call start
+
 You noticed a **card transaction you did not authorize** this morning (CHF 286).
 You need immediate containment because you still have upcoming payments this week.
 
 ### Main objectives in the call
+
 1. Get the card/account risk **secured immediately**.
 2. Open a **formal dispute/fraud case**.
 3. Arrange a **replacement card**.
@@ -23,11 +27,14 @@ You need immediate containment because you still have upcoming payments this wee
 6. Clarify **PIN continuity**.
 
 ### Behavioral profile
-- Start **anxious and urgent**, but stay polite.
-- You are cooperative if the agent is structured and concrete.
-- You become pressing if answers are vague.
+
+- Start **anxious and urgent**.
+- Keep focus on immediate protective action and concrete timelines.
+- Increase pressure when answers are vague; ease when actions and milestones are clear.
+- Match the civility style (civil or uncivil) to the assigned scenario condition.
 
 ### Information you should reveal when asked
+
 - Last legitimate payment: yesterday at a supermarket.
 - Suspicious transaction: this morning, CHF 286.
 - Delivery preference: home address.
@@ -35,10 +42,12 @@ You need immediate containment because you still have upcoming payments this wee
 - Final PIN preference: keep same PIN unless advised otherwise.
 
 ### Escalation / de-escalation cues
+
 - **Escalate slightly** if the agent does not take immediate protective action.
 - **De-escalate** when the agent summarizes actions and timeline clearly.
 
 ### Must-ask checkpoints (if agent does not cover them)
+
 - “How long does replacement delivery take?”
 - “Can you guarantee faster delivery?”
 - “How will I be updated?”
@@ -49,6 +58,7 @@ You need immediate containment because you still have upcoming payments this wee
 ## 2) Company Perspective (what to show agent in UI)
 
 ### Pre-call customer snapshot
+
 - **Customer ID:** BK-CH-784291
 - **Full name:** Alex Meyer
 - **Gender:** male
@@ -61,15 +71,17 @@ You need immediate containment because you still have upcoming payments this wee
 - **Internal classification:** Affluent
 - **Products:** Privatkonto Plus, Debitkarte Visa, Sparkonto, eBanking + Mobile Banking, Business Lite Account
 - **Previous interactions:** See interaction list below (date, topic, channel, outcome).
-- **Quick internal note:** Friendly but time-pressured. Expects immediate protective action and clear timelines.
+- **Quick internal note:** Time-pressured; expects immediate protective action and clear timelines.
 
 ### Previous interactions (internal, with channel)
-- **2026-01-28** — *Card limit clarification* — **Channel:** Mobile App Chat — **Outcome:** Resolved
-- **2025-11-09** — *Address update* — **Channel:** Branch Visit — **Outcome:** Resolved
-- **2025-08-14** — *Travel notice for card usage abroad* — **Channel:** Phone — **Outcome:** Resolved
-- **2025-05-03** — *Duplicate card charge inquiry* — **Channel:** Secure Message (eBanking) — **Outcome:** Resolved (no fraud)
+
+- **2026-01-28** — _Card limit clarification_ — **Channel:** Mobile App Chat — **Outcome:** Resolved
+- **2025-11-09** — _Address update_ — **Channel:** Branch Visit — **Outcome:** Resolved
+- **2025-08-14** — _Travel notice for card usage abroad_ — **Channel:** Phone — **Outcome:** Resolved
+- **2025-05-03** — _Duplicate card charge inquiry_ — **Channel:** Secure Message (eBanking) — **Outcome:** Resolved (no fraud)
 
 ### Recommended UI additions for this scenario
+
 - **Authentication status:** `not_started` → `verified`
 - **Fraud workflow panel:** security action, dispute opened, case reference
 - **Replacement card panel:** delivery option + ETA (3–5 business days)
@@ -104,6 +116,7 @@ Use this schema for each historical interaction item in the agent UI.
 ```
 
 ### Minimal required fields (if you want a lighter version)
+
 - `interaction_id`
 - `date_time`
 - `channel`
@@ -112,6 +125,7 @@ Use this schema for each historical interaction item in the agent UI.
 - `outcome_summary`
 
 ### Optional but high-value fields for your experiment
+
 - `sentiment` (for emotion-aware guidance)
 - `priority` (for urgency-sensitive prompts)
 - `resolution_time_hours` and `sla_breached` (service quality outcomes)

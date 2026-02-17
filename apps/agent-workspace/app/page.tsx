@@ -248,6 +248,29 @@ function WorkspacePanels({
     null
   );
 
+  const persistSessionEvent = (
+    eventType: string,
+    payload: Record<string, unknown>
+  ) => {
+    if (!sessionId) {
+      return;
+    }
+
+    void supabase
+      .from("session_events")
+      .insert({
+        session_id: sessionId,
+        event_type: eventType,
+        source: "agent_workspace",
+        payload,
+      })
+      .then(({ error }) => {
+        if (error) {
+          console.error("Failed to persist session event:", error);
+        }
+      });
+  };
+
   const { phase, density, toggleDensity } = usePhase({
     sessionId,
     isConnected,
@@ -364,6 +387,23 @@ function WorkspacePanels({
             isFinal: message.data.isFinal,
           },
         ]);
+
+        if (sessionId && message.data.isFinal) {
+          void supabase
+            .from("transcript_segments")
+            .insert({
+              session_id: sessionId,
+              speaker: message.data.speaker,
+              text: message.data.text,
+              is_final: message.data.isFinal,
+              ts: message.data.timestamp,
+            })
+            .then(({ error }) => {
+              if (error) {
+                console.error("Failed to persist transcript segment:", error);
+              }
+            });
+        }
       },
       onSuggestion: (message) => {
         setSuggestions(
@@ -372,6 +412,11 @@ function WorkspacePanels({
             id: s.id ?? crypto.randomUUID(),
           }))
         );
+
+        persistSessionEvent("agent_guidance_received", {
+          suggestions: message.data.suggestions,
+          serviceType: message.data.serviceType,
+        });
       },
       onProcessIllustration: (message) => {
         const processSteps = message.data.steps.map((step: ProcessStep) => ({
@@ -389,6 +434,13 @@ function WorkspacePanels({
             ? (processSteps[message.data.currentStep]?.key ?? null)
             : null
         );
+
+        persistSessionEvent("process_illustration_received", {
+          processKey: message.data.processKey,
+          processName: message.data.processName,
+          currentStep: message.data.currentStep,
+          steps: message.data.steps,
+        });
       },
     },
     { audioEnabled }

@@ -2,7 +2,6 @@
   "scenario_id": "bank_unauthorized_transaction_high_urgency_civil",
   "title": "Unauthorized Card Transaction – Urgent Containment – Civil Customer",
   "domain": "banking",
-  "persona": "You are Alex Meyer, born 03 March 1989, living at 45 Lindenstrasse, Zurich.",
   "background": "You noticed a card transaction you do not recognize and are worried your card details are compromised.",
   "customer_goal": "Secure the account immediately, dispute the unauthorized charge, get a replacement card, and understand updates/timing.",
   "guidelines": {
@@ -10,10 +9,7 @@
     "replacement_card_available": true,
     "standard_delivery_days": "3-5 business days",
     "instant_physical_delivery": "not_available",
-    "notification_options": [
-      "sms",
-      "email"
-    ],
+    "notification_options": ["sms", "email"],
     "pin_policy": "same_pin_by_default_unless_reset_requested"
   },
   "conversation": [
@@ -27,7 +23,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Sure. It's Alex Meyer, 03 March 1989, 45 Lindenstrasse in Zurich.",
+      "customer_msg": "Sure. It's {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Provide required verification details promptly. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Confirm verification and execute immediate security action (freeze/block).",
@@ -67,7 +63,7 @@
     },
     {
       "id": "instant_challenge",
-      "customer_msg": "I’d really appreciate if I could it faster than that. Would it be possible to guarantee delivery by tomorrow?",
+      "customer_msg": "I really need it faster than that. Would it be possible to guarantee delivery by tomorrow?",
       "actor_intent": "Test policy boundary under urgency. Maintain politeness and cooperative tone.",
       "tone": "requesting, still respectful",
       "advice_instructional": "Hold policy line (no guaranteed instant physical delivery), offer best alternative and immediate submission.",
@@ -83,7 +79,7 @@
     },
     {
       "id": "pin_question",
-      "customer_msg": "Will my PIN stay the same, or do I’d really appreciate if I could to set a new one?",
+      "customer_msg": "Will my PIN stay the same, or can I set a new one?",
       "actor_intent": "Clarify credential continuity. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Explain default PIN policy and offer optional reset.",

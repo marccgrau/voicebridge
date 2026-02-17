@@ -1,4 +1,4 @@
-.PHONY: install dev build lint typecheck test clean db-migrate web-dev customer-dev pcc-dev
+.PHONY: install dev build lint typecheck test clean db-migrate db-seed-experiment web-dev customer-dev pcc-dev
 
 # Install all dependencies
 install:
@@ -80,6 +80,12 @@ db-migrate:
 
 db-reset:
 	supabase db reset
+
+db-seed-experiment:
+	SEED_TARGET=local pnpm --filter @voicebridge/customer exec node "../../scripts/seed-experimental-data.mjs"
+
+db-seed-experiment-linked:
+	SEED_TARGET=linked pnpm --filter @voicebridge/customer exec node "../../scripts/seed-experimental-data.mjs"
 
 # Agent workspace dev server
 web-dev:

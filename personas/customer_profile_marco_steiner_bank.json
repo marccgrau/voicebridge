@@ -25,16 +25,14 @@
       "eBanking"
     ],
     "preferred_contact_channel": "email",
-    "quick_internal_note": "Fairness-sensitive; accepts denial if rationale and next steps are concrete."
+    "quick_internal_note": "Fairness-sensitive; requires clear rationale and concrete next steps before accepting a denial decision."
   },
   "case_context": {
     "authentication_status": "not_started",
     "current_case_id": "APL-BK-2026-02-17-MS-01",
     "case_priority": "high",
     "sla_tier": "standard",
-    "known_constraints": [
-      "wants_fast_reconsideration"
-    ],
+    "known_constraints": ["wants_fast_reconsideration"],
     "compliance_note": "Explain decision basis before collecting appeal documents."
   },
   "interaction_history": [

@@ -251,15 +251,25 @@ describe("rowToCustomer", () => {
 
     expect(result).toEqual({
       id: row.id,
+      customerCode: row.customer_code,
       name: row.name,
       gender: row.gender,
+      dateOfBirth: row.date_of_birth,
       email: row.email,
       phone: row.phone,
+      address: {
+        street: row.address_street,
+        postalCode: row.address_postal_code,
+        city: row.address_city,
+        country: row.address_country,
+      },
       customerSince: row.customer_since,
       classification: row.classification,
       products: row.products,
       preferredLanguage: row.preferred_language,
+      preferredContactChannel: row.preferred_contact_channel,
       notes: row.notes,
+      quickInternalNote: row.quick_internal_note,
     });
   });
 });
@@ -288,6 +298,18 @@ describe("rowToCustomerInteraction", () => {
       outcome: row.outcome,
       agentName: row.agent_name,
       channelDetail: row.channel_detail,
+      direction: row.direction,
+      topic: row.topic,
+      subtopic: row.subtopic,
+      sentiment: row.sentiment,
+      priority: row.priority,
+      ownerTeam: row.owner_team,
+      status: row.status,
+      resolutionTimeHours: row.resolution_time_hours,
+      slaBreached: row.sla_breached,
+      followUpRequired: row.follow_up_required,
+      relatedCaseId: row.related_case_id,
+      csat: row.csat,
     });
   });
 });

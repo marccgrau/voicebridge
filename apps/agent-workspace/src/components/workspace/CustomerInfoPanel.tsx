@@ -121,7 +121,9 @@ export function CustomerInfoPanel({
               />
               <ProductPortfolioCard products={customer.products} />
             </div>
-            <ServiceNoteCard notes={customer.notes} />
+            <ServiceNoteCard
+              notes={customer.quickInternalNote ?? customer.notes}
+            />
             <RecentInteractionsCard interactions={interactions} />
           </div>
         )}
@@ -132,9 +134,12 @@ export function CustomerInfoPanel({
 
 const classificationStyles = {
   basis: "border-blue-500/40 bg-blue-500/10 text-blue-700",
+  "basis plus": "border-blue-500/40 bg-blue-500/10 text-blue-700",
+  standard: "border-blue-500/40 bg-blue-500/10 text-blue-700",
+  "standard plus": "border-blue-500/40 bg-blue-500/10 text-blue-700",
   affluent: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
-  HNWI: "border-amber-500/40 bg-amber-500/10 text-amber-700",
-  UHNWI: "border-rose-500/40 bg-rose-500/10 text-rose-700",
+  hnwi: "border-amber-500/40 bg-amber-500/10 text-amber-700",
+  uhnwi: "border-rose-500/40 bg-rose-500/10 text-rose-700",
 };
 
 function LoadingState() {
@@ -153,9 +158,11 @@ function ClassificationBadge({
 }: {
   classification: Customer["classification"];
 }) {
+  const normalizedClassification = classification.toLowerCase();
   const badgeClass =
-    classificationStyles[classification as keyof typeof classificationStyles] ??
-    classificationStyles.basis;
+    classificationStyles[
+      normalizedClassification as keyof typeof classificationStyles
+    ] ?? classificationStyles.basis;
 
   return (
     <span
@@ -189,7 +196,15 @@ function CustomerIdentityCard({
           <p className="font-mono-ui mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
             {customer.gender} · customer since{" "}
             {formatMonthYear(customer.customerSince)}
+            {customer.dateOfBirth
+              ? ` · DOB ${formatMonthDayYear(customer.dateOfBirth)}`
+              : ""}
           </p>
+          {customer.customerCode && (
+            <p className="font-mono-ui mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Customer code: {customer.customerCode}
+            </p>
+          )}
           <p className="mt-2 text-sm text-muted-foreground">
             {interactionCount} historical interaction
             {interactionCount === 1 ? "" : "s"} available for context
@@ -281,6 +296,19 @@ function CustomerEssentialsCard({
         />
         <FactTile label="History" value={String(interactionCount)} />
       </div>
+
+      <div className="mt-3 grid gap-2">
+        <FactLine label="Email" value={customer.email ?? "Not available"} />
+        <FactLine label="Phone" value={customer.phone ?? "Not available"} />
+        <FactLine
+          label="Preferred Channel"
+          value={customer.preferredContactChannel ?? "Not specified"}
+        />
+        <FactLine
+          label="Address"
+          value={formatAddress(customer) ?? "Not available"}
+        />
+      </div>
     </section>
   );
 }
@@ -292,6 +320,17 @@ function FactTile({ label, value }: { label: string; value: string }) {
         {label}
       </p>
       <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function FactLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2">
+      <p className="font-mono-ui text-[10px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-sm text-foreground">{value}</p>
     </div>
   );
 }
@@ -372,9 +411,29 @@ function InteractionRow({ interaction }: { interaction: CustomerInteraction }) {
       label: "Chat",
       tagClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
     },
+    mobile_app_chat: {
+      label: "Mobile App Chat",
+      tagClass: "border-sky-500/40 bg-sky-500/10 text-sky-700",
+    },
+    portal_message: {
+      label: "Portal Message",
+      tagClass: "border-violet-500/40 bg-violet-500/10 text-violet-700",
+    },
+    secure_message: {
+      label: "Secure Message",
+      tagClass: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700",
+    },
     branch_visit: {
       label: "Branch Visit",
       tagClass: "border-amber-500/40 bg-amber-500/10 text-amber-700",
+    },
+    service_desk: {
+      label: "Service Desk",
+      tagClass: "border-orange-500/40 bg-orange-500/10 text-orange-700",
+    },
+    video_call: {
+      label: "Video Call",
+      tagClass: "border-teal-500/40 bg-teal-500/10 text-teal-700",
     },
     email: {
       label: "Email",
@@ -504,4 +563,24 @@ function formatMonthDay(value: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+function formatMonthDayYear(value: string): string {
+  return new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function formatAddress(customer: Customer): string | null {
+  const street = customer.address?.street ?? null;
+  const postalCode = customer.address?.postalCode ?? null;
+  const city = customer.address?.city ?? null;
+  const country = customer.address?.country ?? null;
+
+  const locality = [postalCode, city].filter(Boolean).join(" ");
+  const value = [street, locality, country].filter(Boolean).join(", ");
+
+  return value.length > 0 ? value : null;
 }

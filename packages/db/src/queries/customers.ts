@@ -3,15 +3,23 @@ import type { Customer, CustomerInteraction } from "@voicebridge/contracts";
 
 export interface CustomerRow {
   id: string;
+  customer_code: string | null;
   name: string;
   gender: string;
+  date_of_birth: string | null;
   email: string | null;
   phone: string | null;
+  address_street: string | null;
+  address_postal_code: string | null;
+  address_city: string | null;
+  address_country: string | null;
   customer_since: string;
   classification: string;
   products: string[];
   preferred_language: string;
+  preferred_contact_channel: string | null;
   notes: string | null;
+  quick_internal_note: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +33,18 @@ export interface CustomerInteractionRow {
   outcome: string | null;
   agent_name: string | null;
   channel_detail: string | null;
+  direction: string | null;
+  topic: string | null;
+  subtopic: string | null;
+  sentiment: string | null;
+  priority: string | null;
+  owner_team: string | null;
+  status: string | null;
+  resolution_time_hours: number | null;
+  sla_breached: boolean | null;
+  follow_up_required: boolean | null;
+  related_case_id: string | null;
+  csat: number | null;
   created_at: string;
 }
 
@@ -109,15 +129,25 @@ export async function getCustomerInteractions(
 export function rowToCustomer(row: CustomerRow): Customer {
   return {
     id: row.id,
+    customerCode: row.customer_code,
     name: row.name,
     gender: row.gender as "male" | "female" | "other",
+    dateOfBirth: row.date_of_birth,
     email: row.email,
     phone: row.phone,
+    address: {
+      street: row.address_street,
+      postalCode: row.address_postal_code,
+      city: row.address_city,
+      country: row.address_country,
+    },
     customerSince: row.customer_since,
     classification: row.classification as Customer["classification"],
     products: row.products,
     preferredLanguage: row.preferred_language,
+    preferredContactChannel: row.preferred_contact_channel,
     notes: row.notes,
+    quickInternalNote: row.quick_internal_note,
   };
 }
 
@@ -136,5 +166,17 @@ export function rowToCustomerInteraction(
     outcome: row.outcome,
     agentName: row.agent_name,
     channelDetail: row.channel_detail,
+    direction: (row.direction as "inbound" | "outbound" | null) ?? null,
+    topic: row.topic,
+    subtopic: row.subtopic,
+    sentiment: row.sentiment,
+    priority: row.priority,
+    ownerTeam: row.owner_team,
+    status: row.status,
+    resolutionTimeHours: row.resolution_time_hours,
+    slaBreached: row.sla_breached,
+    followUpRequired: row.follow_up_required,
+    relatedCaseId: row.related_case_id,
+    csat: row.csat,
   };
 }

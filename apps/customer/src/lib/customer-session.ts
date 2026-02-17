@@ -12,6 +12,12 @@ export interface SessionRoutingOptions {
   transferReason?: string;
 }
 
+export interface StartCallOptions {
+  customerId: string;
+  scenarioId: string;
+  routing?: SessionRoutingOptions;
+}
+
 export interface CustomerSessionState {
   callState: CustomerCallState;
   sessionId: string | null;
@@ -23,6 +29,8 @@ export interface CustomerSessionState {
 
 /**
  * Hook for customer-initiated call sessions.
+ * Requires both a selected persona (customerId) and scenario (scenarioId)
+ * when creating a session.
  */
 export function useCustomerSession() {
   const [state, setState] = useState<CustomerSessionState>({
@@ -85,14 +93,14 @@ export function useCustomerSession() {
   }, [state.sessionId, state.callState]);
 
   const startCall = useCallback(
-    async (customerId?: string, routing?: SessionRoutingOptions) => {
+    async ({ customerId, scenarioId, routing }: StartCallOptions) => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const requestBody: Record<string, unknown> = {};
-        if (customerId) {
-          requestBody.customer_id = customerId;
-        }
+        const requestBody: Record<string, unknown> = {
+          customer_id: customerId,
+          scenario_id: scenarioId,
+        };
         if (routing) {
           requestBody.routing = {
             ...(routing.source ? { source: routing.source } : {}),
