@@ -38,6 +38,7 @@ from pipecat.turns.user_turn_strategies import UserTurnStrategies
 from src.process_catalog import ProcessCatalog
 from src.process_processors import PROCESS_SYSTEM_PROMPT, ProcessOutputProcessor
 from src.suggestion_processors import SUGGESTION_SYSTEM_PROMPT, SuggestionOutputProcessor
+from src.transcript_persistence import TranscriptPersistenceWorker
 from src.transcript_processors import TranscriptWriter
 
 load_dotenv()
@@ -122,7 +123,11 @@ async def bot(runner_args: RunnerArguments):
     async def on_stt_connection_error(_stt, error):
         logger.warning("[session=%s] Deepgram connection error: %s", session_id, error)
 
-    transcript_writer = TranscriptWriter(session_id=session_id)
+    transcript_persistence = TranscriptPersistenceWorker.from_env(session_id=session_id)
+    transcript_writer = TranscriptWriter(
+        session_id=session_id,
+        persistence=transcript_persistence,
+    )
 
     process_catalog = ProcessCatalog(process_content_path=str(_resolve_process_content_path()))
     process_catalog.load()

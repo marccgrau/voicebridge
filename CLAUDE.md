@@ -228,7 +228,7 @@ TypeScript Zod schemas in `packages/contracts` define the contract. Python code 
 
 ### Design Principle
 
-Always prefer Pipecat abstractions (processors, pipeline, RTVI) over custom transport. Suggestions, process illustrations, and transcripts are sent to the client via RTVI — not written to Supabase for realtime pickup. Supabase Realtime is reserved for session state changes.
+Always prefer Pipecat abstractions (processors, pipeline, RTVI) over custom transport. Suggestions, process illustrations, and transcripts are sent to the client via RTVI for low latency, while transcript segments are persisted asynchronously to Supabase in background batches. Supabase Realtime remains reserved for session state changes.
 
 ## Environment Variables
 
@@ -255,6 +255,8 @@ DAILY_API_KEY
 DAILY_API_KEY
 DEEPGRAM_API_KEY
 OPENAI_API_KEY
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
 PROCESS_MODEL                         # default: gpt-4.1-nano
 SUGGESTION_MODEL                      # default: gpt-4.1
 ```

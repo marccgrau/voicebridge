@@ -5,9 +5,45 @@ import OpenAI from "openai";
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const TRANSCRIPT_FETCH_MAX_ATTEMPTS = 6;
+const TRANSCRIPT_FETCH_DELAY_MS = 350;
 
 function getSupabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function fetchFinalTranscriptSegments(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  sessionId: string
+) {
+  for (let attempt = 0; attempt < TRANSCRIPT_FETCH_MAX_ATTEMPTS; attempt += 1) {
+    const { data, error } = await supabase
+      .from("transcript_segments")
+      .select("speaker, text, ts")
+      .eq("session_id", sessionId)
+      .eq("is_final", true)
+      .order("ts", { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch transcript: ${error.message}`);
+    }
+
+    if (data && data.length > 0) {
+      return data;
+    }
+
+    if (attempt < TRANSCRIPT_FETCH_MAX_ATTEMPTS - 1) {
+      await delay(TRANSCRIPT_FETCH_DELAY_MS);
+    }
+  }
+
+  return [];
 }
 
 export async function POST(
@@ -50,20 +86,8 @@ export async function POST(
       );
     }
 
-    // 2. Fetch transcript segments
-    const { data: segments, error: transcriptError } = await supabase
-      .from("transcript_segments")
-      .select("speaker, text, ts")
-      .eq("session_id", sessionId)
-      .eq("is_final", true)
-      .order("ts", { ascending: true });
-
-    if (transcriptError) {
-      return NextResponse.json(
-        { detail: `Failed to fetch transcript: ${transcriptError.message}` },
-        { status: 500 }
-      );
-    }
+    // 2. Fetch transcript segments (with short retries for async persistence)
+    const segments = await fetchFinalTranscriptSegments(supabase, sessionId);
 
     if (!segments || segments.length === 0) {
       return NextResponse.json(

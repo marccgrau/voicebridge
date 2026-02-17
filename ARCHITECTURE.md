@@ -117,7 +117,7 @@ pending ──▶ active ──▶ completed
 
 ## PCC Service Pipeline
 
-The PCC (Pipecat Cloud) service is the core voice processing component. It is **stateless** and **listen-only** — it processes audio without speaking and delivers all guidance via RTVI.
+The PCC (Pipecat Cloud) service is the core voice processing component. It is **listen-only** and keeps live guidance low-latency by delivering events via RTVI while persisting transcript segments asynchronously to Supabase in the background.
 
 ### Pipeline Architecture
 
@@ -131,7 +131,8 @@ DeepgramSTTService (nova-3-general, streaming)
 ParallelPipeline
     ├─ Branch 1: transcript
     │   TranscriptWriter
-    │   └─ Emits `transcript_segment` RTVI messages
+    │   ├─ Emits `transcript_segment` RTVI messages
+    │   └─ Enqueues async batched writes to `transcript_segments`
     │
     ├─ Branch 2: process identification
     │   LLMContextAggregatorPair.user()
@@ -304,7 +305,7 @@ process_catalog (standalone, seeded)
 Supabase Realtime publications are enabled on:
 
 - `sessions` — For pending call notifications and status changes
-- `transcript_segments` — For live transcript updates (currently unused in favor of RTVI)
+- `transcript_segments` — Persisted transcript history (used by admin/session detail and summary generation)
 
 ## Shared Contracts
 
@@ -337,13 +338,13 @@ Python code in the PCC service maintains compatible JSON structures (validated a
 
 The Pipecat pipeline is configured with `audio_out_enabled=False`. The bot never speaks — it only processes incoming audio and emits guidance events. This is fundamental to the system design: VoiceBridge augments human agents rather than replacing them.
 
-### Stateless PCC Service
+### Async Transcript Persistence
 
-The PCC service has no database connection. All data flows through the pipeline as frames and exits via RTVI. This makes it:
+The PCC service writes transcript segments to Supabase with a background queue and batched inserts. This keeps DB I/O off the hot path while preserving transcript history for postcall workflows.
 
-- Easy to scale horizontally (each bot instance is independent)
-- Simple to deploy (no database migrations or connection pooling)
-- Resilient (bot crashes don't corrupt persistent state)
+- Live transcript, process, and suggestion events still flow over RTVI for low latency
+- DB writes are retried in the background and flushed on session end
+- Session/process logic remains independent from database state
 
 ### Parallel Processing
 

@@ -2070,6 +2070,7 @@ name = "voicebridge-pcc"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "pipecat-ai", extra = ["daily", "deepgram", "local-smart-turn-v3", "openai", "silero"] },
     { name = "pipecatcloud" },
     { name = "python-dotenv" },
@@ -2086,6 +2087,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.28.0" },
     { name = "pipecat-ai", extras = ["daily", "deepgram", "local-smart-turn-v3", "openai", "silero"], specifier = ">=0.0.50" },
     { name = "pipecatcloud", specifier = ">=0.2.20" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
