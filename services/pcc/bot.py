@@ -50,11 +50,7 @@ def _resolve_process_content_path() -> Path:
     if configured_path:
         return Path(configured_path)
 
-    local_path = Path(__file__).resolve().parent / "process_content"
-    if local_path.exists():
-        return local_path
-
-    return Path(__file__).resolve().parents[1] / "process-agent" / "process_content"
+    return Path(__file__).resolve().parent / "process_content"
 
 
 def build_process_system_prompt(catalog: ProcessCatalog) -> str:
