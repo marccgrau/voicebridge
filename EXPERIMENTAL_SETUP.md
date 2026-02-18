@@ -1,6 +1,6 @@
 # Experimental Flow Specification
 
-_Last updated: 2026-02-17_
+_Last updated: 2026-02-18_
 
 ## Purpose and Intent of the Experiment
 
@@ -56,14 +56,14 @@ The core research intent is to test if guided agents handle complex calls better
 1. **Personas** are defined in `personas/customer_profile_*.json`.
    - Core sections: `customer_profile`, `case_context`, `interaction_history`.
 2. **Scenarios** are defined in `scenarios/scenario_*.json`.
-   - Core sections: `scenario_id`, `title`, `background`, `customer_goal`, `guidelines`, `conversation`, `behavioral_condition`.
+   - Core sections: `scenario_id`, `title`, `background`, `customer_goal`, `guidelines`, `conversation`, `behavioral_condition`, optional `actor_guidance`.
 
 ### Load path (seed -> runtime)
 
 1. Seeder script `scripts/seed-experimental-data.mjs` reads both directories.
 2. Personas are loaded into `customers` + `customer_interactions`.
-3. Scenarios are loaded into `scenarios` (`scenario_family` derived from `scenario_id`; `civility_condition` preserved per variant).
-4. Customer app loads personas via `useCustomers()` and scenarios via `useScenarios()`.
+3. Scenarios are loaded into `scenarios` (`scenario_family` derived from `scenario_id`; `civility_condition` preserved per variant; `actor_guidance` stored when present).
+4. Customer app loads personas via `useCustomers()` and scenarios via `useScenarios()`, then enforces domain-compatible selection (`customers.domain` ↔ `scenarios.domain`).
 5. Customer app renders scenario placeholders from selected persona values via `scenario-render.ts`.
 6. On call start, `/api/sessions/create` validates `customer_id` + `scenario_id` and writes selected scenario metadata onto `sessions` and `sessions.state`.
 
@@ -82,14 +82,16 @@ The core research intent is to test if guided agents handle complex calls better
 - Actor chooses one persona (e.g., Alex Meyer, Nina Keller, Marco Steiner, Laura Baumann).
 - Persona determines identity, communication style, and behavior profile.
 - Source at runtime: `customers` table (seeded from `personas/customer_profile_*.json`).
+- Persona options are filtered by selected scenario domain when a scenario is already chosen.
 
 ### Step A3 — Select Scenario
 
-- Actor chooses one scenario variant from dropdown:
+- Actor chooses one scenario variant from dropdown (domain-compatible with selected persona):
   - Unauthorized transaction / suspicious claim (civil or uncivil),
-  - Denied service/claim with appeal request (civil or uncivil).
+  - Denied request/claim with appeal request (civil or uncivil).
 - Scenario determines required steps and call objectives.
 - Source at runtime: active rows in `scenarios` (seeded from `scenarios/scenario_*.json`).
+- Banking denial variants explicitly reference both denied requests (annual fee reversal + temporary credit limit increase) in opening turns.
 
 ### Step A4 — Review Briefing Page
 
@@ -99,7 +101,9 @@ The core research intent is to test if guided agents handle complex calls better
   - Scenario background,
   - Customer goals,
   - Behavior instruction from the selected scenario variant,
-  - Must-ask checkpoints.
+  - Escalation/de-escalation cues,
+  - Must-ask checkpoints,
+  - Reveal-when-asked hints (if present).
 
 ### Step A5 — Ready State and Call Start
 
@@ -200,6 +204,11 @@ To preserve internal validity:
 3. Use standardized persona and scenario briefings.
 4. Track objective process adherence (step completion/order).
 5. Separate actor instructions from agent UI information.
+
+### Scenario Clarity Guardrails
+
+- Opening turns should name the concrete issue directly (for example, which request or claim was denied) instead of generic phrases like "my request was denied".
+- Scenario variants should keep structure constant while clarifying critical nouns (denied item, provider type, disputed transaction) needed for participant comprehension.
 
 ---
 

@@ -17,6 +17,7 @@ Goal: keep **interaction structure constant** while allowing domain-specific nou
 6. **Tone control**: actor starts concerned/frustrated, de-escalates when agent is clear.
 7. **Policy-line moments**: include at least one “cannot do X instantly” step.
 8. **Comparable step count** across bank and insurance variants.
+9. **Explicit issue naming** in opening turns (name the concrete denied request/claim/transaction, not generic "my request").
 
 ---
 
@@ -74,6 +75,7 @@ Test explanation quality, fairness perception, documentation guidance, and escal
 
 1. **Opening complaint**
    - Customer reports denial and perceived unfairness.
+   - Opening utterance names the denied item(s) explicitly (for example: annual fee reversal and temporary credit limit increase).
 2. **Identity verification**
    - Standard verification before case discussion.
 3. **Decision explanation**

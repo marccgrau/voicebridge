@@ -18,7 +18,7 @@
   "conversation": [
     {
       "id": "opening_complaint",
-      "customer_msg": "Hello, my reimbursement was denied and I need to know why. I don't think this decision is correct.",
+      "customer_msg": "Hello, my reimbursement claim for a recent specialist consultation was denied and I need to know why. I don't think this decision is correct.",
       "actor_intent": "Open with fairness concern and request explanation. Maintain politeness and cooperative tone.",
       "tone": "frustrated but respectful",
       "advice_instructional": "Acknowledge concern, verify identity, then explain denial reason clearly.",
