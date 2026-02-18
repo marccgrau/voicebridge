@@ -91,7 +91,7 @@ The core research intent is to test if guided agents handle complex calls better
   - Denied request/claim with appeal request (civil or uncivil).
 - Scenario determines required steps and call objectives.
 - Source at runtime: active rows in `scenarios` (seeded from `scenarios/scenario_*.json`).
-- Banking denial variants explicitly reference both denied requests (annual fee reversal + temporary credit limit increase) in opening turns.
+- Banking denial variants explicitly reference one denied request (temporary credit limit increase) in opening turns.
 
 ### Step A4 — Review Briefing Page
 

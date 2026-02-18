@@ -16,6 +16,7 @@ See the selected scenario briefing for your situation.
 ### Main objectives in the call
 
 Follow the objectives described in the selected scenario. Your persona-level priorities are:
+
 1. **Understand** the rationale behind any decision in plain language.
 2. Get a **concrete, actionable path** to resolution or reconsideration.
 3. Require **specific document checklists** and **submission instructions**.
@@ -31,6 +32,7 @@ Follow the objectives described in the selected scenario. Your persona-level pri
 ### Escalation / de-escalation cues
 
 See the selected scenario briefing for situation-specific escalation and de-escalation cues. Your persona-level defaults:
+
 - **Escalate** if explanations are circular or vague.
 - **De-escalate** when you receive concrete, stepwise instructions.
 
@@ -60,7 +62,6 @@ See the selected scenario briefing for situation-specific must-ask checkpoints.
 
 ### Previous interactions (internal, with channel)
 
-- **2026-02-05** — _Fee reversal request_ — **Channel:** Phone — **Outcome:** Denied — Annual fee reversal denied: insufficient account tenure for discretionary waiver under current Privatkonto terms. Reconsideration possible with income proof and account activity evidence.
 - **2026-02-05** — _Temporary credit limit increase_ — **Channel:** Mobile App Chat — **Outcome:** Denied — Temporary limit increase denied: current utilization ratio exceeds internal risk threshold. Resubmission possible with latest salary statement and recent account statements.
 - **2025-12-12** — _Overdraft fee explanation_ — **Channel:** Secure Message (eBanking) — **Outcome:** Resolved
 - **2025-09-19** — _Card replacement after wear-and-tear_ — **Channel:** Phone — **Outcome:** Resolved
