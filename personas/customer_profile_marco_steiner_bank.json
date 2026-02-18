@@ -29,25 +29,6 @@
   "interaction_history": [
     {
       "interaction_id": "INT-BK-MS-0001",
-      "date_time": "2026-02-05T09:05:00Z",
-      "channel": "phone",
-      "direction": "inbound",
-      "topic": "Fees",
-      "subtopic": "Fee reversal request",
-      "sentiment": "frustrated",
-      "priority": "high",
-      "owner_team": "general_support",
-      "agent_id": "AGT-151",
-      "status": "denied",
-      "outcome_summary": "Annual fee reversal denied: insufficient account tenure for discretionary waiver under current Privatkonto terms. Reconsideration possible with income proof and account activity evidence.",
-      "resolution_time_hours": 4,
-      "sla_breached": false,
-      "follow_up_required": true,
-      "related_case_id": "CASE-BK-13021",
-      "csat": 2
-    },
-    {
-      "interaction_id": "INT-BK-MS-0002",
       "date_time": "2026-02-05T09:37:00Z",
       "channel": "mobile_app_chat",
       "direction": "inbound",
@@ -66,7 +47,7 @@
       "csat": 2
     },
     {
-      "interaction_id": "INT-BK-MS-0003",
+      "interaction_id": "INT-BK-MS-0002",
       "date_time": "2025-12-12T11:20:00Z",
       "channel": "secure_message",
       "direction": "inbound",
@@ -85,7 +66,7 @@
       "csat": 3
     },
     {
-      "interaction_id": "INT-BK-MS-0004",
+      "interaction_id": "INT-BK-MS-0003",
       "date_time": "2025-09-19T14:05:00Z",
       "channel": "phone",
       "direction": "inbound",

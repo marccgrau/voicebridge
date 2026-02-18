@@ -75,7 +75,7 @@ Test explanation quality, fairness perception, documentation guidance, and escal
 
 1. **Opening complaint**
    - Customer reports denial and perceived unfairness.
-   - Opening utterance names the denied item(s) explicitly (for example: annual fee reversal and temporary credit limit increase).
+   - Opening utterance names the denied item(s) explicitly (for example: temporary credit limit increase).
 2. **Identity verification**
    - Standard verification before case discussion.
 3. **Decision explanation**
