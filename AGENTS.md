@@ -129,6 +129,8 @@ Realtime channels:
 #### Customer App (`apps/customer`)
 
 - Customer flow states: `idle → calling → connected → ended`
+- Prep flow includes persona/scenario briefing with civility cues and actor guidance when present
+- Persona/scenario selection is domain-compatible (`customers.domain` ↔ `scenarios.domain`)
 - Starts calls via `POST /api/sessions/create` (requires `customer_id` + `scenario_id`)
 - API route creates PCC bot, Daily tokens, and pending session in Supabase
 - Watches session status via Supabase Realtime to detect agent join/end
@@ -159,14 +161,15 @@ Migrations (in `supabase/migrations/`):
 - `006_add_agent_token.sql` — Add agent_token to sessions
 - `007_experiment_schema.sql` — scenarios, session_events, and experiment metadata columns
 - `008_drop_legacy_process_catalog.sql` — remove DB-backed process_catalog table
+- `009_cross_combinable_experiments.sql` — add `customers.domain` and `scenarios.actor_guidance`
 
 Primary tables:
 
 - `sessions` — status, room_url, room_name, agent_token, customer_id, scenario_id, scenario_family, civility_condition, state (JSONB), timestamps
 - `transcript_segments` — session_id, speaker, text, is_final, timestamps
-- `customers` — persona-backed customer profile data (identity, classification, contact, notes)
+- `customers` — persona-backed customer profile data (identity, classification, contact, notes, domain)
 - `customer_interactions` — historical interaction context linked to customers
-- `scenarios` — scenario catalog (background, goal, conversation, civility condition)
+- `scenarios` — scenario catalog (background, goal, conversation, civility condition, actor guidance)
 - `session_events` — experiment telemetry events linked to sessions
 
 Session statuses: `pending` → `active` → `completed` / `abandoned` / `escalated` / `error`

@@ -16,7 +16,7 @@ voicebridge/
 │   ├── contracts/           # Shared Zod schemas and TypeScript types
 │   └── db/                  # Supabase query helpers
 └── supabase/
-    └── migrations/          # Database migrations (001–008)
+    └── migrations/          # Database migrations (001–009)
 ```
 
 ## High-Level Flow
@@ -87,14 +87,16 @@ Experiment data is file-defined in the repository, seeded into Supabase, then lo
 1. **Define personas** in `personas/customer_profile_*.json`.
    - Each file contains `customer_profile`, `case_context`, and `interaction_history`.
 2. **Define scenarios** in `scenarios/scenario_*.json`.
-   - Each file contains `scenario_id`, `background`, `customer_goal`, `conversation[]`, and `behavioral_condition`.
+   - Each file contains `scenario_id`, `background`, `customer_goal`, `conversation[]`, `behavioral_condition`, and optional `actor_guidance`.
+   - Denial scenarios should name denied request(s) explicitly in opening turns to avoid ambiguity for participants.
 3. **Seed to Supabase** via `make db-seed-experiment` (local) or `make db-seed-experiment-linked` (linked remote).
    - Seeder script: `scripts/seed-experimental-data.mjs`.
    - Writes to `customers`, `customer_interactions`, and `scenarios`.
 4. **Load in customer app** from Supabase at runtime.
    - `apps/customer/src/lib/use-customers.ts` fetches persona rows from `customers`.
-   - `apps/customer/src/lib/use-scenarios.ts` fetches active scenarios from `scenarios`.
+   - `apps/customer/src/lib/use-scenarios.ts` fetches active scenarios from `scenarios`, including behavioral cues and actor guidance.
    - `apps/customer/src/lib/scenario-render.ts` resolves placeholders (for example `{{customer_name}}`) in scenario script text.
+   - Selection is domain-compatible (`customers.domain` ↔ `scenarios.domain`) so actors can mix personas/scenarios within the same domain.
 5. **Create call session** with selected persona + scenario.
    - `apps/customer/app/api/sessions/create/route.ts` validates both IDs, inserts a `pending` session, and stores scenario metadata (`scenario_id`, `scenario_family`, `civility_condition`) on the session row and in `sessions.state`.
 
@@ -180,14 +182,15 @@ All live guidance messages are delivered via RTVI (WebRTC data channel) for sub-
 - `006_add_agent_token.sql` — Add agent_token to sessions
 - `007_experiment_schema.sql` — scenarios catalog, session_events, and experiment metadata columns
 - `008_drop_legacy_process_catalog.sql` — remove DB-backed process_catalog in favor of markdown process definitions
+- `009_cross_combinable_experiments.sql` — add `customers.domain` and `scenarios.actor_guidance` for cross-combinable experiment briefings
 
 ### Primary Tables
 
 - `sessions` — Session state (JSONB), status, room URL/name, agent_token, selected `customer_id` + `scenario_id`, timestamps
 - `transcript_segments` — STT output segments by speaker (agent/customer)
-- `customers` — Persona-backed customer profiles shown in customer/agent UIs
+- `customers` — Persona-backed customer profiles shown in customer/agent UIs (includes `domain` for scenario filtering)
 - `customer_interactions` — Historical interaction context used in pre-call briefing
-- `scenarios` — Experiment scenario catalog (background, goal, conversation, civility condition)
+- `scenarios` — Experiment scenario catalog (background, goal, conversation, civility condition, actor guidance)
 - `session_events` — Experiment telemetry events (for example actor step toggles)
 
 ### Session Statuses

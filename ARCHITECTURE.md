@@ -67,12 +67,13 @@ VoiceBridge uses two complementary realtime channels optimized for different pur
 ### Full Call Flow
 
 ```
-1. Actor selects persona + scenario (and optional entry route: `direct` or `voice_ai`)
+1. Actor selects a domain-compatible persona + scenario (and optional entry route: `direct` or `voice_ai`)
        │
 2. Customer app loads and prepares briefing data
        │
        ├─ Personas loaded from `customers` (seeded from `personas/customer_profile_*.json`)
        ├─ Active scenarios loaded from `scenarios` (seeded from `scenarios/scenario_*.json`)
+       ├─ Domain filtering keeps selections compatible (`customers.domain` ↔ `scenarios.domain`)
        └─ Scenario placeholders (for example `{{customer_name}}`) rendered with selected persona values
        │
 3. Customer App POST /api/sessions/create with `customer_id` + `scenario_id`
@@ -234,13 +235,15 @@ During active phases, panels support togglable density (`compact` / `expanded`) 
 
 ## Customer App
 
-The customer app provides a minimal call interface:
+The customer app provides a prep-first call interface:
 
 ### State Machine
 
 ```
 idle → calling → connected → ended
 ```
+
+- Before `calling`, actors complete a selection + briefing step that includes scenario context, civility instruction, escalation/de-escalation cues, and actor guidance (`mustAskCheckpoints`, `revealWhenAsked`) when present.
 
 ### Session Creation Flow
 
@@ -261,6 +264,7 @@ Experiment data follows a file-to-database-to-runtime loading model:
 1. **File definitions**
    - Personas are authored in `personas/customer_profile_*.json`
    - Scenarios are authored in `scenarios/scenario_*.json`
+   - Scenario scripts may include `actor_guidance` plus escalation/de-escalation cues inside `behavioral_condition`
 2. **Seeding to Supabase**
    - `scripts/seed-experimental-data.mjs` parses and validates both directories
    - Personas are written to `customers` and `customer_interactions`
@@ -268,8 +272,9 @@ Experiment data follows a file-to-database-to-runtime loading model:
    - `scenario_family` is derived from `scenario_id` by stripping `_civil` / `_uncivil`
 3. **Runtime loading (customer app)**
    - `apps/customer/src/lib/use-customers.ts` reads personas from `customers`
-   - `apps/customer/src/lib/use-scenarios.ts` reads active scenarios from `scenarios`
+   - `apps/customer/src/lib/use-scenarios.ts` reads active scenarios from `scenarios` (including `actor_guidance`)
    - `apps/customer/src/lib/scenario-render.ts` resolves placeholders (for example `{{customer_name}}`, `{{customer_dob_human}}`) into actor-facing script text
+   - Selection UI keeps persona/scenario combinations domain-compatible
 4. **Runtime propagation (session + agent workspace)**
    - `apps/customer/app/api/sessions/create/route.ts` persists selected scenario metadata on `sessions` and in `sessions.state`
    - Agent workspace reads `sessions.customer_id` and loads the full customer context from `customers` + `customer_interactions`
@@ -323,7 +328,7 @@ sessions
 
 - `id` (UUID, PK)
 - `customer_code`, `name`, `classification`, `email`, `date_of_birth`
-- `address_*`, `preferred_contact_channel`, `quick_internal_note`
+- `address_*`, `preferred_contact_channel`, `quick_internal_note`, `domain`
 - Row-level security enabled
 
 **customer_interactions**
@@ -337,7 +342,7 @@ sessions
 - `scenario_id` (PK)
 - `scenario_family`, `title`, `domain`
 - `civility_condition`, `behavior_instruction`
-- `background`, `customer_goal`, `guidelines`, `conversation`, `status`
+- `background`, `customer_goal`, `guidelines`, `conversation`, `actor_guidance`, `status`
 
 **session_events**
 

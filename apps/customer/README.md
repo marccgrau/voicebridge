@@ -5,9 +5,10 @@ Next.js customer-facing call interface for initiating support calls with VoiceBr
 ## Features
 
 - **Simple Call Flow**: Idle → Calling → Connected → Ended
-- **Cross-Combinable Setup**: Select any persona + any scenario before calling
+- **Cross-Combinable Setup**: Select any domain-compatible persona + scenario before calling
 - **Briefing Step**: Actor reviews persona/scenario briefing before starting the call
 - **Actor Script View**: After agent acceptance, the actor sees conversation steps and example utterances
+- **Actor Guidance Reference**: Briefing and live view can show must-ask checkpoints and reveal-when-asked prompts
 - **Template Rendering**: Scenario placeholders are resolved from selected persona data before and during the call
 - **Daily.co Audio**: Connects to WebRTC rooms via `@daily-co/daily-js` for live audio
 - **Real-time Status**: Monitors session status via Supabase Realtime to detect agent join/disconnect
@@ -89,7 +90,7 @@ apps/customer/
 
 ### 1. Idle / Preparation
 
-Actor selects a persona and scenario, reviews briefing, then clicks "Start Call".
+Actor selects a persona and scenario (filtered by matching domain), reviews briefing, then clicks "Start Call".
 
 ### 2. Calling
 
@@ -131,8 +132,9 @@ When the session status changes to `completed` or `abandoned`, or the customer c
 ### 3) Runtime loading in this app
 
 - `useCustomers()` reads personas from `customers`
-- `useScenarios()` reads active scenarios from `scenarios`
+- `useScenarios()` reads active scenarios from `scenarios`, including `actor_guidance`
 - `scenario-render.ts` resolves placeholders like `{{customer_name}}`, `{{customer_dob_human}}`, and address tokens for actor-facing script text
+- Scenario scripts should use explicit issue wording in opening turns (for example, exactly which request was denied)
 
 ### 4) Session-time persistence
 
@@ -180,7 +182,7 @@ Fetches available persona profiles from Supabase:
 Fetches active experimental scenarios from Supabase:
 
 - Returns `{ scenarios, isLoading, error }` — List used in scenario selection and briefing
-- Maps DB shape (`scenario_id`, `conversation`, `civility_condition`, `behavior_instruction`) into typed `Scenario` objects
+- Maps DB shape (`scenario_id`, `conversation`, `civility_condition`, `behavior_instruction`, `actor_guidance`) into typed `Scenario` objects
 
 ## Development
 
