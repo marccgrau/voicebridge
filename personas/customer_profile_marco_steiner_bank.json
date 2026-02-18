@@ -1,5 +1,4 @@
 {
-  "scenario_id": "bank_denial_appeal_structured_recovery",
   "domain": "banking",
   "customer_profile": {
     "customer_id": "BK-CH-441028",
@@ -25,15 +24,7 @@
       "eBanking"
     ],
     "preferred_contact_channel": "email",
-    "quick_internal_note": "Fairness-sensitive; requires clear rationale and concrete next steps before accepting a denial decision."
-  },
-  "case_context": {
-    "authentication_status": "not_started",
-    "current_case_id": "APL-BK-2026-02-17-MS-01",
-    "case_priority": "high",
-    "sla_tier": "standard",
-    "known_constraints": ["wants_fast_reconsideration"],
-    "compliance_note": "Explain decision basis before collecting appeal documents."
+    "quick_internal_note": "Fairness-sensitive; requires clear rationale and concrete next steps for any decision."
   },
   "interaction_history": [
     {
@@ -48,7 +39,7 @@
       "owner_team": "general_support",
       "agent_id": "AGT-151",
       "status": "denied",
-      "outcome_summary": "Fee reversal denied based on policy and account history.",
+      "outcome_summary": "Annual fee reversal denied: insufficient account tenure for discretionary waiver under current Privatkonto terms. Reconsideration possible with income proof and account activity evidence.",
       "resolution_time_hours": 4,
       "sla_breached": false,
       "follow_up_required": true,
@@ -67,12 +58,50 @@
       "owner_team": "cards",
       "agent_id": "AGT-402",
       "status": "denied",
-      "outcome_summary": "Temporary increase denied due to risk threshold.",
+      "outcome_summary": "Temporary limit increase denied: current utilization ratio exceeds internal risk threshold. Resubmission possible with latest salary statement and recent account statements.",
       "resolution_time_hours": 2,
       "sla_breached": false,
       "follow_up_required": true,
       "related_case_id": "CASE-BK-13024",
       "csat": 2
+    },
+    {
+      "interaction_id": "INT-BK-MS-0003",
+      "date_time": "2025-12-12T11:20:00Z",
+      "channel": "secure_message",
+      "direction": "inbound",
+      "topic": "Fees",
+      "subtopic": "Overdraft fee explanation",
+      "sentiment": "neutral",
+      "priority": "medium",
+      "owner_team": "general_support",
+      "agent_id": "AGT-088",
+      "status": "resolved",
+      "outcome_summary": "Overdraft fee calculation explained; confirmed fee matches published rate schedule. Customer satisfied after breakdown provided.",
+      "resolution_time_hours": 6,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-BK-12814",
+      "csat": 3
+    },
+    {
+      "interaction_id": "INT-BK-MS-0004",
+      "date_time": "2025-09-19T14:05:00Z",
+      "channel": "phone",
+      "direction": "inbound",
+      "topic": "Card services",
+      "subtopic": "Card replacement after wear-and-tear",
+      "sentiment": "neutral",
+      "priority": "low",
+      "owner_team": "cards",
+      "agent_id": "AGT-114",
+      "status": "resolved",
+      "outcome_summary": "Replacement Debitkarte ordered and sent to home address. Delivered within 4 business days.",
+      "resolution_time_hours": 1,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-BK-12301",
+      "csat": 5
     }
   ]
 }

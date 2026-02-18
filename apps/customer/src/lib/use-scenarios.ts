@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type {
+  ActorGuidance,
   Scenario,
   ScenarioConversationStep,
 } from "@voicebridge/contracts";
@@ -19,6 +20,7 @@ interface RawScenarioRow {
   conversation: unknown;
   civility_condition: "civil" | "uncivil";
   behavior_instruction: string;
+  actor_guidance: unknown;
   status: "active" | "inactive";
 }
 
@@ -48,6 +50,30 @@ function toConversationStep(value: unknown): ScenarioConversationStep | null {
   };
 }
 
+function toActorGuidance(value: unknown): ActorGuidance | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const raw = value as Record<string, unknown>;
+  const revealWhenAsked = Array.isArray(raw.reveal_when_asked)
+    ? raw.reveal_when_asked.filter(
+        (item): item is string => typeof item === "string"
+      )
+    : [];
+  const mustAskCheckpoints = Array.isArray(raw.must_ask_checkpoints)
+    ? raw.must_ask_checkpoints.filter(
+        (item): item is string => typeof item === "string"
+      )
+    : [];
+
+  if (revealWhenAsked.length === 0 && mustAskCheckpoints.length === 0) {
+    return undefined;
+  }
+
+  return { revealWhenAsked, mustAskCheckpoints };
+}
+
 function toScenario(row: RawScenarioRow): Scenario {
   const conversation = Array.isArray(row.conversation)
     ? row.conversation
@@ -68,6 +94,7 @@ function toScenario(row: RawScenarioRow): Scenario {
       civilityCondition: row.civility_condition,
       instruction: row.behavior_instruction,
     },
+    actorGuidance: toActorGuidance(row.actor_guidance),
     status: row.status,
   };
 }
@@ -83,7 +110,7 @@ export function useScenarios() {
         const { data, error } = await supabase
           .from("scenarios")
           .select(
-            "scenario_id, scenario_family, title, domain, background, customer_goal, guidelines, conversation, civility_condition, behavior_instruction, status"
+            "scenario_id, scenario_family, title, domain, background, customer_goal, guidelines, conversation, civility_condition, behavior_instruction, actor_guidance, status"
           )
           .eq("status", "active")
           .order("scenario_id", { ascending: true });

@@ -14,7 +14,7 @@
   "conversation": [
     {
       "id": "opening_alert",
-      "customer_msg": "Yeah, I just got an alert for a medical claim I don't recognize. I think someone used my insurance details — this is unacceptable.",
+      "customer_msg": "Yeah, I just got an alert for a medical claim I don't recognize. Someone is using my insurance details — this is ridiculous.",
       "actor_intent": "Report suspicious claim and trigger urgency. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "accusatory and agitated",
       "advice_instructional": "Acknowledge concern, verify identity, then apply immediate policy protection controls.",
@@ -22,7 +22,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Yes, of course. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
+      "customer_msg": "Yes. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}. Can we speed this up?",
       "actor_intent": "Provide verification information. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm verification and place protective flag/lock as per policy.",
@@ -30,7 +30,7 @@
     },
     {
       "id": "claims_timeline",
-      "customer_msg": "I have not had any treatment this month. The claim says it was submitted two days ago.",
+      "customer_msg": "I have not had any treatment this month. The claim says it was submitted two days ago. How is this even possible?",
       "actor_intent": "Provide timeline and inconsistency evidence. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Capture incident details and determine investigation scope.",
@@ -38,7 +38,7 @@
     },
     {
       "id": "investigation_request",
-      "customer_msg": "Please open a fraud investigation and mark this claim as disputed — this is unacceptable.",
+      "customer_msg": "Open a fraud investigation and mark this claim as disputed. I shouldn't have to deal with this.",
       "actor_intent": "Request formal dispute initiation. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "hostile",
       "advice_instructional": "Open fraud dispute, explain case handling stages and expected contact points.",
@@ -46,7 +46,7 @@
     },
     {
       "id": "temporary_protection",
-      "customer_msg": "Can you also add extra protection so no other suspicious claims go through unnoticed?",
+      "customer_msg": "Add extra protection so no other claims go through. This is completely unreasonable.",
       "actor_intent": "Request containment beyond single claim. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Apply temporary watch/protection notes and explain what they do.",
@@ -54,7 +54,7 @@
     },
     {
       "id": "instant_challenge",
-      "customer_msg": "Can this be fully resolved today? I'm worried this will affect me immediately.",
+      "customer_msg": "Can this be fully resolved today? Because I'm not waiting weeks while someone uses my policy.",
       "actor_intent": "Test boundary on immediate resolution. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "aggressive",
       "advice_instructional": "Set realistic timeline; no guaranteed same-day final decision; provide immediate safeguards and monitoring.",
@@ -62,7 +62,7 @@
     },
     {
       "id": "notification_preference",
-      "customer_msg": "Then notify me by SMS and email whenever anything changes — this is unacceptable.",
+      "customer_msg": "Notify me by SMS and email whenever anything changes. I want to know immediately.",
       "actor_intent": "Set communication channel preferences. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm channels and update triggers.",
@@ -70,15 +70,15 @@
     },
     {
       "id": "next_steps_question",
-      "customer_msg": "What should I do if I see another suspicious claim before you finish the review?",
+      "customer_msg": "What am I supposed to do if another suspicious claim shows up before you finish? You need to tell me.",
       "actor_intent": "Elicit contingency guidance. Use impatient, accusatory delivery and interruptions where natural.",
-      "tone": "angry",
+      "tone": "irritated",
       "advice_instructional": "Provide clear contingency instructions and escalation route.",
       "next_id": "closing"
     },
     {
       "id": "closing",
-      "customer_msg": "Fine. You need to summarize what you've done and the expected review timeline?",
+      "customer_msg": "Fine. Summarize what you've done and the expected review timeline. Don't skip anything.",
       "actor_intent": "Require structured recap. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Recap lock/flag actions, investigation initiation, communications setup, and timeline.",
@@ -87,6 +87,30 @@
   ],
   "behavioral_condition": {
     "civility_condition": "uncivil",
-    "instruction": "Customer is rude/angry, uses confrontational language, and challenges the agent."
+    "instruction": "Customer is rude/angry, uses confrontational language, and challenges the agent.",
+    "escalation_cues": [
+      "Agent does not immediately take protective action on the policy",
+      "Agent uses corporate language or reads from a script without personalizing",
+      "Agent cannot explain what happens next or who owns the investigation"
+    ],
+    "deescalation_cues": [
+      "Agent confirms protective lock is in place and states it clearly",
+      "Agent provides a specific case reference and named investigation stages",
+      "Agent proactively gives contingency instructions without being asked"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "The suspicious claim was filed by a provider clinic in a city you have never visited.",
+      "You have not shared your insurance card or policy number with anyone.",
+      "Your insurance card is still in your wallet — it was not lost or stolen.",
+      "You last used your insurance for a routine GP check-up three weeks ago.",
+      "You received the alert via the insurer's mobile app notification."
+    ],
+    "must_ask_checkpoints": [
+      "Can this be fully resolved today?",
+      "How exactly will I be notified of progress?",
+      "What should I do if another suspicious claim appears?"
+    ]
   }
 }

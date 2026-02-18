@@ -45,6 +45,7 @@ export function useCustomers() {
             notes: row.notes as string | null,
             quickInternalNote:
               (row.quick_internal_note as string | null) ?? null,
+            domain: (row.domain as string | null) ?? null,
           }));
           setCustomers(customers);
         }

@@ -1,5 +1,4 @@
 {
-  "scenario_id": "bank_unauthorized_transaction_high_urgency",
   "domain": "banking",
   "customer_profile": {
     "customer_id": "BK-CH-784291",
@@ -26,14 +25,6 @@
     ],
     "preferred_contact_channel": "sms",
     "quick_internal_note": "Time-pressured; expects immediate protective action and clear timelines."
-  },
-  "case_context": {
-    "authentication_status": "not_started",
-    "current_case_id": "FRD-2026-02-17-AXM-01",
-    "case_priority": "high",
-    "sla_tier": "priority_queue",
-    "known_constraints": ["time_critical_today"],
-    "compliance_note": "Verify identity before account-level actions."
   },
   "interaction_history": [
     {
@@ -72,6 +63,44 @@
       "sla_breached": false,
       "follow_up_required": false,
       "related_case_id": "CASE-BK-11302",
+      "csat": 5
+    },
+    {
+      "interaction_id": "INT-BK-AXM-0003",
+      "date_time": "2025-08-14T10:15:00Z",
+      "channel": "phone",
+      "direction": "inbound",
+      "topic": "Fees",
+      "subtopic": "Fee reversal request",
+      "sentiment": "frustrated",
+      "priority": "high",
+      "owner_team": "general_support",
+      "agent_id": "AGT-088",
+      "status": "denied",
+      "outcome_summary": "Annual maintenance fee reversal denied; fee is contractual under Privatkonto Plus terms. Reconsideration possible with documented financial hardship or loyalty context.",
+      "resolution_time_hours": 5,
+      "sla_breached": false,
+      "follow_up_required": true,
+      "related_case_id": "CASE-BK-10874",
+      "csat": 2
+    },
+    {
+      "interaction_id": "INT-BK-AXM-0004",
+      "date_time": "2025-05-03T16:30:00Z",
+      "channel": "phone",
+      "direction": "inbound",
+      "topic": "Card services",
+      "subtopic": "Travel notice for card usage abroad",
+      "sentiment": "neutral",
+      "priority": "low",
+      "owner_team": "cards",
+      "agent_id": "AGT-114",
+      "status": "resolved",
+      "outcome_summary": "Travel notice registered for Southeast Asia trip. Card unblocked for international transactions for 3-week period.",
+      "resolution_time_hours": 1,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-BK-10201",
       "csat": 5
     }
   ]

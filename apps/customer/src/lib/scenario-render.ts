@@ -72,3 +72,10 @@ export function renderScenarioConversation(
     customerMsg: renderScenarioText(step.customerMsg, customer),
   }));
 }
+
+export function renderActorGuidanceTexts(
+  texts: string[],
+  customer: Customer
+): string[] {
+  return texts.map((text) => renderScenarioText(text, customer));
+}

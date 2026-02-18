@@ -2,7 +2,7 @@
   "scenario_id": "bank_denial_appeal_structured_recovery_uncivil",
   "title": "Denied Request – Appeal and Reconsideration – Uncivil Customer",
   "domain": "banking",
-  "background": "Your request for a fee reversal and temporary credit limit increase was denied.",
+  "background": "Your request for an annual fee reversal and a temporary credit limit increase were both denied recently. You feel this is unfair because you have been a loyal customer for years with a clean account history. You want to understand exactly why you were denied and find the fastest way to get these decisions reconsidered.",
   "customer_goal": "Understand why the denial happened, identify missing criteria, and submit a valid reconsideration request quickly.",
   "guidelines": {
     "decision_explanation_required": true,
@@ -17,7 +17,7 @@
   "conversation": [
     {
       "id": "opening_complaint",
-      "customer_msg": "Listen, my request was denied and this makes no sense. This is ridiculous — this is unacceptable.",
+      "customer_msg": "Listen, my request was denied and this makes no sense. This is ridiculous.",
       "actor_intent": "Signal dissatisfaction and demand explanation. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry and confrontational",
       "advice_instructional": "Acknowledge emotion, verify identity, and commit to transparent explanation.",
@@ -25,7 +25,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Sure. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
+      "customer_msg": "Fine. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Complete verification. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm identity and access the denial details.",
@@ -33,7 +33,7 @@
     },
     {
       "id": "reason_probe",
-      "customer_msg": "Can you explain in plain terms what exactly caused the denial?",
+      "customer_msg": "Explain in plain terms what exactly caused the denial. I shouldn't have to beg for answers.",
       "actor_intent": "Force understandable rationale. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Explain decision basis clearly and avoid jargon.",
@@ -41,7 +41,7 @@
     },
     {
       "id": "missing_criteria_probe",
-      "customer_msg": "Okay, then what was missing from my application — this is unacceptable.",
+      "customer_msg": "So what was missing from my application? This is completely unreasonable.",
       "actor_intent": "Elicit concrete gap diagnosis. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "List missing criteria/documents specifically.",
@@ -49,7 +49,7 @@
     },
     {
       "id": "appeal_route_request",
-      "customer_msg": "I want to appeal this. What's the fastest valid route?",
+      "customer_msg": "I want to appeal this right now. What's the fastest valid route?",
       "actor_intent": "Initiate formal reconsideration path. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "threatening escalation",
       "advice_instructional": "Offer reconsideration process, steps, and prerequisites.",
@@ -57,7 +57,7 @@
     },
     {
       "id": "document_guidance",
-      "customer_msg": "Tell me exactly which documents you need so this doesn't get rejected again.",
+      "customer_msg": "Tell me exactly which documents you need. I'm not doing this twice.",
       "actor_intent": "Demand procedural precision. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Provide exact document checklist and acceptance standards.",
@@ -65,7 +65,7 @@
     },
     {
       "id": "submission_method",
-      "customer_msg": "Can I submit through the app, or do you need this by email — this is unacceptable.",
+      "customer_msg": "Can I submit through the app, or do you need this by email? Just give me a straight answer.",
       "actor_intent": "Choose submission channel. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "irritated",
       "advice_instructional": "Present allowed submission channels and recommend best option for speed/completeness.",
@@ -73,7 +73,7 @@
     },
     {
       "id": "interim_support",
-      "customer_msg": "What can you do in the meantime while the review is pending?",
+      "customer_msg": "What can you do in the meantime? I'm stuck here because of your decision.",
       "actor_intent": "Ask for interim workaround. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Offer policy-compliant interim options without overpromising.",
@@ -81,7 +81,7 @@
     },
     {
       "id": "timeline_channel",
-      "customer_msg": "How long will the review take, and how will I be informed?",
+      "customer_msg": "How long will the review take? I need a real answer, not 'we'll get back to you'.",
       "actor_intent": "Clarify SLA and communication. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "State realistic timeline and confirm preferred update channel.",
@@ -89,7 +89,7 @@
     },
     {
       "id": "closing",
-      "customer_msg": "Fine. Please recap what I need to submit and what happens next.",
+      "customer_msg": "Fine. Recap what I need to submit and what happens next. Don't leave anything out.",
       "actor_intent": "Require structured close and action recap. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Summarize requirements, submission method, timeline, and escalation trigger.",
@@ -98,6 +98,31 @@
   ],
   "behavioral_condition": {
     "civility_condition": "uncivil",
-    "instruction": "Customer is rude/angry, uses confrontational language, and challenges the agent."
+    "instruction": "Customer is rude/angry, uses confrontational language, and challenges the agent.",
+    "escalation_cues": [
+      "Agent gives circular or vague explanations without citing specific denial criteria",
+      "Agent uses corporate jargon or deflects with 'policy says so' without elaborating",
+      "Agent cannot name the exact documents needed for reconsideration"
+    ],
+    "deescalation_cues": [
+      "Agent explains the denial reason in plain, specific language",
+      "Agent provides a concrete document checklist with clear acceptance criteria",
+      "Agent gives a specific timeline with a named update channel"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "You have been a customer for nearly 10 years and have never missed a payment.",
+      "You can provide recent salary statements and 3 months of account statements.",
+      "You prefer submitting documents digitally through the app or email.",
+      "You have a stable income and regular salary deposits visible in your account history.",
+      "You were not told about the denial criteria when you originally submitted the request."
+    ],
+    "must_ask_checkpoints": [
+      "What exactly caused the denial?",
+      "What is missing from my application?",
+      "What is the fastest valid appeal route?",
+      "What can be done while the review is pending?"
+    ]
   }
 }

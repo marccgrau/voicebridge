@@ -6,6 +6,7 @@ import type { ScenarioConversationStep } from "@voicebridge/contracts";
 import { useCustomerSession } from "@/lib/customer-session";
 import { useDailyAudio } from "@/lib/daily-audio";
 import {
+  renderActorGuidanceTexts,
   renderScenarioConversation,
   renderScenarioText,
 } from "@/lib/scenario-render";
@@ -42,6 +43,10 @@ export default function CustomerCallPage() {
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("");
   const [prepStage, setPrepStage] = useState<PrepStage>("selection");
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const [completedCheckpoints, setCompletedCheckpoints] = useState<Set<string>>(
+    new Set()
+  );
+  const [showActorReference, setShowActorReference] = useState(true);
 
   const selectedCustomer = useMemo(
     () =>
@@ -57,6 +62,26 @@ export default function CustomerCallPage() {
     [scenarios, selectedScenarioId]
   );
 
+  // Domain filtering: filter scenarios by selected customer's domain and vice versa
+  const filteredScenarios = useMemo(() => {
+    if (!selectedCustomer?.domain) {
+      return scenarios;
+    }
+    return scenarios.filter(
+      (scenario) => scenario.domain === selectedCustomer.domain
+    );
+  }, [scenarios, selectedCustomer]);
+
+  const filteredCustomers = useMemo(() => {
+    if (!selectedScenario) {
+      return customers;
+    }
+    return customers.filter(
+      (customer) =>
+        !customer.domain || customer.domain === selectedScenario.domain
+    );
+  }, [customers, selectedScenario]);
+
   const renderedConversation = useMemo(() => {
     if (!selectedCustomer || !selectedScenario) {
       return [];
@@ -65,7 +90,47 @@ export default function CustomerCallPage() {
     return renderScenarioConversation(selectedScenario, selectedCustomer);
   }, [selectedCustomer, selectedScenario]);
 
+  const renderedActorGuidance = useMemo(() => {
+    if (!selectedCustomer || !selectedScenario?.actorGuidance) {
+      return null;
+    }
+
+    return {
+      revealWhenAsked: renderActorGuidanceTexts(
+        selectedScenario.actorGuidance.revealWhenAsked,
+        selectedCustomer
+      ),
+      mustAskCheckpoints: selectedScenario.actorGuidance.mustAskCheckpoints,
+    };
+  }, [selectedCustomer, selectedScenario]);
+
   const canContinue = Boolean(selectedCustomer && selectedScenario);
+
+  // Clear scenario selection when customer changes and scenario is no longer valid
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    const customer = customers.find((c) => c.id === customerId);
+    if (
+      customer?.domain &&
+      selectedScenario &&
+      selectedScenario.domain !== customer.domain
+    ) {
+      setSelectedScenarioId("");
+    }
+  };
+
+  // Clear customer selection when scenario changes and customer is no longer valid
+  const handleScenarioChange = (scenarioId: string) => {
+    setSelectedScenarioId(scenarioId);
+    const scenario = scenarios.find((s) => s.scenarioId === scenarioId);
+    if (
+      scenario &&
+      selectedCustomer?.domain &&
+      selectedCustomer.domain !== scenario.domain
+    ) {
+      setSelectedCustomerId("");
+    }
+  };
 
   const handleStartCall = async () => {
     if (!selectedCustomer || !selectedScenario) {
@@ -73,6 +138,7 @@ export default function CustomerCallPage() {
     }
 
     setCompletedSteps(new Set());
+    setCompletedCheckpoints(new Set());
     try {
       await startCall({
         customerId: selectedCustomer.id,
@@ -113,6 +179,18 @@ export default function CustomerCallPage() {
     }
   };
 
+  const toggleCheckpoint = (checkpoint: string) => {
+    setCompletedCheckpoints((prev) => {
+      const next = new Set(prev);
+      if (next.has(checkpoint)) {
+        next.delete(checkpoint);
+      } else {
+        next.add(checkpoint);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-5xl rounded-xl border border-border bg-card p-6 md:p-8">
@@ -141,12 +219,12 @@ export default function CustomerCallPage() {
               <h2 className="text-lg font-medium">1. Select persona</h2>
               <select
                 value={selectedCustomerId}
-                onChange={(event) => setSelectedCustomerId(event.target.value)}
+                onChange={(event) => handleCustomerChange(event.target.value)}
                 disabled={isLoadingCustomers}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
                 <option value="">Choose persona...</option>
-                {customers.map((customer) => (
+                {filteredCustomers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name} ({customer.classification})
                   </option>
@@ -154,6 +232,11 @@ export default function CustomerCallPage() {
               </select>
               {selectedCustomer && (
                 <p className="text-sm text-muted-foreground">
+                  {selectedCustomer.domain && (
+                    <span className="mr-2 inline-block rounded bg-muted px-1.5 py-0.5 text-xs font-medium uppercase">
+                      {selectedCustomer.domain}
+                    </span>
+                  )}
                   {selectedCustomer.quickInternalNote ?? selectedCustomer.notes}
                 </p>
               )}
@@ -163,12 +246,12 @@ export default function CustomerCallPage() {
               <h2 className="text-lg font-medium">2. Select scenario</h2>
               <select
                 value={selectedScenarioId}
-                onChange={(event) => setSelectedScenarioId(event.target.value)}
+                onChange={(event) => handleScenarioChange(event.target.value)}
                 disabled={isLoadingScenarios}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
                 <option value="">Choose scenario...</option>
-                {scenarios.map((scenario) => (
+                {filteredScenarios.map((scenario) => (
                   <option key={scenario.scenarioId} value={scenario.scenarioId}>
                     {scenario.title}
                   </option>
@@ -224,6 +307,89 @@ export default function CustomerCallPage() {
                   </p>
                 </article>
               </div>
+
+              {selectedScenario.behavioralCondition.escalationCues && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <article className="rounded-lg border border-border bg-muted/10 p-4">
+                    <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                      Escalation cues
+                    </h3>
+                    <ul className="mt-2 space-y-1">
+                      {selectedScenario.behavioralCondition.escalationCues.map(
+                        (cue, i) => (
+                          <li key={i} className="text-sm text-muted-foreground">
+                            &bull; {cue}
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  </article>
+
+                  {selectedScenario.behavioralCondition.deescalationCues && (
+                    <article className="rounded-lg border border-border bg-muted/10 p-4">
+                      <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                        De-escalation cues
+                      </h3>
+                      <ul className="mt-2 space-y-1">
+                        {selectedScenario.behavioralCondition.deescalationCues.map(
+                          (cue, i) => (
+                            <li
+                              key={i}
+                              className="text-sm text-muted-foreground"
+                            >
+                              &bull; {cue}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </article>
+                  )}
+                </div>
+              )}
+
+              {renderedActorGuidance && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {renderedActorGuidance.mustAskCheckpoints.length > 0 && (
+                    <article className="rounded-lg border border-border bg-muted/10 p-4">
+                      <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                        Must-ask checkpoints
+                      </h3>
+                      <ul className="mt-2 space-y-1">
+                        {renderedActorGuidance.mustAskCheckpoints.map(
+                          (cp, i) => (
+                            <li
+                              key={i}
+                              className="text-sm text-muted-foreground"
+                            >
+                              &bull; {cp}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </article>
+                  )}
+
+                  {renderedActorGuidance.revealWhenAsked.length > 0 && (
+                    <article className="rounded-lg border border-border bg-muted/10 p-4">
+                      <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                        Reveal when asked
+                      </h3>
+                      <ul className="mt-2 space-y-1">
+                        {renderedActorGuidance.revealWhenAsked.map(
+                          (item, i) => (
+                            <li
+                              key={i}
+                              className="text-sm text-muted-foreground"
+                            >
+                              &bull; {item}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </article>
+                  )}
+                </div>
+              )}
 
               <article className="rounded-lg border border-border bg-muted/10 p-4">
                 <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
@@ -289,6 +455,79 @@ export default function CustomerCallPage() {
               <p className="text-xs text-muted-foreground">
                 Session: {sessionId.slice(0, 8)}...
               </p>
+            )}
+
+            {renderedActorGuidance && (
+              <div className="rounded-lg border border-border bg-muted/10 p-4">
+                <button
+                  onClick={() => setShowActorReference((v) => !v)}
+                  className="flex w-full items-center justify-between text-left"
+                >
+                  <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+                    Actor Reference
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {showActorReference ? "Hide" : "Show"}
+                  </span>
+                </button>
+
+                {showActorReference && (
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    {renderedActorGuidance.mustAskCheckpoints.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-medium uppercase text-muted-foreground">
+                          Must-ask checkpoints
+                        </h4>
+                        <ul className="mt-1 space-y-1">
+                          {renderedActorGuidance.mustAskCheckpoints.map(
+                            (cp, i) => (
+                              <li key={i} className="flex items-start gap-2">
+                                <button
+                                  onClick={() => toggleCheckpoint(cp)}
+                                  className={`mt-0.5 h-4 w-4 shrink-0 rounded border ${
+                                    completedCheckpoints.has(cp)
+                                      ? "border-success bg-success/20"
+                                      : "border-border"
+                                  }`}
+                                />
+                                <span
+                                  className={`text-sm ${
+                                    completedCheckpoints.has(cp)
+                                      ? "text-muted-foreground line-through"
+                                      : ""
+                                  }`}
+                                >
+                                  {cp}
+                                </span>
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {renderedActorGuidance.revealWhenAsked.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-medium uppercase text-muted-foreground">
+                          Reveal when asked
+                        </h4>
+                        <ul className="mt-1 space-y-1">
+                          {renderedActorGuidance.revealWhenAsked.map(
+                            (item, i) => (
+                              <li
+                                key={i}
+                                className="text-sm text-muted-foreground"
+                              >
+                                &bull; {item}
+                              </li>
+                            )
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             <div className="space-y-3">
