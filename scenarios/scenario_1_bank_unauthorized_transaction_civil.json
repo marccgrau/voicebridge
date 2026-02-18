@@ -96,6 +96,31 @@
   ],
   "behavioral_condition": {
     "civility_condition": "civil",
-    "instruction": "Customer remains respectful and cooperative throughout."
+    "instruction": "Customer remains respectful and cooperative throughout.",
+    "escalation_cues": [
+      "Agent does not immediately acknowledge the urgency of the fraud report",
+      "Agent gives vague timelines without concrete milestones",
+      "Agent fails to confirm that the card has been blocked"
+    ],
+    "deescalation_cues": [
+      "Agent takes immediate protective action and confirms it",
+      "Agent provides a clear case reference number",
+      "Agent summarizes actions taken with specific next steps and timelines"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "The suspicious transaction was at an online electronics retailer you have never used.",
+      "You still have the physical card in your possession — it was not lost or stolen.",
+      "You did not share your card details with anyone recently.",
+      "You used the card at a petrol station two days ago (the last place before the supermarket).",
+      "You have mobile banking alerts enabled, which is how you noticed the charge."
+    ],
+    "must_ask_checkpoints": [
+      "How long does replacement delivery take?",
+      "Can you guarantee faster delivery?",
+      "How will I be updated on the dispute progress?",
+      "Will my PIN stay the same?"
+    ]
   }
 }

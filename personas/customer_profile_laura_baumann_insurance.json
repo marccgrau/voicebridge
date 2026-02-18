@@ -1,5 +1,4 @@
 {
-  "scenario_id": "insurance_denied_claim_appeal_structured_recovery",
   "domain": "health_insurance",
   "customer_profile": {
     "customer_id": "INS-CH-558603",
@@ -24,15 +23,7 @@
       "Rechtsschutz Gesundheit"
     ],
     "preferred_contact_channel": "email",
-    "quick_internal_note": "Needs plain-language reason-code explanations and explicit documentation checklists."
-  },
-  "case_context": {
-    "authentication_status": "not_started",
-    "current_case_id": "APL-INS-2026-02-17-LB-01",
-    "case_priority": "high",
-    "sla_tier": "standard",
-    "known_constraints": ["concerned_about_out_of_pocket_cost"],
-    "compliance_note": "Explain reason code and policy basis before appeal initiation."
+    "quick_internal_note": "Structured communicator; needs plain-language explanations and explicit checklists."
   },
   "interaction_history": [
     {
@@ -47,7 +38,7 @@
       "owner_team": "claims",
       "agent_id": "AGT-721",
       "status": "denied",
-      "outcome_summary": "Claim denied due to missing referral evidence under plan rules.",
+      "outcome_summary": "Physiotherapy claim denied: missing GP referral letter required under Zusatzversicherung Ambulant plan rules. Appeal may be filed with referral documentation and original provider invoice.",
       "resolution_time_hours": 36,
       "sla_breached": false,
       "follow_up_required": true,
@@ -72,6 +63,44 @@
       "follow_up_required": false,
       "related_case_id": "CASE-INS-22610",
       "csat": 4
+    },
+    {
+      "interaction_id": "INT-INS-LB-0003",
+      "date_time": "2025-07-07T10:00:00Z",
+      "channel": "email",
+      "direction": "inbound",
+      "topic": "Reimbursement",
+      "subtopic": "Prescription reimbursement timing",
+      "sentiment": "neutral",
+      "priority": "low",
+      "owner_team": "billing",
+      "agent_id": "AGT-207",
+      "status": "resolved",
+      "outcome_summary": "Prescription reimbursement processing time clarified; payment confirmed within standard 10-business-day window.",
+      "resolution_time_hours": 4,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-INS-21502",
+      "csat": 4
+    },
+    {
+      "interaction_id": "INT-INS-LB-0004",
+      "date_time": "2025-04-18T13:30:00Z",
+      "channel": "service_desk",
+      "direction": "inbound",
+      "topic": "Policy administration",
+      "subtopic": "Policy document correction",
+      "sentiment": "neutral",
+      "priority": "low",
+      "owner_team": "service_desk",
+      "agent_id": "AGT-041",
+      "status": "resolved",
+      "outcome_summary": "Corrected name spelling on policy certificate and reissued document by mail.",
+      "resolution_time_hours": 2,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-INS-20744",
+      "csat": 5
     }
   ]
 }

@@ -1,5 +1,4 @@
 {
-  "scenario_id": "insurance_suspicious_claim_high_urgency",
   "domain": "health_insurance",
   "customer_profile": {
     "customer_id": "INS-CH-992174",
@@ -25,14 +24,6 @@
     ],
     "preferred_contact_channel": "email",
     "quick_internal_note": "Detail-oriented; expects explicit process milestones and written confirmation."
-  },
-  "case_context": {
-    "authentication_status": "not_started",
-    "current_case_id": "FRD-INS-2026-02-17-NK-01",
-    "case_priority": "high",
-    "sla_tier": "standard",
-    "known_constraints": ["identity_misuse_concern"],
-    "compliance_note": "Verify policyholder identity before sharing claim details."
   },
   "interaction_history": [
     {
@@ -72,6 +63,44 @@
       "follow_up_required": false,
       "related_case_id": "CASE-INS-21144",
       "csat": 4
+    },
+    {
+      "interaction_id": "INT-INS-NK-0003",
+      "date_time": "2025-06-21T15:10:00Z",
+      "channel": "email",
+      "direction": "inbound",
+      "topic": "Reimbursement",
+      "subtopic": "Specialist consultation reimbursement",
+      "sentiment": "frustrated",
+      "priority": "high",
+      "owner_team": "claims",
+      "agent_id": "AGT-721",
+      "status": "denied",
+      "outcome_summary": "Specialist consultation reimbursement denied: GP referral letter not attached. Zusatzversicherung Ambulant requires referral for specialist visits. Appeal possible with referral letter and medical report.",
+      "resolution_time_hours": 24,
+      "sla_breached": false,
+      "follow_up_required": true,
+      "related_case_id": "CASE-INS-20847",
+      "csat": 2
+    },
+    {
+      "interaction_id": "INT-INS-NK-0004",
+      "date_time": "2025-03-11T09:45:00Z",
+      "channel": "mobile_app_chat",
+      "direction": "inbound",
+      "topic": "Coverage",
+      "subtopic": "Hospital add-on coverage scope inquiry",
+      "sentiment": "neutral",
+      "priority": "low",
+      "owner_team": "general_support",
+      "agent_id": "AGT-289",
+      "status": "resolved",
+      "outcome_summary": "Spitalzusatz Halbprivat coverage scope explained including room category, surgeon choice, and geographic limits.",
+      "resolution_time_hours": 3,
+      "sla_breached": false,
+      "follow_up_required": false,
+      "related_case_id": "CASE-INS-20112",
+      "csat": 5
     }
   ]
 }

@@ -298,6 +298,10 @@ async function loadScenarios() {
         typeof payload.customer_goal === "string" ? payload.customer_goal : "",
       guidelines: payload.guidelines ?? {},
       conversation,
+      actor_guidance:
+        payload.actor_guidance && typeof payload.actor_guidance === "object"
+          ? payload.actor_guidance
+          : null,
       status: "active",
     });
   }
@@ -362,7 +366,7 @@ async function main() {
   const personas = await loadPersonaProfiles();
   const scenarios = await loadScenarios();
 
-  const customerRows = personas.map(({ dbCustomerId, profile }) => ({
+  const customerRows = personas.map(({ dbCustomerId, profile, payload }) => ({
     id: dbCustomerId,
     customer_code: profile.customer_id,
     name: profile.full_name,
@@ -384,6 +388,7 @@ async function main() {
     preferred_contact_channel: profile.preferred_contact_channel ?? null,
     notes: profile.quick_internal_note ?? null,
     quick_internal_note: profile.quick_internal_note ?? null,
+    domain: typeof payload.domain === "string" ? payload.domain : null,
   }));
 
   const interactionRows = personas.flatMap(({ dbCustomerId, interactions }) =>

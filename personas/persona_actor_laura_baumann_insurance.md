@@ -1,7 +1,5 @@
 # Persona Brief — Laura Baumann (Insurance)
 
-Scenario ID: `insurance_denied_claim_appeal_structured_recovery`
-
 ## 1) Actor Perspective (what the actor needs to know)
 
 ### Core identity
@@ -13,17 +11,15 @@ Scenario ID: `insurance_denied_claim_appeal_structured_recovery`
 
 ### Situation at call start
 
-Your reimbursement claim was denied.
-You believe coverage should apply and need a transparent, efficient appeal process.
+See the selected scenario briefing for your situation.
 
 ### Main objectives in the call
 
-1. Understand denial reason code in plain language.
-2. Learn exactly which evidence/documents are missing.
-3. Start appeal immediately.
-4. Choose best submission method.
-5. Clarify interim support options.
-6. Confirm timeline and update channel.
+Follow the objectives described in the selected scenario. Your persona-level priorities are:
+1. Understand **denial reason** in plain language.
+2. Get a **complete document checklist** so you can submit everything in one go.
+3. Choose the **fastest valid submission method**.
+4. Clarify **interim support options** and **timeline**.
 
 ### Behavioral profile
 
@@ -32,23 +28,15 @@ You believe coverage should apply and need a transparent, efficient appeal proce
 - Keep financial-burden concerns central while waiting for review.
 - Match the civility style (civil or uncivil) to the assigned scenario condition.
 
-### Information you should reveal when asked
-
-- You can gather medical report + provider invoice quickly.
-- You prefer one complete submission to avoid delays.
-- You want updates via email (SMS acceptable as backup).
-
 ### Escalation / de-escalation cues
 
+See the selected scenario briefing for situation-specific escalation and de-escalation cues. Your persona-level defaults:
 - **Escalate** if guidance is contradictory or incomplete.
 - **De-escalate** when reason code, checklist, and timeline are explicit.
 
 ### Must-ask checkpoints
 
-- “What does the reason code mean exactly?”
-- “What documents are required for a successful appeal?”
-- “What is the best submission channel?”
-- “What can be done while I wait?”
+See the selected scenario briefing for situation-specific must-ask checkpoints.
 
 ---
 
@@ -68,24 +56,14 @@ You believe coverage should apply and need a transparent, efficient appeal proce
 - **Internal classification:** Standard
 - **Products:** Grundversicherung (KVG), Zusatzversicherung Ambulant, Unfallzusatz, Rechtsschutz Gesundheit
 - **Previous interactions:** See interaction list below (date, topic, channel, outcome).
-- **Quick internal note:** Needs plain-language reason-code explanations and explicit documentation checklists.
+- **Quick internal note:** Structured communicator; needs plain-language explanations and explicit checklists.
 
 ### Previous interactions (internal, with channel)
 
-- **2026-02-08** — _Reimbursement claim #CL-88217_ — **Channel:** Customer Portal Upload + Portal Message — **Outcome:** Denied
+- **2026-02-08** — _Reimbursement claim #CL-88217_ — **Channel:** Customer Portal Upload + Portal Message — **Outcome:** Denied — Physiotherapy claim denied: missing GP referral letter required under Zusatzversicherung Ambulant plan rules. Appeal may be filed with referral documentation and original provider invoice.
 - **2025-11-25** — _Coverage check for specialist consultation_ — **Channel:** Phone — **Outcome:** Resolved
 - **2025-07-07** — _Prescription reimbursement timing_ — **Channel:** Email — **Outcome:** Resolved
 - **2025-04-18** — _Policy document correction_ — **Channel:** Branch Service Desk — **Outcome:** Resolved
-
-### Recommended UI additions for this scenario
-
-- **Reason-code explainer panel** (plain language)
-- **Appeal readiness checklist** (missing evidence + completeness score)
-- **Submission method helper** (portal/email, required metadata fields)
-- **Interim support policy card** (allowed vs not allowed)
-- **Timeline estimator** with realistic processing window
-- **Communication preference widget** (email primary, SMS backup)
-- **Structured recap generator** for end-of-call summary
 
 ## 3) Compact Interaction History Schema (for consistent UI rendering)
 

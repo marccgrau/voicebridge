@@ -2,7 +2,7 @@
   "scenario_id": "insurance_denied_claim_appeal_structured_recovery_civil",
   "title": "Denied Reimbursement – Appeal and Evidence Submission – Civil Customer",
   "domain": "health_insurance",
-  "background": "Your reimbursement request for a recent treatment was denied, and you believe it should be covered.",
+  "background": "Your reimbursement claim for a recent specialist consultation was denied. You believe the treatment should be covered because your doctor recommended it. You want to understand the specific denial reason, identify what evidence is missing, and file a successful appeal as quickly as possible.",
   "customer_goal": "Understand the denial reason code, prepare the right evidence, and file a successful appeal quickly.",
   "guidelines": {
     "reason_code_explanation_required": true,
@@ -99,6 +99,31 @@
   ],
   "behavioral_condition": {
     "civility_condition": "civil",
-    "instruction": "Customer remains respectful and cooperative throughout."
+    "instruction": "Customer remains respectful and cooperative throughout.",
+    "escalation_cues": [
+      "Agent cannot explain the reason code in plain language",
+      "Agent gives contradictory or incomplete document requirements",
+      "Agent does not acknowledge the financial impact of waiting for the appeal"
+    ],
+    "deescalation_cues": [
+      "Agent translates reason code into understandable terms with policy reference",
+      "Agent provides a complete document checklist with clear formatting requirements",
+      "Agent gives a realistic timeline and confirms the preferred update channel"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Your GP verbally recommended the specialist visit but you did not get a written referral letter at the time.",
+      "You can contact your GP to obtain a retroactive referral letter.",
+      "You have the original provider invoice and can scan it digitally.",
+      "The treatment was for a consultation with a dermatologist for a recurring skin condition.",
+      "You were not aware that a written referral was required under your plan."
+    ],
+    "must_ask_checkpoints": [
+      "What does the reason code mean exactly?",
+      "What documents are required for a successful appeal?",
+      "What is the best submission channel?",
+      "What can be done while I wait for the decision?"
+    ]
   }
 }

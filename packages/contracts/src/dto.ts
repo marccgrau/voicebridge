@@ -278,6 +278,7 @@ export const CustomerSchema = z.object({
   preferredContactChannel: z.string().nullable().optional(),
   notes: z.string().nullable(),
   quickInternalNote: z.string().nullable().optional(),
+  domain: z.string().nullable().optional(),
 });
 
 export type Customer = z.infer<typeof CustomerSchema>;
@@ -397,6 +398,22 @@ export type ScenarioConversationStep = z.infer<
   typeof ScenarioConversationStepSchema
 >;
 
+export const ActorGuidanceSchema = z.object({
+  revealWhenAsked: z.array(z.string()),
+  mustAskCheckpoints: z.array(z.string()),
+});
+
+export type ActorGuidance = z.infer<typeof ActorGuidanceSchema>;
+
+export const BehavioralConditionSchema = z.object({
+  civilityCondition: ScenarioCivilitySchema,
+  instruction: z.string(),
+  escalationCues: z.array(z.string()).optional(),
+  deescalationCues: z.array(z.string()).optional(),
+});
+
+export type BehavioralCondition = z.infer<typeof BehavioralConditionSchema>;
+
 export const ScenarioSchema = z.object({
   scenarioId: z.string(),
   scenarioFamily: z.string(),
@@ -406,10 +423,8 @@ export const ScenarioSchema = z.object({
   customerGoal: z.string(),
   guidelines: z.record(z.unknown()),
   conversation: z.array(ScenarioConversationStepSchema),
-  behavioralCondition: z.object({
-    civilityCondition: ScenarioCivilitySchema,
-    instruction: z.string(),
-  }),
+  behavioralCondition: BehavioralConditionSchema,
+  actorGuidance: ActorGuidanceSchema.optional(),
   status: z.enum(["active", "inactive"]).default("active"),
 });
 

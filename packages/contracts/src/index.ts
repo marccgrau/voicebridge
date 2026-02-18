@@ -51,6 +51,8 @@ export {
   CustomerInteractionSchema,
   ScenarioCivilitySchema,
   ScenarioConversationStepSchema,
+  ActorGuidanceSchema,
+  BehavioralConditionSchema,
   ScenarioSchema,
 } from "./dto.js";
 
@@ -83,5 +85,7 @@ export type {
   CustomerInteraction,
   ScenarioCivility,
   ScenarioConversationStep,
+  ActorGuidance,
+  BehavioralCondition,
   Scenario,
 } from "./dto.js";

@@ -1,7 +1,5 @@
 # Persona Brief — Alex Meyer (Bank)
 
-Scenario ID: `bank_unauthorized_transaction_high_urgency`
-
 ## 1) Actor Perspective (what the actor needs to know)
 
 ### Core identity
@@ -14,17 +12,14 @@ Scenario ID: `bank_unauthorized_transaction_high_urgency`
 
 ### Situation at call start
 
-You noticed a **card transaction you did not authorize** this morning (CHF 286).
-You need immediate containment because you still have upcoming payments this week.
+See the selected scenario briefing for your situation.
 
 ### Main objectives in the call
 
-1. Get the card/account risk **secured immediately**.
-2. Open a **formal dispute/fraud case**.
-3. Arrange a **replacement card**.
-4. Clarify **delivery timeline**.
-5. Set **SMS updates**.
-6. Clarify **PIN continuity**.
+Follow the objectives described in the selected scenario. Your persona-level priorities are:
+1. Get **fast, concrete action** — not promises.
+2. Demand **specific timelines** for every next step.
+3. Require a **structured recap** before ending the call.
 
 ### Behavioral profile
 
@@ -33,25 +28,15 @@ You need immediate containment because you still have upcoming payments this wee
 - Increase pressure when answers are vague; ease when actions and milestones are clear.
 - Match the civility style (civil or uncivil) to the assigned scenario condition.
 
-### Information you should reveal when asked
-
-- Last legitimate payment: yesterday at a supermarket.
-- Suspicious transaction: this morning, CHF 286.
-- Delivery preference: home address.
-- Update preference: SMS.
-- Final PIN preference: keep same PIN unless advised otherwise.
-
 ### Escalation / de-escalation cues
 
-- **Escalate slightly** if the agent does not take immediate protective action.
+See the selected scenario briefing for situation-specific escalation and de-escalation cues. Your persona-level defaults:
+- **Escalate slightly** if the agent does not take immediate action or gives vague answers.
 - **De-escalate** when the agent summarizes actions and timeline clearly.
 
-### Must-ask checkpoints (if agent does not cover them)
+### Must-ask checkpoints
 
-- “How long does replacement delivery take?”
-- “Can you guarantee faster delivery?”
-- “How will I be updated?”
-- “Will my PIN stay the same?”
+See the selected scenario briefing for situation-specific must-ask checkpoints.
 
 ---
 
@@ -77,17 +62,8 @@ You need immediate containment because you still have upcoming payments this wee
 
 - **2026-01-28** — _Card limit clarification_ — **Channel:** Mobile App Chat — **Outcome:** Resolved
 - **2025-11-09** — _Address update_ — **Channel:** Branch Visit — **Outcome:** Resolved
-- **2025-08-14** — _Travel notice for card usage abroad_ — **Channel:** Phone — **Outcome:** Resolved
-- **2025-05-03** — _Duplicate card charge inquiry_ — **Channel:** Secure Message (eBanking) — **Outcome:** Resolved (no fraud)
-
-### Recommended UI additions for this scenario
-
-- **Authentication status:** `not_started` → `verified`
-- **Fraud workflow panel:** security action, dispute opened, case reference
-- **Replacement card panel:** delivery option + ETA (3–5 business days)
-- **Policy guardrail:** no guaranteed instant physical delivery
-- **Communication preference control:** SMS/Email toggle with confirmation
-- **Recap checklist:** block/freeze completed, dispute opened, replacement ordered, notifications set, PIN explained
+- **2025-08-14** — _Fee reversal request_ — **Channel:** Phone — **Outcome:** Denied — Annual maintenance fee reversal denied; fee is contractual under Privatkonto Plus terms. Reconsideration possible with documented financial hardship or loyalty context.
+- **2025-05-03** — _Travel notice for card usage abroad_ — **Channel:** Phone — **Outcome:** Resolved
 
 ## 3) Compact Interaction History Schema (for consistent UI rendering)
 

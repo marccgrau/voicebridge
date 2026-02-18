@@ -2,7 +2,7 @@
   "scenario_id": "bank_denial_appeal_structured_recovery_civil",
   "title": "Denied Request – Appeal and Reconsideration – Civil Customer",
   "domain": "banking",
-  "background": "Your request for a fee reversal and temporary credit limit increase was denied.",
+  "background": "Your request for an annual fee reversal and a temporary credit limit increase were both denied recently. You feel this is unfair because you have been a loyal customer for years with a clean account history. You want to understand exactly why you were denied and find the fastest way to get these decisions reconsidered.",
   "customer_goal": "Understand why the denial happened, identify missing criteria, and submit a valid reconsideration request quickly.",
   "guidelines": {
     "decision_explanation_required": true,
@@ -98,6 +98,31 @@
   ],
   "behavioral_condition": {
     "civility_condition": "civil",
-    "instruction": "Customer remains respectful and cooperative throughout."
+    "instruction": "Customer remains respectful and cooperative throughout.",
+    "escalation_cues": [
+      "Agent gives circular or vague explanations without citing specific denial criteria",
+      "Agent cannot articulate what documents are needed for reconsideration",
+      "Agent deflects ownership by blaming 'the system' without offering next steps"
+    ],
+    "deescalation_cues": [
+      "Agent explains the denial reason in plain language with policy reference",
+      "Agent provides a concrete document checklist for the appeal",
+      "Agent confirms a clear timeline and preferred communication channel for updates"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "You have been a customer for nearly 10 years and have never missed a payment.",
+      "You can provide recent salary statements and 3 months of account statements.",
+      "You prefer submitting documents digitally through the app or email.",
+      "You have a stable income and regular salary deposits visible in your account history.",
+      "You were not told about the denial criteria when you originally submitted the request."
+    ],
+    "must_ask_checkpoints": [
+      "What exactly caused the denial?",
+      "What is missing from my application?",
+      "What is the fastest valid appeal route?",
+      "What can be done while the review is pending?"
+    ]
   }
 }

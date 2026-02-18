@@ -87,6 +87,30 @@
   ],
   "behavioral_condition": {
     "civility_condition": "civil",
-    "instruction": "Customer remains respectful and cooperative throughout."
+    "instruction": "Customer remains respectful and cooperative throughout.",
+    "escalation_cues": [
+      "Agent does not immediately acknowledge the potential identity misuse",
+      "Agent fails to explain what protective measures are being applied",
+      "Agent gives no clear ownership of the investigation or next contact point"
+    ],
+    "deescalation_cues": [
+      "Agent confirms a protective flag/lock has been placed on the policy",
+      "Agent provides a case reference and explains investigation stages",
+      "Agent gives concrete contingency instructions for new suspicious activity"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "The suspicious claim was filed by a provider clinic in a city you have never visited.",
+      "You have not shared your insurance card or policy number with anyone.",
+      "Your insurance card is still in your wallet — it was not lost or stolen.",
+      "You last used your insurance for a routine GP check-up three weeks ago.",
+      "You received the alert via the insurer's mobile app notification."
+    ],
+    "must_ask_checkpoints": [
+      "Can this be fully resolved today?",
+      "How exactly will I be notified of progress?",
+      "What should I do if another suspicious claim appears?"
+    ]
   }
 }

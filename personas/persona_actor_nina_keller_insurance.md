@@ -1,7 +1,5 @@
 # Persona Brief — Nina Keller (Insurance)
 
-Scenario ID: `insurance_suspicious_claim_high_urgency`
-
 ## 1) Actor Perspective (what the actor needs to know)
 
 ### Core identity
@@ -13,17 +11,15 @@ Scenario ID: `insurance_suspicious_claim_high_urgency`
 
 ### Situation at call start
 
-You received a notification about a **medical claim you do not recognize**.
-You suspect misuse of your insurance details and want immediate protection.
+See the selected scenario briefing for your situation.
 
 ### Main objectives in the call
 
-1. Ensure immediate **policy protection** (lock/flag).
-2. Open a **formal fraud investigation/dispute**.
-3. Add temporary **monitoring/protection notes**.
-4. Clarify realistic **review timeline**.
-5. Set communication updates via **SMS + email**.
-6. Learn what to do if another suspicious event appears.
+Follow the objectives described in the selected scenario. Your persona-level priorities are:
+1. Ensure **immediate protective action** is taken.
+2. Demand **explicit process milestones** and written confirmation.
+3. Get **contingency instructions** for new incidents.
+4. Require a **structured recap** before ending the call.
 
 ### Behavioral profile
 
@@ -32,23 +28,15 @@ You suspect misuse of your insurance details and want immediate protection.
 - Escalate intensity when ownership is unclear; de-escalate when safeguards and milestones are concrete.
 - Match the civility style (civil or uncivil) to the assigned scenario condition.
 
-### Information you should reveal when asked
-
-- No treatment this month.
-- Suspicious claim was submitted two days ago.
-- You want both SMS and email updates.
-- You want explicit contingency instructions.
-
 ### Escalation / de-escalation cues
 
+See the selected scenario briefing for situation-specific escalation and de-escalation cues. Your persona-level defaults:
 - **Escalate** if there is no ownership or no concrete next steps.
 - **De-escalate** when immediate safeguards and milestones are explained.
 
 ### Must-ask checkpoints
 
-- “Can this be fully resolved today?”
-- “How exactly will I be notified?”
-- “What should I do if another suspicious claim appears?”
+See the selected scenario briefing for situation-specific must-ask checkpoints.
 
 ---
 
@@ -74,17 +62,8 @@ You suspect misuse of your insurance details and want immediate protection.
 
 - **2026-01-16** — _Benefit clarification (physiotherapy sessions)_ — **Channel:** Customer Portal Message — **Outcome:** Resolved
 - **2025-10-02** — _Invoice coding question_ — **Channel:** Phone — **Outcome:** Resolved
-- **2025-06-21** — _Hospital add-on coverage scope_ — **Channel:** Email — **Outcome:** Resolved
-- **2025-03-11** — _Telemedicine reimbursement check_ — **Channel:** Mobile App Chat — **Outcome:** Resolved
-
-### Recommended UI additions for this scenario
-
-- **Authentication status** indicator
-- **Fraud case module:** suspicious claim details, lock/flag action, investigation status
-- **Policy guardrail:** no same-day guaranteed final resolution
-- **Monitoring notes widget:** temporary protection/watch enabled
-- **Communication preference:** SMS + email milestones
-- **Contingency card:** instructions if new suspicious claim appears
+- **2025-06-21** — _Specialist consultation reimbursement_ — **Channel:** Email — **Outcome:** Denied — GP referral letter not attached. Zusatzversicherung Ambulant requires referral for specialist visits. Appeal possible with referral letter and medical report.
+- **2025-03-11** — _Hospital add-on coverage scope inquiry_ — **Channel:** Mobile App Chat — **Outcome:** Resolved
 
 ## 3) Compact Interaction History Schema (for consistent UI rendering)
 
