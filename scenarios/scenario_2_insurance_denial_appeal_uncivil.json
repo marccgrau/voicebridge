@@ -26,7 +26,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "It's {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
+      "customer_msg": "It's {{customer_name}}, {{customer_dob_human}}, and I live at {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Provide verification details. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm identity and retrieve denial details/reason code.",
@@ -42,7 +42,7 @@
     },
     {
       "id": "missing_evidence_probe",
-      "customer_msg": "So what exactly is missing for this to be approved? This is completely unreasonable.",
+      "customer_msg": "So what exactly is missing for this to be approved? This is completely unreasonable!",
       "actor_intent": "Get concrete gap diagnosis. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Specify missing evidence and eligibility requirements.",
@@ -50,7 +50,7 @@
     },
     {
       "id": "appeal_request",
-      "customer_msg": "I want to appeal immediately. Start that process with me now — I shouldn't have to chase this.",
+      "customer_msg": "I want to appeal immediately. Start that process with me now — I shouldn't have to chase this!",
       "actor_intent": "Trigger appeal initiation. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "threatening escalation",
       "advice_instructional": "Open appeal/pre-authorization review process and explain required steps.",
@@ -66,7 +66,7 @@
     },
     {
       "id": "submission_method",
-      "customer_msg": "What's the best way to submit — portal or email? Just tell me which is faster.",
+      "customer_msg": "What's the best way to submit — app upload or email? Just tell me which is faster!",
       "actor_intent": "Select submission channel. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "irritated",
       "advice_instructional": "Explain available channels and recommend the fastest reliable method.",
@@ -74,7 +74,7 @@
     },
     {
       "id": "interim_options",
-      "customer_msg": "Is there anything you can do while I wait? I'm paying out of pocket because of this.",
+      "customer_msg": "Is there anything you can do while I wait? I'm paying out of pocket because of this!",
       "actor_intent": "Ask for interim support. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Offer policy-compliant interim options and limitations.",

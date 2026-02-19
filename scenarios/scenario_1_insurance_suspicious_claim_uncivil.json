@@ -22,7 +22,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Yes. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}. Can we speed this up?",
+      "customer_msg": "Yes. {{customer_name}}, {{customer_dob_human}}, and I live at {{customer_address_street}} in {{customer_address_city}}. Can we speed this up?",
       "actor_intent": "Provide verification information. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm verification and place protective flag/lock as per policy.",
@@ -30,7 +30,7 @@
     },
     {
       "id": "claims_timeline",
-      "customer_msg": "I have not had any treatment this month. The claim says it was submitted two days ago. How is this even possible?",
+      "customer_msg": "What the hell. I have not had any treatment this month. The claim says it was submitted two days ago. How do you even allow this?",
       "actor_intent": "Provide timeline and inconsistency evidence. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Capture incident details and determine investigation scope.",
@@ -38,7 +38,7 @@
     },
     {
       "id": "investigation_request",
-      "customer_msg": "Open a fraud investigation and mark this claim as disputed. I shouldn't have to deal with this.",
+      "customer_msg": "Open a fraud investigation asap and mark this claim as disputed. I shouldn't have to deal with this mess!",
       "actor_intent": "Request formal dispute initiation. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "hostile",
       "advice_instructional": "Open fraud dispute, explain case handling stages and expected contact points.",
@@ -70,7 +70,7 @@
     },
     {
       "id": "next_steps_question",
-      "customer_msg": "What am I supposed to do if another suspicious claim shows up before you finish? You need to tell me.",
+      "customer_msg": "What am I supposed to do if another suspicious claim shows up before you finish? This should not even be my concern!.",
       "actor_intent": "Elicit contingency guidance. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "irritated",
       "advice_instructional": "Provide clear contingency instructions and escalation route.",

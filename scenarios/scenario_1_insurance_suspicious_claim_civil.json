@@ -22,7 +22,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Yes, of course. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
+      "customer_msg": "Yes, of course. {{customer_name}}, {{customer_dob_human}}, and I live at {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Provide verification information. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Confirm verification and place protective flag/lock as per policy.",
@@ -62,7 +62,7 @@
     },
     {
       "id": "notification_preference",
-      "customer_msg": "Then please notify me by SMS and email whenever anything changes.",
+      "customer_msg": "Then please notify me by email whenever anything changes.",
       "actor_intent": "Set communication channel preferences. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Confirm channels and update triggers.",

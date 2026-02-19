@@ -17,7 +17,7 @@
   "conversation": [
     {
       "id": "opening_complaint",
-      "customer_msg": "Hi, my request for a temporary credit limit increase was denied and I don't understand why. This is disappointing for me.",
+      "customer_msg": "Hi, my request for a temporary credit limit increase was denied and I don't understand why. Can you help me out?",
       "actor_intent": "Signal dissatisfaction and demand explanation. Maintain politeness and cooperative tone.",
       "tone": "frustrated but respectful",
       "advice_instructional": "Acknowledge emotion, verify identity, and commit to transparent explanation.",
@@ -25,7 +25,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Sure. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
+      "customer_msg": "Sure. {{customer_name}}, {{customer_dob_human}}, and I live at {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Complete verification. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Confirm identity and access the denial details.",
