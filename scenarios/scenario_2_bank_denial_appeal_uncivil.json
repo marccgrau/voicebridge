@@ -25,7 +25,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Fine. {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
+      "customer_msg": "Fine. {{customer_name}}, {{customer_dob_human}}, and I live at {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Complete verification. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm identity and access the denial details.",
@@ -33,7 +33,7 @@
     },
     {
       "id": "reason_probe",
-      "customer_msg": "Explain in plain terms why this request was denied. I shouldn't have to beg for answers.",
+      "customer_msg": "Explain in plain terms why this request was denied! I shouldn't have to beg for answers.",
       "actor_intent": "Force understandable rationale. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Explain decision basis clearly and avoid jargon.",
@@ -49,7 +49,7 @@
     },
     {
       "id": "appeal_route_request",
-      "customer_msg": "I want to appeal this decision right now. What's the fastest valid route?",
+      "customer_msg": "I want to appeal this decision right now! What's the fastest valid route?",
       "actor_intent": "Initiate formal reconsideration path. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "threatening escalation",
       "advice_instructional": "Offer reconsideration process, steps, and prerequisites.",
@@ -57,7 +57,7 @@
     },
     {
       "id": "document_guidance",
-      "customer_msg": "Tell me exactly which documents you need. I'm not doing this twice.",
+      "customer_msg": "Tell me exactly which documents you need! I'm not doing this twice.",
       "actor_intent": "Demand procedural precision. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Provide exact document checklist and acceptance standards.",

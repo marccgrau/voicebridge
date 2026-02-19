@@ -26,7 +26,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "It's {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
+      "customer_msg": "It's {{customer_name}}, {{customer_dob_human}}, and I live at {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Provide verification details. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Confirm identity and retrieve denial details/reason code.",
@@ -42,7 +42,7 @@
     },
     {
       "id": "missing_evidence_probe",
-      "customer_msg": "So what exactly is missing for this to be approved?",
+      "customer_msg": "Okay thank you. So what exactly is missing for this to be approved?",
       "actor_intent": "Get concrete gap diagnosis. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Specify missing evidence and eligibility requirements.",
@@ -66,7 +66,7 @@
     },
     {
       "id": "submission_method",
-      "customer_msg": "What's the best way to submit—portal upload or email?",
+      "customer_msg": "What's the best way to submit— app upload or email?",
       "actor_intent": "Select submission channel. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Explain available channels and recommend the fastest reliable method.",

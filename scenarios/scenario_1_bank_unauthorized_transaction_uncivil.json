@@ -23,7 +23,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Fine. It's {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}. Now can we move on?",
+      "customer_msg": "Fine. It's {{customer_name}}, {{customer_dob_human}}, and I live at {{customer_address_street}} in {{customer_address_city}}. Now can we move on?",
       "actor_intent": "Provide required verification details promptly. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm verification and execute immediate security action (freeze/block).",
@@ -39,7 +39,7 @@
     },
     {
       "id": "dispute_request",
-      "customer_msg": "Open a dispute for that charge right now. I shouldn't have to deal with this.",
+      "customer_msg": "Open a dispute for that charge right now! I shouldn't have to deal with this.",
       "actor_intent": "Trigger formal case creation. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "hostile",
       "advice_instructional": "Open dispute/investigation, explain next checks, mention case reference and expected status updates.",
@@ -55,7 +55,7 @@
     },
     {
       "id": "delivery_preference",
-      "customer_msg": "Send it to my home address. Why is this taking so long?",
+      "customer_msg": "Send it to my home address. Can you at least ship it fast?",
       "actor_intent": "Confirm preference and ask for timeline. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "irritated",
       "advice_instructional": "Provide standard timeline and set expectations clearly.",
@@ -71,7 +71,7 @@
     },
     {
       "id": "notification_setup",
-      "customer_msg": "Fine, then send me updates by SMS so I actually know what's going on.",
+      "customer_msg": "Whatever, then send me updates by SMS so I actually know what's going on.",
       "actor_intent": "Set communication channel. Use impatient, accusatory delivery and interruptions where natural.",
       "tone": "angry",
       "advice_instructional": "Confirm SMS updates and what milestones will trigger notifications.",

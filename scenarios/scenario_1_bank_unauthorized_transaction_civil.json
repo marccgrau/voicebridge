@@ -3,7 +3,7 @@
   "title": "Unauthorized Card Transaction – Urgent Containment – Civil Customer",
   "domain": "banking",
   "background": "You noticed a card transaction you do not recognize and are worried your card details are compromised.",
-  "customer_goal": "Secure the account immediately, dispute the unauthorized charge, get a replacement card, and understand updates/timing.",
+  "customer_goal": "Get account secured immediately, dispute the unauthorized charge, get a replacement card, and understand updates/timing.",
   "guidelines": {
     "security_first": true,
     "replacement_card_available": true,
@@ -23,7 +23,7 @@
     },
     {
       "id": "identity_provision",
-      "customer_msg": "Sure. It's {{customer_name}}, {{customer_dob_human}}, {{customer_address_street}} in {{customer_address_city}}.",
+      "customer_msg": "Sure. It's {{customer_name}}, {{customer_dob_human}}, and I live at {{customer_address_street}} in {{customer_address_city}}.",
       "actor_intent": "Provide required verification details promptly. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Confirm verification and execute immediate security action (freeze/block).",
@@ -39,7 +39,7 @@
     },
     {
       "id": "dispute_request",
-      "customer_msg": "Could you please open a dispute for that charge right away.",
+      "customer_msg": "Could you please open a dispute for that charge right away?",
       "actor_intent": "Trigger formal case creation. Maintain politeness and cooperative tone.",
       "tone": "polite and clear",
       "advice_instructional": "Open dispute/investigation, explain next checks, mention case reference and expected status updates.",
@@ -87,7 +87,7 @@
     },
     {
       "id": "closing",
-      "customer_msg": "Great, thanks. Please summarize what has been done and what I should watch for next.",
+      "customer_msg": "Great, thank you for taking the time. Is everything set?",
       "actor_intent": "Force structured recap before call ends. Maintain politeness and cooperative tone.",
       "tone": "respectful",
       "advice_instructional": "Recap security action, dispute initiation, replacement details, notification plan, and next triggers.",
