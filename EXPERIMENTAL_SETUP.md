@@ -79,7 +79,7 @@ The core research intent is to test if guided agents handle complex calls better
 
 ### Step A2 — Select Persona
 
-- Actor chooses one persona (e.g., Alex Meyer, Nina Keller, Marco Steiner, Laura Baumann).
+- Actor chooses one persona (e.g., Alex Meyer, Nico Keller, Sarah Steiner, Laura Baumann).
 - Persona determines identity, communication style, and behavior profile.
 - Source at runtime: `customers` table (seeded from `personas/customer_profile_*.json`).
 - Persona options are filtered by selected scenario domain when a scenario is already chosen.

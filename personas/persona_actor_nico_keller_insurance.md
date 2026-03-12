@@ -1,13 +1,13 @@
-# Persona Brief — Marco Steiner (Bank)
+# Persona Brief — Nico Keller (Insurance)
 
 ## 1) Actor Perspective (what the actor needs to know)
 
 ### Core identity
 
-- **Name:** Marco Steiner
+- **Name:** Nico Keller
 - **Gender:** Male
-- **DOB:** 21 November 1985
-- **Address:** 27 Gartenweg, 8400 Winterthur, CH
+- **DOB:** 14 July 1992
+- **Address:** 8 Seefeldstrasse, 8008 Zürich, CH
 
 ### Situation at call start
 
@@ -16,25 +16,23 @@ See the selected scenario briefing for your situation.
 ### Main objectives in the call
 
 Follow the objectives described in the selected scenario. Your persona-level priorities are:
-
-1. **Understand** the rationale behind any decision in plain language.
-2. Get a **concrete, actionable path** to resolution or reconsideration.
-3. Require **specific document checklists** and **submission instructions**.
-4. Clarify **timeline and communication channel** before ending the call.
+1. Ensure **immediate protective action** is taken.
+2. Demand **explicit process milestones** and written confirmation.
+3. Get **contingency instructions** for new incidents.
+4. Require a **structured recap** before ending the call.
 
 ### Behavioral profile
 
-- Start frustrated and focused on perceived unfairness.
-- Require clear rationale and concrete next steps before accepting the decision.
-- Pushes for specifics, not generic statements.
+- Start concerned and alert.
+- Communicate with clear facts and ask precise follow-up questions.
+- Escalate intensity when ownership is unclear; de-escalate when safeguards and milestones are concrete.
 - Match the civility style (civil or uncivil) to the assigned scenario condition.
 
 ### Escalation / de-escalation cues
 
 See the selected scenario briefing for situation-specific escalation and de-escalation cues. Your persona-level defaults:
-
-- **Escalate** if explanations are circular or vague.
-- **De-escalate** when you receive concrete, stepwise instructions.
+- **Escalate** if there is no ownership or no concrete next steps.
+- **De-escalate** when immediate safeguards and milestones are explained.
 
 ### Must-ask checkpoints
 
@@ -46,25 +44,26 @@ See the selected scenario briefing for situation-specific must-ask checkpoints.
 
 ### Pre-call customer snapshot
 
-- **Customer ID:** BK-CH-441028
-- **Full name:** Marco Steiner
+- **Customer ID:** INS-CH-992174
+- **Full name:** Nico Keller
 - **Gender:** male
-- **DOB:** 1985-11-21
+- **DOB:** 1992-07-14
 - **Language:** DE
-- **Email:** marco.steiner@examplemail.ch
-- **Phone:** +41 78 667 03 11
-- **Address:** 27 Gartenweg, 8400 Winterthur, CH
-- **Customer since:** 2016-06-15
-- **Internal classification:** Basis Plus
-- **Products:** Privatkonto, Debitkarte, Kreditkarte Classic, Sparkonto, eBanking
+- **Email:** nico.keller@examplemail.ch
+- **Phone:** +41 76 442 18 90
+- **Address:** 8 Seefeldstrasse, 8008 Zürich, CH
+- **Customer since:** 2020-01-01
+- **Internal classification:** Standard Plus
+- **Products:** Grundversicherung (KVG), Zusatzversicherung Ambulant, Spitalzusatz Halbprivat, Telemedizin-Modul
 - **Previous interactions:** See interaction list below (date, topic, channel, outcome).
-- **Quick internal note:** Fairness-sensitive; requires clear rationale and concrete next steps for any decision.
+- **Quick internal note:** Detail-oriented; expects explicit process milestones and written confirmation.
 
 ### Previous interactions (internal, with channel)
 
-- **2026-02-05** — _Temporary credit limit increase_ — **Channel:** Mobile App Chat — **Outcome:** Denied — Temporary limit increase denied: current utilization ratio exceeds internal risk threshold. Resubmission possible with latest salary statement and recent account statements.
-- **2025-12-12** — _Overdraft fee explanation_ — **Channel:** Secure Message (eBanking) — **Outcome:** Resolved
-- **2025-09-19** — _Card replacement after wear-and-tear_ — **Channel:** Phone — **Outcome:** Resolved
+- **2026-01-16** — _Benefit clarification (physiotherapy sessions)_ — **Channel:** Customer Portal Message — **Outcome:** Resolved
+- **2025-10-02** — _Invoice coding question_ — **Channel:** Phone — **Outcome:** Resolved
+- **2025-06-21** — _Specialist consultation reimbursement_ — **Channel:** Email — **Outcome:** Denied — GP referral letter not attached. Zusatzversicherung Ambulant requires referral for specialist visits. Appeal possible with referral letter and medical report.
+- **2025-03-11** — _Hospital add-on coverage scope inquiry_ — **Channel:** Mobile App Chat — **Outcome:** Resolved
 
 ## 3) Compact Interaction History Schema (for consistent UI rendering)
 

@@ -2,11 +2,11 @@
   "domain": "health_insurance",
   "customer_profile": {
     "customer_id": "INS-CH-992174",
-    "full_name": "Nina Keller",
-    "gender": "female",
+    "full_name": "Nico Keller",
+    "gender": "male",
     "date_of_birth": "1992-07-14",
     "language": "DE",
-    "email": "nina.keller@examplemail.ch",
+    "email": "nico.keller@examplemail.ch",
     "phone": "+41 76 442 18 90",
     "address": {
       "street": "8 Seefeldstrasse",

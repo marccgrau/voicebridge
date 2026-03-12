@@ -2,11 +2,11 @@
   "domain": "banking",
   "customer_profile": {
     "customer_id": "BK-CH-441028",
-    "full_name": "Marco Steiner",
-    "gender": "male",
+    "full_name": "Sarah Steiner",
+    "gender": "female",
     "date_of_birth": "1985-11-21",
     "language": "DE",
-    "email": "marco.steiner@examplemail.ch",
+    "email": "sarah.steiner@examplemail.ch",
     "phone": "+41 78 667 03 11",
     "address": {
       "street": "27 Gartenweg",
