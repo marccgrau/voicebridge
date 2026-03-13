@@ -1,0 +1,134 @@
+{
+  "scenario_id": "insurance_claim_denial_civil",
+  "title": "Rechnung nicht übernommen – Deckung fehlt (Zivil)",
+  "domain": "health_insurance",
+  "background": "Du siehst im Portal eine Rechnung der Physio Praxis Sonnmatt über CHF 420, die nicht übernommen wird. Du bist enttäuscht, aber ruhig.",
+  "customer_goal": "Verstehen warum die Rechnung nicht übernommen wird, Optionen klären (Produktwechsel oder interne Abklärung).",
+  "guidelines": {},
+  "conversation": [
+    {
+      "id": "step_a",
+      "customer_msg": "Guten Tag. Ich sehe im Portal eine Rechnung von der Physio Praxis Sonnmatt über 420 Franken. Da steht, sie wird nicht übernommen. Können Sie mir erklären warum?",
+      "actor_intent": "Sachverhalt schildern und Erklärung fordern",
+      "tone": "freundlich",
+      "advice_instructional": "Begrüsst kurz, kündigt Identitätsprüfung an.",
+      "next_id": "step_b"
+    },
+    {
+      "id": "step_b",
+      "customer_msg": "Ja gerne. Was brauchen Sie dafür?",
+      "actor_intent": "Kooperationsbereitschaft zeigen",
+      "tone": "freundlich",
+      "advice_instructional": "Identität (kurz).",
+      "next_id": "step_c"
+    },
+    {
+      "id": "step_c",
+      "customer_msg": "Laura Baumann, 9. Februar 1991, Rosenweg 3, 4058 Basel.",
+      "actor_intent": "Identifikationsdaten bereitstellen",
+      "tone": "sachlich",
+      "advice_instructional": "Bestätigt, fragt nach Rechnungsdetails (Datum, Leistung, Status).",
+      "next_id": "step_d"
+    },
+    {
+      "id": "step_d",
+      "customer_msg": "Es sind mehrere Physiotherapie-Sitzungen, total 420 Franken. Ich habe sie eingereicht und dann kam «nicht übernommen».",
+      "actor_intent": "Rechnungsdetails nennen",
+      "tone": "enttäuscht",
+      "advice_instructional": "Ordnet Ablehnungsgrund ein (Deckung vs. formal).",
+      "next_id": "step_e"
+    },
+    {
+      "id": "step_e",
+      "customer_msg": "Fehlt Ihnen etwas? Soll ich eine Verordnung nachreichen?",
+      "actor_intent": "Vermutung äussern (fehlende Unterlagen)",
+      "tone": "hilfsbereit",
+      "advice_instructional": "Kurz: hier geht es um Deckung, nicht Unterlagen.",
+      "next_id": "step_f"
+    },
+    {
+      "id": "step_f",
+      "customer_msg": "Okay… heisst das, Physiotherapie ist bei mir grundsätzlich nicht drin?",
+      "actor_intent": "Verständnisfrage zur Deckung",
+      "tone": "enttäuscht",
+      "advice_instructional": "Kurz: aktuelle Deckung enthält das nicht → Selbstzahlung.",
+      "next_id": "step_g"
+    },
+    {
+      "id": "step_g",
+      "customer_msg": "Das überrascht mich. Ich zahle doch Prämien, wieso ist das nicht abgedeckt?",
+      "actor_intent": "Einwand wegen Prämien",
+      "tone": "überrascht",
+      "advice_instructional": "Kurz erklären (produktabhängige Deckung), dann Optionen.",
+      "next_id": "step_h"
+    },
+    {
+      "id": "step_h",
+      "customer_msg": "Welche Deckung bräuchte ich, damit das künftig übernommen wird?",
+      "actor_intent": "Alternative Deckung erfragen",
+      "tone": "interessiert",
+      "advice_instructional": "Kurz Alternative nennen (erweitertes Produkt/Zusatzdeckung).",
+      "next_id": "step_i"
+    },
+    {
+      "id": "step_i",
+      "customer_msg": "Und ab wann wäre so ein Wechsel wirksam?",
+      "actor_intent": "Zeitrahmen für Wechsel erfragen",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz: ab definiertem Startzeitpunkt, nicht zwingend rückwirkend.",
+      "next_id": "step_j"
+    },
+    {
+      "id": "step_j",
+      "customer_msg": "Verstehe. Und wenn ich nicht wechseln möchte: Gibt es in meiner aktuellen Versicherung irgendeine Alternative, die abgedeckt wäre?",
+      "actor_intent": "Alternativen in aktueller Deckung erfragen",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz: interne Rückfrage auslösen nach gedeckten Alternativen.",
+      "next_id": "step_k"
+    },
+    {
+      "id": "step_k",
+      "customer_msg": "Gut, dann möchte ich zuerst diese interne Abklärung. Es war wegen Rückenbeschwerden nach Sport. Ich kann auch die Verordnung vom Arzt nachreichen, falls das hilft.",
+      "actor_intent": "Medizinischen Kontext liefern und interne Abklärung wählen",
+      "tone": "kooperativ",
+      "advice_instructional": "Kurz: nimmt auf, interne Prüfung anstossen, Infos zu Produktwechsel bereitstellen.",
+      "next_id": "step_l"
+    },
+    {
+      "id": "step_l",
+      "customer_msg": "Alles klar. Dann machen wir die interne Rückfrage, und ich schaue mir parallel die Optionen für einen Wechsel an.",
+      "actor_intent": "Zusammenfassung und Zustimmung",
+      "tone": "zufrieden",
+      "advice_instructional": "Kurz zusammenfassen, Abschluss.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "civil",
+    "instruction": "Bleibe freundlich und respektvoll. Gib Informationen nur, wenn der Agent gezielt fragt.",
+    "escalation_cues": [
+      "Agent kann den Ablehnungsgrund nicht klar erklären",
+      "Agent bietet keine Alternativen an",
+      "Agent gibt vage Antworten zur Deckung"
+    ],
+    "deescalation_cues": [
+      "Agent erklärt die Deckungslücke verständlich",
+      "Agent bietet zwei konkrete Optionen (Produktwechsel und interne Abklärung)",
+      "Agent fasst die nächsten Schritte zusammen"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Die Behandlung war wegen Rückenbeschwerden nach Sport.",
+      "Ich habe eine ärztliche Verordnung.",
+      "Ich habe die Rechnung über das Kundenportal eingereicht.",
+      "Ich bin seit 2019 bei dieser Versicherung."
+    ],
+    "must_ask_checkpoints": [
+      "Warum wird die Rechnung nicht übernommen?",
+      "Welche Deckung bräuchte ich für Physiotherapie?",
+      "Ab wann wäre ein Wechsel wirksam?",
+      "Gibt es Alternativen in meiner aktuellen Deckung?"
+    ]
+  }
+}

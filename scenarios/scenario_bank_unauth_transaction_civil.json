@@ -1,0 +1,174 @@
+{
+  "scenario_id": "bank_unauth_transaction_civil",
+  "title": "TWINT – Empfänger hat Geld nicht erhalten (Zivil)",
+  "domain": "banking",
+  "background": "Du hast per TWINT CHF 120 an «Marco» überwiesen. Der Empfänger sagt, er habe das Geld nicht erhalten. Bei dir steht die Transaktion als «erfolgreich».",
+  "customer_goal": "Klärung der TWINT-Transaktion, nächste Schritte verstehen, Fall weiterleiten lassen.",
+  "guidelines": {},
+  "conversation": [
+    {
+      "id": "step_a",
+      "customer_msg": "Guten Tag. Ich habe eine Frage zu einer TWINT-Zahlung. Der Empfänger sagt, er habe das Geld nicht erhalten, aber bei mir sieht es als «erfolgreich» aus.",
+      "actor_intent": "Sachverhalt schildern",
+      "tone": "leicht besorgt",
+      "advice_instructional": "Begrüsst kurz, kündigt Identitätsprüfung an.",
+      "next_id": "step_b"
+    },
+    {
+      "id": "step_b",
+      "customer_msg": "Ja, gerne. Was benötigen Sie für die Identifikation?",
+      "actor_intent": "Kooperationsbereitschaft zeigen",
+      "tone": "freundlich",
+      "advice_instructional": "Fragt nach Name, Geburtsdatum, Adresse.",
+      "next_id": "step_c"
+    },
+    {
+      "id": "step_c",
+      "customer_msg": "Alex Meyer, 3. März 1989, Lindenstrasse 45, 8001 Zürich.",
+      "actor_intent": "Identifikationsdaten bereitstellen",
+      "tone": "sachlich",
+      "advice_instructional": "Bestätigt, fragt nach Details zur Transaktion.",
+      "next_id": "step_d"
+    },
+    {
+      "id": "step_d",
+      "customer_msg": "Es geht um 120 Franken an «Marco», das war vor ungefähr sechs Tagen. In der TWINT-App steht «erfolgreich».",
+      "actor_intent": "Transaktionsdetails nennen",
+      "tone": "sachlich",
+      "advice_instructional": "Fragt, ob abgebucht/definitiv belastet.",
+      "next_id": "step_e"
+    },
+    {
+      "id": "step_e",
+      "customer_msg": "Ja, ich habe auch im Konto geschaut, es ist definitiv abgebucht, nicht nur vorgemerkt.",
+      "actor_intent": "Status bestätigen",
+      "tone": "sachlich",
+      "advice_instructional": "Ordnet den Fall ein (TWINT), fragt nach Sachverhalt und Kontaktversuchen.",
+      "next_id": "step_f"
+    },
+    {
+      "id": "step_f",
+      "customer_msg": "Ich habe Marco gestern in der TWINT-App angeschrieben und auch eine Geldanforderung geschickt, damit er es nochmal prüft. Er hat aber nicht reagiert.",
+      "actor_intent": "Bisherige Kontaktversuche schildern",
+      "tone": "sachlich",
+      "advice_instructional": "Fragt nach weiteren Kontaktversuchen ausserhalb der App.",
+      "next_id": "step_g"
+    },
+    {
+      "id": "step_g",
+      "customer_msg": "Per SMS habe ich ihn noch nicht kontaktiert. Ich dachte, das reicht, wenn es direkt in der App steht.",
+      "actor_intent": "Offenlegen, dass zweiter Kontaktweg fehlt",
+      "tone": "sachlich",
+      "advice_instructional": "Erklärt kurz, dass zwei Kontaktversuche vorgesehen sind und Nachweise hilfreich sind.",
+      "next_id": "step_h"
+    },
+    {
+      "id": "step_h",
+      "customer_msg": "Okay. Ich kann einen Screenshot vom Verlauf und von der Geldanforderung machen. Reicht das?",
+      "actor_intent": "Nachweise anbieten",
+      "tone": "kooperativ",
+      "advice_instructional": "Bestätigt kurz, fragt, wann der letzte Kontakt war.",
+      "next_id": "step_i"
+    },
+    {
+      "id": "step_i",
+      "customer_msg": "Gestern am frühen Abend.",
+      "actor_intent": "Zeitpunkt nennen",
+      "tone": "sachlich",
+      "advice_instructional": "Erklärt die 2-Tage-Regel.",
+      "next_id": "step_j"
+    },
+    {
+      "id": "step_j",
+      "customer_msg": "Verstanden. Also: SMS schreiben, Screenshots sichern und dann mindestens zwei Tage warten?",
+      "actor_intent": "Verständnis bestätigen",
+      "tone": "sachlich",
+      "advice_instructional": "Bestätigt kurz, ergänzt Empfängerbestätigung.",
+      "next_id": "step_k"
+    },
+    {
+      "id": "step_k",
+      "customer_msg": "Was genau soll Marco bestätigen?",
+      "actor_intent": "Details zur Empfängerbestätigung erfragen",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz: schriftliche Bestätigung, dass das Geld auf keinem TWINT-Account eingegangen ist.",
+      "next_id": "step_l"
+    },
+    {
+      "id": "step_l",
+      "customer_msg": "Okay, dann bitte ich ihn um eine SMS: dass er es auf keinem seiner TWINT-Konten erhalten hat.",
+      "actor_intent": "Bereitschaft zur Empfängerbestätigung",
+      "tone": "kooperativ",
+      "advice_instructional": "Bestätigt, fragt ggf. nach weiteren Details.",
+      "next_id": "step_m"
+    },
+    {
+      "id": "step_m",
+      "customer_msg": "Brauchen Sie von mir sonst noch etwas? Soll ich das Datum oder den Ort irgendwo ablesen?",
+      "actor_intent": "Weitere Details anbieten",
+      "tone": "hilfsbereit",
+      "advice_instructional": "Kurz: Datum/Betrag/Empfänger aufnehmen.",
+      "next_id": "step_n"
+    },
+    {
+      "id": "step_n",
+      "customer_msg": "Ich kann das Datum genau nachschauen. Es war letzten Samstag, 18:42 Uhr.",
+      "actor_intent": "Genaue Transaktionsdaten liefern",
+      "tone": "sachlich",
+      "advice_instructional": "Bestätigt kurz.",
+      "next_id": "step_o"
+    },
+    {
+      "id": "step_o",
+      "customer_msg": "Noch eine Frage: Wenn sich herausstellt, dass es doch korrekt angekommen ist und ich mich täusche – hat das Konsequenzen?",
+      "actor_intent": "Gebühren/Konsequenzen erfragen",
+      "tone": "vorsichtig",
+      "advice_instructional": "Kurz Gebührenhinweis CHF 60 bei Irrtum.",
+      "next_id": "step_p"
+    },
+    {
+      "id": "step_p",
+      "customer_msg": "Alles klar. Dann mache ich jetzt Folgendes: Ich schreibe Marco heute per SMS, mache Screenshots und wenn nach zwei Tagen keine Klärung da ist, melde ich mich wieder mit der Bestätigung.",
+      "actor_intent": "Zusammenfassung und Bestätigung",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz zusammenfassen (Next Steps), Abschluss.",
+      "next_id": "step_q"
+    },
+    {
+      "id": "step_q",
+      "customer_msg": "Vielen Dank für Ihre Hilfe.",
+      "actor_intent": "Gespräch beenden",
+      "tone": "freundlich",
+      "advice_instructional": "Verabschiedung.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "civil",
+    "instruction": "Freundlich, kooperativ, leicht besorgt. Gib Informationen nur, wenn der Agent gezielt fragt.",
+    "escalation_cues": [
+      "Agent gibt keine klare Einordnung der Transaktion",
+      "Agent kann den Abklärungsprozess nicht erklären",
+      "Agent nennt keine konkreten nächsten Schritte"
+    ],
+    "deescalation_cues": [
+      "Agent ordnet den Fall klar ein",
+      "Agent erklärt die Schritte verständlich",
+      "Agent fasst die nächsten Schritte zusammen"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Die Transaktion war letzten Samstag, 18:42 Uhr.",
+      "Ich habe einen Screenshot der Geldanforderung.",
+      "Marco ist ein Bekannter, kein Unbekannter.",
+      "Ich habe die TWINT-App auf dem aktuellen Stand."
+    ],
+    "must_ask_checkpoints": [
+      "Was genau muss der Empfänger bestätigen?",
+      "Wie lange muss ich nach dem zweiten Kontakt warten?",
+      "Gibt es eine Gebühr bei Irrtum?",
+      "Was passiert als nächstes, wenn ich alle Nachweise habe?"
+    ]
+  }
+}

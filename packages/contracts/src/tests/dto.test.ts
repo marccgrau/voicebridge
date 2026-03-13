@@ -35,7 +35,7 @@ describe("DTO Schemas", () => {
       const result = ProcessLookupInputSchema.safeParse(input);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.locale).toBe("en");
+        expect(result.data.locale).toBe("de");
         expect(result.data.limit).toBe(5);
       }
     });
@@ -91,7 +91,7 @@ describe("DTO Schemas", () => {
       const result = SessionConfigSchema.safeParse(config);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.locale).toBe("en");
+        expect(result.data.locale).toBe("de");
       }
     });
 

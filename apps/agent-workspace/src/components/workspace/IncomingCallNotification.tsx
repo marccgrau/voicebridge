@@ -23,7 +23,7 @@ export function IncomingCallNotification({
     <div className="mx-6 mt-4 space-y-3">
       {sessions.map((session) => {
         const domain = (session.state?.domain as string) ?? "General";
-        const locale = (session.state?.locale as string) ?? "en";
+        const locale = (session.state?.locale as string) ?? "de";
         const waitingSince = session.customer_joined_at
           ? new Date(session.customer_joined_at)
           : new Date(session.created_at);
@@ -58,7 +58,7 @@ export function IncomingCallNotification({
               />
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  Incoming call
+                  Eingehender Anruf
                   {domain !== "General" && (
                     <span className="font-mono-ui ml-2 rounded-lg bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       {domain}
@@ -66,12 +66,12 @@ export function IncomingCallNotification({
                   )}
                   {isSelected && (
                     <span className="ml-2 rounded-lg bg-accent/15 px-2 py-0.5 text-xs text-accent">
-                      Previewing customer
+                      Kundenvorschau
                     </span>
                   )}
                 </p>
                 <p className="font-mono-ui text-xs text-muted-foreground">
-                  Locale: {locale} &middot; Waiting since{" "}
+                  Sprache: {locale} &middot; Wartet seit{" "}
                   {waitingSince.toLocaleTimeString()}
                 </p>
               </div>
@@ -84,7 +84,7 @@ export function IncomingCallNotification({
               disabled={isLoading}
               className="gradient-accent rounded-xl px-5 py-2 text-sm font-medium text-white hover:-translate-y-0.5 hover:shadow-accent-lg disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all"
             >
-              {isLoading ? "Accepting..." : "Accept"}
+              {isLoading ? "Wird angenommen..." : "Annehmen"}
             </button>
           </div>
         );

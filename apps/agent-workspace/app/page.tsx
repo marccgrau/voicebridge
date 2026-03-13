@@ -175,13 +175,13 @@ export default function WorkspacePage() {
             <>
               <span className="flex items-center gap-2 text-sm text-success">
                 <span className="h-2 w-2 rounded-full gradient-accent" />
-                Connected
+                Verbunden
               </span>
               <button
                 onClick={stopSession}
                 className="rounded-xl border border-destructive px-4 py-1.5 text-sm font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all hover:-translate-y-0.5"
               >
-                End Session
+                Sitzung beenden
               </button>
             </>
           )}
@@ -461,10 +461,10 @@ function WorkspacePanels({
       <main className="flex flex-1 items-center justify-center bg-background p-5">
         <div className="text-center">
           <p className="text-lg text-muted-foreground">
-            Waiting for incoming calls...
+            Warten auf eingehende Anrufe...
           </p>
           <p className="mt-2 text-sm text-muted-foreground/60">
-            Calls will appear here when customers connect
+            Anrufe erscheinen hier, wenn Kunden sich verbinden
           </p>
         </div>
       </main>
@@ -549,7 +549,7 @@ function WorkspacePanels({
               onClick={onClearSession}
               className="rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-accent/30 transition-all"
             >
-              Back to Queue
+              Zurück zur Warteschlange
             </button>
           </div>
         </div>

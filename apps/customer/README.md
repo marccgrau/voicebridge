@@ -1,6 +1,6 @@
 # VoiceBridge Customer App
 
-Next.js customer-facing call interface for initiating support calls with VoiceBridge agents.
+Next.js customer-facing call interface for initiating support calls with VoiceBridge agents. The entire UI is in **German**.
 
 ## Features
 

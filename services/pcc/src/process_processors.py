@@ -21,20 +21,20 @@ logger = logging.getLogger(__name__)
 _JSON_BLOCK_PATTERN = re.compile(r"(\{.*\})", re.DOTALL)
 
 PROCESS_SYSTEM_PROMPT = (
-    "You are a process identification assistant for a customer service call center.\n"
-    "Use the transcript context to identify the most likely process and current step.\n"
+    "Du bist ein Prozesserkennungs-Assistent für ein Kundenservice-Callcenter.\n"
+    "Nutze den Transkriptkontext, um den wahrscheinlichsten Prozess und aktuellen Schritt zu identifizieren.\n"
     "\n"
-    "Process catalog:\n"
+    "Prozesskatalog:\n"
     "{catalog_summary}\n"
     "\n"
-    "Return strict JSON only. No prose, no markdown, no code fences.\n"
-    "Output format:\n"
-    '{"processKey":"<process_key_or_null>","currentStep":<zero_based_integer>}\n'
+    "Antworte ausschliesslich in striktem JSON. Kein Prosa, kein Markdown, keine Code-Blöcke.\n"
+    "Ausgabeformat:\n"
+    '{"processKey":"<process_key_oder_null>","currentStep":<nullbasierter_integer>}\n'
     "\n"
-    "Rules:\n"
-    "- processKey must be one of the catalog keys or null if unknown\n"
-    "- currentStep must be zero-based\n"
-    "- choose only one process"
+    "Regeln:\n"
+    "- processKey muss ein Katalogschlüssel oder null sein\n"
+    "- currentStep muss nullbasiert sein\n"
+    "- wähle nur einen Prozess"
 )
 
 

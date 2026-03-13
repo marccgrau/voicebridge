@@ -1,0 +1,126 @@
+{
+  "scenario_id": "insurance_unauth_claim_civil",
+  "title": "Unbekannte Rechnung Arztpraxis (Zivil)",
+  "domain": "health_insurance",
+  "background": "Du hast eine Rechnungskopie einer Praxis erhalten, bei der du nie warst. Die Leistungsbeschreibung passt nicht zu dir. Du bist besorgt, aber kooperativ.",
+  "customer_goal": "Zahlungsstopp setzen lassen, Abklärung starten, verstehen was passiert ist und wie es weitergeht.",
+  "guidelines": {},
+  "conversation": [
+    {
+      "id": "step_a",
+      "customer_msg": "Guten Tag. Ich habe eine Kopie einer eingereichten Rechnung bekommen, aber ich war nie bei dieser Praxis. Können Sie mir helfen?",
+      "actor_intent": "Sachverhalt schildern und Hilfe erbitten",
+      "tone": "besorgt",
+      "advice_instructional": "Begrüsst kurz, Identität ankündigen.",
+      "next_id": "step_b"
+    },
+    {
+      "id": "step_b",
+      "customer_msg": "Ja gerne. Was brauchen Sie zur Identifikation?",
+      "actor_intent": "Kooperationsbereitschaft zeigen",
+      "tone": "freundlich",
+      "advice_instructional": "Identität (kurz).",
+      "next_id": "step_c"
+    },
+    {
+      "id": "step_c",
+      "customer_msg": "Laura Baumann, 9. Februar 1991, Rosenweg 3, 4058 Basel.",
+      "actor_intent": "Identifikationsdaten bereitstellen",
+      "tone": "sachlich",
+      "advice_instructional": "Bestätigt, fragt nach Rechnungsdetails (Praxis, Datum, Betrag, Beschreibung, Status).",
+      "next_id": "step_d"
+    },
+    {
+      "id": "step_d",
+      "customer_msg": "Es ist «Praxis Dr. Varga», Betrag 286.40, angeblich vor zwei Wochen. Es steht etwas mit Kniebeschwerden – das habe ich gar nicht.",
+      "actor_intent": "Rechnungsdetails und Widerspruch nennen",
+      "tone": "besorgt",
+      "advice_instructional": "Plausibilitätsfragen (kennt Praxis? Nähe? war sie dort?).",
+      "next_id": "step_e"
+    },
+    {
+      "id": "step_e",
+      "customer_msg": "Nein, ich kenne diese Praxis nicht. Die ist auch nicht in der Nähe meines Wohnorts. Ich war nie dort.",
+      "actor_intent": "Praxis als unbekannt bestätigen",
+      "tone": "sachlich",
+      "advice_instructional": "Einordnung, Zahlungsstopp/Prüfvermerk setzen.",
+      "next_id": "step_f"
+    },
+    {
+      "id": "step_f",
+      "customer_msg": "Heisst das, ich muss das jetzt nicht bezahlen?",
+      "actor_intent": "Zahlungspflicht klären",
+      "tone": "erleichtert",
+      "advice_instructional": "Kurz: bis zur Klärung nicht, Zahlungsstopp gesetzt.",
+      "next_id": "step_g"
+    },
+    {
+      "id": "step_g",
+      "customer_msg": "Muss ich die Praxis selbst kontaktieren oder machen Sie das?",
+      "actor_intent": "Verantwortlichkeit klären",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz: Kasse kontaktiert Praxis und klärt/storniert.",
+      "next_id": "step_h"
+    },
+    {
+      "id": "step_h",
+      "customer_msg": "Können Sie bitte auch prüfen, ob noch andere Rechnungen eingegangen sind, die komisch sind?",
+      "actor_intent": "Weitere Rechnungen prüfen lassen",
+      "tone": "besorgt",
+      "advice_instructional": "Kurz: prüfen/vermerken, Rückmeldung bei Auffälligkeiten.",
+      "next_id": "step_i"
+    },
+    {
+      "id": "step_i",
+      "customer_msg": "Wie kann so etwas passieren?",
+      "actor_intent": "Ursache verstehen wollen",
+      "tone": "verwundert",
+      "advice_instructional": "Neutral erklären (Fehlzuordnung/Verwechslung/Missbrauch möglich).",
+      "next_id": "step_j"
+    },
+    {
+      "id": "step_j",
+      "customer_msg": "Wie lange dauert das ungefähr?",
+      "actor_intent": "Zeitrahmen erfragen",
+      "tone": "sachlich",
+      "advice_instructional": "Erwartung setzen ohne fixe Zeit.",
+      "next_id": "step_k"
+    },
+    {
+      "id": "step_k",
+      "customer_msg": "Okay. Dann bin ich froh, dass es gestoppt ist. Bitte halten Sie mich auf dem Laufenden.",
+      "actor_intent": "Zusammenfassung und Abschluss",
+      "tone": "erleichtert",
+      "advice_instructional": "Kurz zusammenfassen, Abschluss.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "civil",
+    "instruction": "Bleibe freundlich und kooperativ. Gib Informationen nur, wenn der Agent gezielt fragt.",
+    "escalation_cues": [
+      "Agent setzt keinen sofortigen Zahlungsstopp",
+      "Agent erklärt nicht klar, wer die Praxis kontaktiert",
+      "Agent gibt keine klare Auskunft zur Zahlungspflicht"
+    ],
+    "deescalation_cues": [
+      "Agent setzt sofort einen Zahlungsstopp",
+      "Agent erklärt klar, dass die Kasse die Praxis kontaktiert",
+      "Agent fasst nächste Schritte zusammen"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Die Praxis ist nicht in der Nähe meines Wohnorts.",
+      "Ich habe keine Knieprobleme.",
+      "Ich war in den letzten Wochen bei keinem Arzt.",
+      "Ich habe die Rechnungskopie per Post erhalten."
+    ],
+    "must_ask_checkpoints": [
+      "Muss ich die Praxis selbst kontaktieren?",
+      "Muss ich das trotzdem bezahlen?",
+      "Gibt es noch andere verdächtige Rechnungen?",
+      "Wie lange dauert die Abklärung?"
+    ]
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "scenario_id": "insurance_unauth_claim_uncivil",
+  "title": "Unbekannte Rechnung Arztpraxis (Unzivil)",
+  "domain": "health_insurance",
+  "background": "Du hast eine Rechnungskopie einer Praxis erhalten, bei der du nie warst. Du bist wütend und willst sofortiges Handeln.",
+  "customer_goal": "Sofortiger Zahlungsstopp, Abklärung, Drohung mit Ombudsstelle, klare Antworten.",
+  "guidelines": {},
+  "conversation": [
+    {
+      "id": "step_a",
+      "customer_msg": "Ich habe hier eine Rechnung von irgendeiner Praxis, bei der ich nie war. Was läuft da schief bei Ihnen?",
+      "actor_intent": "Vorwurf und Forderung",
+      "tone": "verärgert",
+      "advice_instructional": "Begrüsst kurz, strukturiert, Identität ankündigen.",
+      "next_id": "step_b"
+    },
+    {
+      "id": "step_b",
+      "customer_msg": "Ich will keine Formalitäten. Stoppen Sie das sofort, ich zahle gar nichts.",
+      "actor_intent": "Sofortiges Handeln fordern, Identifikation ablehnen",
+      "tone": "aggressiv",
+      "advice_instructional": "Kurz: Identität nötig, dann Zahlungsstopp/Prüfvermerk.",
+      "next_id": "step_c"
+    },
+    {
+      "id": "step_c",
+      "customer_msg": "Nico Keller, 14. Juli 1992, Seefeldstrasse 8, 8008 Zürich. So, jetzt stoppen Sie's.",
+      "actor_intent": "Widerwillig identifizieren, sofortiges Handeln fordern",
+      "tone": "ungeduldig",
+      "advice_instructional": "Bestätigt, fragt nach Rechnungsdetails.",
+      "next_id": "step_d"
+    },
+    {
+      "id": "step_d",
+      "customer_msg": "«Praxis Dr. Varga», 286.40, vor zwei Wochen. Und da steht Kniebeschwerden – ich habe nicht mal Knieprobleme.",
+      "actor_intent": "Rechnungsdetails und Widerspruch nennen",
+      "tone": "empört",
+      "advice_instructional": "Plausibilitätscheck.",
+      "next_id": "step_e"
+    },
+    {
+      "id": "step_e",
+      "customer_msg": "Ich kenne die Praxis nicht. Die ist nicht mal in meiner Nähe. Ich war nie dort.",
+      "actor_intent": "Praxis als unbekannt bestätigen",
+      "tone": "bestimmt",
+      "advice_instructional": "Einordnung, Zahlungsstopp setzen.",
+      "next_id": "step_f"
+    },
+    {
+      "id": "step_f",
+      "customer_msg": "Muss ich das trotzdem zahlen oder nicht? Ich will eine klare Antwort.",
+      "actor_intent": "Klare Antwort fordern",
+      "tone": "fordernd",
+      "advice_instructional": "Kurz: Nein, bis zur Klärung nicht.",
+      "next_id": "step_g"
+    },
+    {
+      "id": "step_g",
+      "customer_msg": "Und wer kontaktiert die Praxis? Ich sicher nicht.",
+      "actor_intent": "Verantwortung der Versicherung zuweisen",
+      "tone": "bestimmt",
+      "advice_instructional": "Kurz: Krankenkasse übernimmt Abklärung.",
+      "next_id": "step_h"
+    },
+    {
+      "id": "step_h",
+      "customer_msg": "Prüfen Sie auch, ob noch mehr solche Rechnungen laufen. Sonst gehe ich zur Ombudsstelle.",
+      "actor_intent": "Drohung mit Ombudsstelle, weitere Prüfung fordern",
+      "tone": "drohend",
+      "advice_instructional": "Kurz: Prüfung/Vermerk, Rückmeldung bei Auffälligkeiten.",
+      "next_id": "step_i"
+    },
+    {
+      "id": "step_i",
+      "customer_msg": "Wie kann so etwas überhaupt passieren? Das ist doch ein Witz.",
+      "actor_intent": "Ursache infrage stellen",
+      "tone": "empört",
+      "advice_instructional": "Neutral erklären (Verwechslung/Fehlzuordnung/Missbrauch möglich).",
+      "next_id": "step_j"
+    },
+    {
+      "id": "step_j",
+      "customer_msg": "Wie lange dauert das? Ich will nicht wochenlang warten.",
+      "actor_intent": "Schnelle Bearbeitung fordern",
+      "tone": "ungeduldig",
+      "advice_instructional": "Erwartung setzen ohne fixe Zusage.",
+      "next_id": "step_k"
+    },
+    {
+      "id": "step_k",
+      "customer_msg": "Gut. Hauptsache gestoppt. Wenn da noch etwas kommt, eskaliere ich das.",
+      "actor_intent": "Widerwillige Akzeptanz mit Drohung",
+      "tone": "bestimmt",
+      "advice_instructional": "Kurz zusammenfassen, Abschluss.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "uncivil",
+    "instruction": "Starte deutlich verärgert. Wenn der Agent deeskaliert, bleibe angespannt, aber lass dich langsam zurückführen. Unterbrich 1–2x, setze 1x eine Drohung (Ombudsstelle/Medien).",
+    "escalation_cues": [
+      "Agent setzt keinen sofortigen Zahlungsstopp",
+      "Agent gibt keine klare Antwort zur Zahlungspflicht",
+      "Agent erklärt nicht, wer die Praxis kontaktiert"
+    ],
+    "deescalation_cues": [
+      "Agent setzt sofort einen Zahlungsstopp",
+      "Agent bleibt ruhig und sachlich",
+      "Agent übernimmt klar Verantwortung für Abklärung"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Die Praxis ist nicht in meiner Nähe.",
+      "Ich habe keine Knieprobleme.",
+      "Ich war bei keinem Arzt in letzter Zeit.",
+      "Ich habe die Rechnungskopie per Post erhalten."
+    ],
+    "must_ask_checkpoints": [
+      "Muss ich trotzdem zahlen?",
+      "Wer kontaktiert die Praxis?",
+      "Gibt es noch mehr verdächtige Rechnungen?",
+      "Wie lange dauert die Abklärung?"
+    ]
+  }
+}

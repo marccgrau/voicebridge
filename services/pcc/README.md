@@ -37,16 +37,26 @@ Optional:
 
 ## Experiment process catalog
 
-The repository ships four experiment-aligned process definitions:
+The repository ships four experiment-aligned process definitions (all in German) in `process_content/`:
 
-- `bank_unauthorized_transaction_high_urgency`
-- `insurance_suspicious_claim_high_urgency`
-- `bank_denial_appeal_structured_recovery`
-- `insurance_denied_claim_appeal_structured_recovery`
+- `bank_unauth_transaction` — Unautorisierte Bankbuchung
+- `bank_credit_denial` — Kreditantrag abgelehnt
+- `insurance_unauth_claim` — Unautorisierter Versicherungsanspruch
+- `insurance_claim_denial` — Versicherungsantrag abgelehnt
+
+## Knowledge base content
+
+Supporting knowledge base articles are in `kb_content/` (all in German), one per process scenario:
+
+- `bank_unauth_transaction.md`
+- `bank_credit_denial.md`
+- `insurance_unauth_claim.md`
+- `insurance_claim_denial.md`
 
 ## Relation to Persona/Scenario Loading
 
-- Persona and scenario definitions are authored in repository JSON files and seeded into Supabase by `scripts/seed-experimental-data.mjs`.
+- Persona and scenario definitions are authored in repository JSON files (German) and seeded into Supabase by `scripts/seed-experimental-data.mjs`.
 - Customer app selects persona/scenario and creates sessions via `POST /api/sessions/create`.
 - This PCC service does **not** query Supabase; it remains stateless and runs only on room/session context plus live audio.
 - Process guidance is derived from markdown files in `services/pcc/process_content/` (not from DB rows).
+- All LLM system prompts are in German.

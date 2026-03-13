@@ -28,7 +28,7 @@ export function ProcessLayer({
         <div className="flex items-center gap-3">
           <span className="h-2 w-2 animate-pulse-dot rounded-full bg-accent" />
           <span className="text-sm text-muted-foreground">
-            Listening for process detection...
+            Prozesserkennung läuft...
           </span>
         </div>
       ) : (

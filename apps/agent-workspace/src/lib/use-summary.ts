@@ -51,14 +51,16 @@ export function useSummary(
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || "Failed to generate summary");
+        throw new Error(
+          data.detail || "Zusammenfassung konnte nicht erstellt werden"
+        );
       }
 
       const data = await response.json();
       setSummaryText(data.summary_text);
       generatedForRef.current = sid;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
+      const message = err instanceof Error ? err.message : "Unbekannter Fehler";
       setError(message);
     } finally {
       setIsGenerating(false);
@@ -88,7 +90,7 @@ export function useSummary(
   const saveSummary = useCallback(
     async (sid: string) => {
       if (!summaryText.trim()) {
-        setError("Summary cannot be empty");
+        setError("Zusammenfassung darf nicht leer sein");
         return;
       }
 
@@ -108,7 +110,9 @@ export function useSummary(
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.detail || "Failed to save summary");
+          throw new Error(
+            data.detail || "Zusammenfassung konnte nicht gespeichert werden"
+          );
         }
 
         setIsSaved(true);
@@ -121,7 +125,8 @@ export function useSummary(
           }, 1000);
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Unknown error";
+        const message =
+          err instanceof Error ? err.message : "Unbekannter Fehler";
         setError(message);
       } finally {
         setIsSaving(false);

@@ -37,7 +37,7 @@ from pipecat.turns.user_turn_strategies import UserTurnStrategies
 
 from src.process_catalog import ProcessCatalog
 from src.process_processors import PROCESS_SYSTEM_PROMPT, ProcessOutputProcessor
-from src.suggestion_processors import SUGGESTION_SYSTEM_PROMPT, SuggestionOutputProcessor
+from src.suggestion_processors import SuggestionOutputProcessor, build_suggestion_system_prompt
 from src.transcript_processors import TranscriptWriter
 
 load_dotenv()
@@ -53,11 +53,30 @@ def _resolve_process_content_path() -> Path:
     return Path(__file__).resolve().parent / "process_content"
 
 
+def _resolve_kb_content_path() -> Path:
+    configured_path = os.getenv("KB_CONTENT_PATH")
+    if configured_path:
+        return Path(configured_path)
+
+    return Path(__file__).resolve().parent / "kb_content"
+
+
+def _load_kb_content(scenario_family: str) -> str:
+    """Load knowledge base content for a given scenario family."""
+    kb_dir = _resolve_kb_content_path()
+    kb_file = kb_dir / f"{scenario_family}.md"
+    if kb_file.exists():
+        logger.info("Loaded KB content from %s", kb_file)
+        return kb_file.read_text()
+    logger.warning("No KB content found for scenario_family=%s at %s", scenario_family, kb_file)
+    return ""
+
+
 def build_process_system_prompt(catalog: ProcessCatalog) -> str:
     """Build process system prompt with the catalog embedded."""
     definitions = sorted(catalog.get_definitions(), key=lambda definition: definition.process_key)
     if not definitions:
-        catalog_summary = "- No processes available"
+        catalog_summary = "- Keine Prozesse verfügbar"
     else:
         lines = []
         for definition in definitions:
@@ -113,7 +132,7 @@ async def bot(runner_args: RunnerArguments):
         api_key=os.getenv("DEEPGRAM_API_KEY", ""),
         live_options=LiveOptions(
             model="nova-3-general",
-            language="en-US",
+            language="de",
             smart_format=True,
             endpointing=True,
             profanity_filter=False,
@@ -147,8 +166,13 @@ async def bot(runner_args: RunnerArguments):
     )
     process_output = ProcessOutputProcessor(catalog=process_catalog)
 
+    metadata = body.get("metadata", {})
+    scenario_family = metadata.get("scenario_family", "")
+    kb_content = _load_kb_content(scenario_family)
+    suggestion_system_prompt = build_suggestion_system_prompt(kb_content)
+
     suggestion_context = LLMContext(
-        messages=[{"role": "system", "content": SUGGESTION_SYSTEM_PROMPT}]
+        messages=[{"role": "system", "content": suggestion_system_prompt}]
     )
     suggestion_context_agg = LLMContextAggregatorPair(
         suggestion_context,

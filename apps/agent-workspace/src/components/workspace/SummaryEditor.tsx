@@ -25,7 +25,7 @@ export function SummaryEditor({
       <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          Session Summary
+          Gesprächszusammenfassung
         </span>
         {isSaved && (
           <span className="flex items-center gap-1.5 text-xs text-success">
@@ -40,7 +40,7 @@ export function SummaryEditor({
                 clipRule="evenodd"
               />
             </svg>
-            Saved
+            Gespeichert
           </span>
         )}
       </div>
@@ -52,11 +52,11 @@ export function SummaryEditor({
             <div className="flex items-center gap-3">
               <span className="h-3 w-3 animate-pulse-dot rounded-full gradient-accent" />
               <span className="text-sm text-muted-foreground">
-                Generating summary...
+                Zusammenfassung wird erstellt...
               </span>
             </div>
             <p className="text-xs text-muted-foreground/60">
-              Analyzing transcript and preparing notes
+              Transkript wird analysiert und Notizen vorbereitet
             </p>
           </div>
         ) : (
@@ -64,7 +64,7 @@ export function SummaryEditor({
             <textarea
               value={summaryText}
               onChange={(e) => onSummaryChange(e.target.value)}
-              placeholder="Write a summary of the session..."
+              placeholder="Zusammenfassung der Sitzung schreiben..."
               className="flex-1 resize-none rounded-xl border border-border/60 bg-background p-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50"
             />
 
@@ -75,7 +75,7 @@ export function SummaryEditor({
               disabled={isSaving || !summaryText.trim()}
               className="gradient-accent rounded-xl px-5 py-2.5 text-sm font-medium text-white hover:-translate-y-0.5 hover:shadow-accent-lg disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none transition-all"
             >
-              {isSaving ? "Saving..." : "Save Summary"}
+              {isSaving ? "Speichern..." : "Zusammenfassung speichern"}
             </button>
           </>
         )}

@@ -1,0 +1,134 @@
+{
+  "scenario_id": "insurance_claim_denial_uncivil",
+  "title": "Rechnung nicht übernommen – Deckung fehlt (Unzivil)",
+  "domain": "health_insurance",
+  "background": "Deine Physio-Rechnung über CHF 420 wurde nicht übernommen. Du bist gereizt und machst der Versicherung Vorwürfe.",
+  "customer_goal": "Verstehen warum nicht übernommen, Frust abbauen, Drohung mit Kündigung, Alternativen finden.",
+  "guidelines": {},
+  "conversation": [
+    {
+      "id": "step_a",
+      "customer_msg": "Ich habe hier eine Physio-Rechnung über 420 Franken und Sie übernehmen das nicht. Was soll das?",
+      "actor_intent": "Frust und Vorwurf signalisieren",
+      "tone": "verärgert",
+      "advice_instructional": "Begrüsst kurz, strukturiert, Identität ankündigen.",
+      "next_id": "step_b"
+    },
+    {
+      "id": "step_b",
+      "customer_msg": "Ich will keine Standardfragen. Sagen Sie mir einfach, warum das abgelehnt wurde.",
+      "actor_intent": "Sofortige Erklärung fordern",
+      "tone": "ungeduldig",
+      "advice_instructional": "Besteht kurz auf Identitätsprüfung (Datenschutz/Sicherheit).",
+      "next_id": "step_c"
+    },
+    {
+      "id": "step_c",
+      "customer_msg": "Nico Keller, 14. Juli 1992, Seefeldstrasse 8, 8008 Zürich. Jetzt?",
+      "actor_intent": "Widerwillig identifizieren",
+      "tone": "genervt",
+      "advice_instructional": "Bestätigt, fragt nach Rechnungsdetails/Status.",
+      "next_id": "step_d"
+    },
+    {
+      "id": "step_d",
+      "customer_msg": "Physiotherapie, mehrere Sitzungen, 420 Franken. Eingereicht. Und dann «nicht übernommen».",
+      "actor_intent": "Rechnungsdetails knapp liefern",
+      "tone": "knapp",
+      "advice_instructional": "Kurz einordnen (Deckungslücke).",
+      "next_id": "step_e"
+    },
+    {
+      "id": "step_e",
+      "customer_msg": "Dann fehlt Ihnen halt was! Ich reiche Ihnen alles ein, was Sie wollen.",
+      "actor_intent": "Fehlvermutung (Unterlagen fehlen)",
+      "tone": "aggressiv",
+      "advice_instructional": "Kurz: Es geht nicht um fehlende Unterlagen, sondern um Deckung.",
+      "next_id": "step_f"
+    },
+    {
+      "id": "step_f",
+      "customer_msg": "Wie bitte? Ich soll das komplett selbst zahlen?",
+      "actor_intent": "Schock über Selbstzahlung",
+      "tone": "empört",
+      "advice_instructional": "Kurz: aktuelle Deckung enthält das nicht → Selbstzahlung.",
+      "next_id": "step_g"
+    },
+    {
+      "id": "step_g",
+      "customer_msg": "Wofür zahle ich dann Prämien? Das ist doch absurd.",
+      "actor_intent": "Grundsätzliche Fairness-Frage",
+      "tone": "wütend",
+      "advice_instructional": "Kurz erklären (Produkt deckt Leistung nicht), ruhig bleiben, Optionen anbieten.",
+      "next_id": "step_h"
+    },
+    {
+      "id": "step_h",
+      "customer_msg": "Was muss ich denn haben, damit das übernommen wird?",
+      "actor_intent": "Alternative Deckung erfragen",
+      "tone": "fordernd",
+      "advice_instructional": "Kurz Alternative nennen (Zusatzdeckung/erweitertes Produkt).",
+      "next_id": "step_i"
+    },
+    {
+      "id": "step_i",
+      "customer_msg": "Und das gilt natürlich nicht rückwirkend, oder? Toll. Also Sie lassen mich sitzen.",
+      "actor_intent": "Rückwirkung fordern, Vorwurf",
+      "tone": "sarkastisch",
+      "advice_instructional": "Kurz: keine Zusage rückwirkend; bietet Optionen.",
+      "next_id": "step_j"
+    },
+    {
+      "id": "step_j",
+      "customer_msg": "Ich will nicht wechseln. Gibt es irgendeinen Weg, wie das trotzdem übernommen wird? Sonst kündige ich.",
+      "actor_intent": "Drohung mit Kündigung",
+      "tone": "drohend",
+      "advice_instructional": "Kurz: keine Ausnahme, aber interne Rückfrage nach gedeckten Alternativen möglich.",
+      "next_id": "step_k"
+    },
+    {
+      "id": "step_k",
+      "customer_msg": "Gut. Dann machen Sie diese interne Rückfrage. Und schicken Sie mir die Infos zu dieser besseren Deckung.",
+      "actor_intent": "Widerwillig akzeptieren, nächste Schritte fordern",
+      "tone": "fordernd",
+      "advice_instructional": "Kurz: next steps festhalten, interne Prüfung anstossen.",
+      "next_id": "step_l"
+    },
+    {
+      "id": "step_l",
+      "customer_msg": "Ich bin nicht zufrieden, aber machen Sie das.",
+      "actor_intent": "Widerwillige Akzeptanz",
+      "tone": "resigniert",
+      "advice_instructional": "Verabschiedung.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "uncivil",
+    "instruction": "Starte deutlich verärgert. Wenn der Agent deeskaliert, bleibe angespannt, aber lass dich langsam zurückführen. Unterbrich 1–2x, setze 1x eine Drohung (Kündigung).",
+    "escalation_cues": [
+      "Agent kann den Ablehnungsgrund nicht erklären",
+      "Agent bietet keine Optionen",
+      "Agent gibt vage Antworten"
+    ],
+    "deescalation_cues": [
+      "Agent erklärt die Deckungslücke klar",
+      "Agent bietet konkrete Alternativen",
+      "Agent bleibt ruhig und sachlich"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Die Behandlung war Physiotherapie.",
+      "Ich habe die Rechnung im Portal eingereicht.",
+      "Ich bin seit 2020 bei dieser Versicherung.",
+      "Ich überlege, die Versicherung zu wechseln."
+    ],
+    "must_ask_checkpoints": [
+      "Warum wird die Rechnung nicht übernommen?",
+      "Was muss ich haben, damit es übernommen wird?",
+      "Gibt es einen Weg ohne Produktwechsel?",
+      "Gilt ein Wechsel rückwirkend?"
+    ]
+  }
+}

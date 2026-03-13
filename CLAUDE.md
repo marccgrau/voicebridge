@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes, track step progress, and provide real-time suggestions to agents. The system consists of a Customer App, an Agent Workspace, and one unified Pipecat service with three parallel branches (transcript, process, suggestion).
+VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes, track step progress, and provide real-time suggestions to agents. The system consists of a Customer App, an Agent Workspace, and one unified Pipecat service with three parallel branches (transcript, process, suggestion). All user-facing UI, experiment content (personas, scenarios, process definitions, knowledge base), and LLM prompts are in **German**.
 
 ## Development Commands
 
@@ -189,7 +189,9 @@ The unified service emits three RTVI action payloads:
 
 ### Process Catalog
 
-Process definitions are loaded from markdown files under `services/pcc/process_content/`. Each file uses YAML frontmatter (`process_key`, `name`, `domain`, `intents`) and `## Step N: Label` headings for step extraction.
+Process definitions (in German) are loaded from markdown files under `services/pcc/process_content/`. Each file uses YAML frontmatter (`process_key`, `name`, `domain`, `intents`) and `## Step N: Label` headings for step extraction. Current definitions: `bank_unauth_transaction`, `bank_credit_denial`, `insurance_unauth_claim`, `insurance_claim_denial`.
+
+Supporting knowledge base articles (in German) are in `services/pcc/kb_content/`, one per process scenario.
 
 ## Key Design Patterns
 

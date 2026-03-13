@@ -1,6 +1,6 @@
 # VoiceBridge Architecture
 
-This document describes the system architecture, data flows, and design patterns of VoiceBridge.
+This document describes the system architecture, data flows, and design patterns of VoiceBridge. All user-facing UI and experiment content (personas, scenarios, process definitions, knowledge base, LLM prompts) are in **German**.
 
 ## System Overview
 
@@ -179,7 +179,14 @@ Process identification is **catalog-informed + LLM-evaluated**:
 6. `ProcessOutputProcessor` validates output and maps step statuses
 7. Valid output is emitted as `process_illustration` with step progress
 
-By default, PCC resolves process markdown from `services/pcc/process_content/` (or `PROCESS_CONTENT_PATH` when set). The repository currently includes four experiment-aligned scenario-family process definitions.
+By default, PCC resolves process markdown from `services/pcc/process_content/` (or `PROCESS_CONTENT_PATH` when set). The repository currently includes four experiment-aligned process definitions (all in German):
+
+- `bank_unauth_transaction` — Unautorisierte Bankbuchung
+- `bank_credit_denial` — Kreditantrag abgelehnt
+- `insurance_unauth_claim` — Unautorisierter Versicherungsanspruch
+- `insurance_claim_denial` — Versicherungsantrag abgelehnt
+
+Supporting knowledge base articles are in `services/pcc/kb_content/` (one per process).
 
 ## Agent Workspace UI
 

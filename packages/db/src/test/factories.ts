@@ -18,7 +18,7 @@ export function createSessionRow(overrides?: Partial<SessionRow>): SessionRow {
     id: overrides?.id ?? crypto.randomUUID(),
     process_key: overrides?.process_key ?? null,
     state: overrides?.state ?? {
-      locale: "en",
+      locale: "de",
       domain: undefined,
       queueTag: undefined,
       agentId: undefined,
@@ -132,7 +132,7 @@ export function createCustomerRow(
     customer_since: overrides?.customer_since ?? "2023-01-01",
     classification: overrides?.classification ?? "basis",
     products: overrides?.products ?? ["Savings Account"],
-    preferred_language: overrides?.preferred_language ?? "en",
+    preferred_language: overrides?.preferred_language ?? "de",
     preferred_contact_channel: overrides?.preferred_contact_channel ?? null,
     notes: overrides?.notes ?? null,
     quick_internal_note: overrides?.quick_internal_note ?? null,

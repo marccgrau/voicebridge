@@ -20,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "VoiceBridge",
-  description: "Proactive guidance workspace for customer service calls",
+  description: "Proaktiver Leitfaden-Arbeitsbereich für Kundenservice-Anrufe",
 };
 
 export default function RootLayout({
@@ -30,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html
-      lang="en"
+      lang="de"
       className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-background font-sans antialiased">
