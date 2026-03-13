@@ -1,6 +1,6 @@
 # VoiceBridge Agent Workspace
 
-Next.js agent workspace with **phase-based procedural UI** for real-time customer service call guidance.
+Next.js agent workspace with **phase-based procedural UI** for real-time customer service call guidance. The entire UI is in **German** (`lang="de"`).
 
 ## Features
 

@@ -119,7 +119,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
     return (
       <div className="flex h-full items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          Select a session to view details
+          Sitzung auswählen, um Details anzuzeigen
         </p>
       </div>
     );
@@ -128,7 +128,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading...</p>
+        <p className="text-sm text-muted-foreground">Wird geladen...</p>
       </div>
     );
   }
@@ -136,7 +136,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
   if (!session) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">Session not found</p>
+        <p className="text-sm text-muted-foreground">Sitzung nicht gefunden</p>
       </div>
     );
   }
@@ -159,7 +159,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
       {/* Header */}
       <div className="border-b border-border px-6 py-4">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Session Details</h2>
+          <h2 className="text-lg font-semibold">Sitzungsdetails</h2>
           <span
             className={`rounded-full px-3 py-1 text-sm font-medium ${
               statusStyles[session.status as keyof typeof statusStyles] ??
@@ -176,28 +176,28 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
       <div className="flex-1 space-y-6 overflow-y-auto p-6">
         {/* Session Info */}
         <div className="space-y-3">
-          <h3 className="font-semibold">Session Information</h3>
+          <h3 className="font-semibold">Sitzungsinformationen</h3>
           <div className="space-y-2 text-sm">
             <InfoRow
-              label="Created"
+              label="Erstellt"
               value={formatDateTime(session.created_at)}
             />
             <InfoRow
-              label="Updated"
+              label="Aktualisiert"
               value={formatDateTime(session.updated_at)}
             />
             <InfoRow
-              label="Duration"
+              label="Dauer"
               value={calculateDuration(session.created_at, session.updated_at)}
             />
             {session.process_key && (
               <InfoRow
-                label="Process"
+                label="Prozess"
                 value={formatProcessKey(session.process_key)}
               />
             )}
             {session.room_url && (
-              <InfoRow label="Room URL" value={session.room_url} mono />
+              <InfoRow label="Raum-URL" value={session.room_url} mono />
             )}
           </div>
         </div>
@@ -205,18 +205,18 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
         {/* Customer Info */}
         {session.customer && (
           <div className="space-y-3">
-            <h3 className="font-semibold">Customer</h3>
+            <h3 className="font-semibold">Kunde</h3>
             <div className="space-y-2 text-sm">
               <InfoRow label="Name" value={session.customer.name} />
               <InfoRow
-                label="Classification"
+                label="Klassifizierung"
                 value={session.customer.classification.toUpperCase()}
               />
               {session.customer.email && (
-                <InfoRow label="Email" value={session.customer.email} />
+                <InfoRow label="E-Mail" value={session.customer.email} />
               )}
               {session.customer.phone && (
-                <InfoRow label="Phone" value={session.customer.phone} />
+                <InfoRow label="Telefon" value={session.customer.phone} />
               )}
             </div>
           </div>
@@ -225,7 +225,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
         {/* Process Steps */}
         {steps.length > 0 && (
           <div className="space-y-3">
-            <h3 className="font-semibold">Process Steps</h3>
+            <h3 className="font-semibold">Prozessschritte</h3>
             <div className="space-y-2">
               {steps.map((step, idx) => (
                 <div key={step.key} className="flex items-center gap-3 text-sm">
@@ -253,7 +253,7 @@ export function SessionDetail({ sessionId }: SessionDetailProps) {
         {/* Transcript */}
         {transcript.length > 0 && (
           <div className="space-y-3">
-            <h3 className="font-semibold">Transcript</h3>
+            <h3 className="font-semibold">Transkript</h3>
             <div className="space-y-3">
               {transcript.map((entry) => (
                 <div
@@ -309,7 +309,7 @@ function formatProcessKey(key: string): string {
 
 function formatDateTime(timestamp: string): string {
   const date = new Date(timestamp);
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString("de-DE", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -320,7 +320,7 @@ function formatDateTime(timestamp: string): string {
 
 function formatTime(timestamp: string): string {
   const date = new Date(timestamp);
-  return date.toLocaleTimeString(undefined, {
+  return date.toLocaleTimeString("de-DE", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -333,10 +333,10 @@ function calculateDuration(start: string, end: string): string {
   const durationMs = endDate.getTime() - startDate.getTime();
   const durationMin = Math.floor(durationMs / 1000 / 60);
 
-  if (durationMin < 1) return "< 1 minute";
-  if (durationMin < 60) return `${durationMin} minutes`;
+  if (durationMin < 1) return "< 1 Minute";
+  if (durationMin < 60) return `${durationMin} Minuten`;
 
   const hours = Math.floor(durationMin / 60);
   const minutes = durationMin % 60;
-  return `${hours} hours ${minutes} minutes`;
+  return `${hours} Std. ${minutes} Min.`;
 }

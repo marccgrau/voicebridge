@@ -1,0 +1,182 @@
+{
+  "scenario_id": "bank_credit_denial_civil",
+  "title": "Kreditlimite / Kreditkartenantrag – Ablehnung (Zivil)",
+  "domain": "banking",
+  "background": "Du hast eine Nachricht bekommen, dass dein Kreditkartenantrag bzw. die gewünschte Limite abgelehnt wurde.",
+  "customer_goal": "Verstehen warum der Antrag abgelehnt wurde, nächste Schritte klären, Alternativen kennenlernen.",
+  "guidelines": {},
+  "conversation": [
+    {
+      "id": "step_a",
+      "customer_msg": "Guten Tag. Ich habe eine Nachricht bekommen, dass mein Kreditkartenantrag bzw. die gewünschte Limite abgelehnt wurde. Können Sie mir bitte helfen zu verstehen, warum?",
+      "actor_intent": "Anliegen sachlich schildern",
+      "tone": "freundlich",
+      "advice_instructional": "Kurze Begrüssung, Rahmen setzen, Anliegen aufnehmen.",
+      "next_id": "step_b"
+    },
+    {
+      "id": "step_b",
+      "customer_msg": "Danke. Ich bin etwas überrascht, weil ich die Karte eigentlich dringend brauche.",
+      "actor_intent": "Enttäuschung zeigen, kooperativ bleiben",
+      "tone": "überrascht",
+      "advice_instructional": "Empathie, dann Identitätsprüfung ankündigen.",
+      "next_id": "step_c"
+    },
+    {
+      "id": "step_c",
+      "customer_msg": "Ja klar. Was brauchen Sie zur Identifikation?",
+      "actor_intent": "Bereitschaft zur Identifikation signalisieren",
+      "tone": "kooperativ",
+      "advice_instructional": "Fragt nach Name, Geburtsdatum, Adresse.",
+      "next_id": "step_d"
+    },
+    {
+      "id": "step_d",
+      "customer_msg": "Alex Meyer, 3. März 1989, Lindenstrasse 45, 8001 Zürich",
+      "actor_intent": "Identifikationsdaten bereitstellen",
+      "tone": "sachlich",
+      "advice_instructional": "Bestätigt, prüft, leitet zur Fallklärung über.",
+      "next_id": "step_e"
+    },
+    {
+      "id": "step_e",
+      "customer_msg": "Ich habe den Antrag online auf Ihrer Website ausgefüllt. Ich dachte, ich hätte alles korrekt gemacht.",
+      "actor_intent": "Kontext zum Antrag liefern",
+      "tone": "sachlich",
+      "advice_instructional": "Fragt nach Vollständigkeit/Abschicken/Bestätigung.",
+      "next_id": "step_f"
+    },
+    {
+      "id": "step_f",
+      "customer_msg": "Ich habe alles ausgefüllt und am Ende auf «Senden» geklickt. Eine Bestätigung habe ich nicht mehr im Kopf. Gibt es irgendwo eine Referenz?",
+      "actor_intent": "Detailfragen stellen",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz antworten (prüfen/erklären), dann zur Ablehnung.",
+      "next_id": "step_g"
+    },
+    {
+      "id": "step_g",
+      "customer_msg": "In der Mitteilung stand nur etwas von «Bonitätsprüfung». Was heisst das genau?",
+      "actor_intent": "Ablehnungsgrund verstehen wollen",
+      "tone": "neugierig",
+      "advice_instructional": "Kurz erklären (Bonitätsprüfung, Kriterien).",
+      "next_id": "step_h"
+    },
+    {
+      "id": "step_h",
+      "customer_msg": "Bedeutet das, dass mein Einkommen zu tief ist?",
+      "actor_intent": "Einordnung des eigenen Einkommens",
+      "tone": "verunsichert",
+      "advice_instructional": "Kurz einordnen, Regel ansprechen.",
+      "next_id": "step_i"
+    },
+    {
+      "id": "step_i",
+      "customer_msg": "Ich habe monatlich etwa 6'500 CHF Eingang auf dem Konto. Ich wollte eigentlich 6'000 CHF Monatslimite. Wenn das Kontolimit tiefer als der monatliche Eingang sein muss, sollte das doch aufgehen?",
+      "actor_intent": "Logische Gegenfrage stellen",
+      "tone": "sachlich",
+      "advice_instructional": "Bestätigt kurz, erklärt nächsten Schritt.",
+      "next_id": "step_j"
+    },
+    {
+      "id": "step_j",
+      "customer_msg": "Ich habe das Konto erst vor kurzem eröffnet, das kann auch ein Grund sein. Wie lange muss das Konto bestehen, bis das geprüft wird?",
+      "actor_intent": "Möglichen Grund selbst identifizieren",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz erklären (3 Monatseingänge).",
+      "next_id": "step_k"
+    },
+    {
+      "id": "step_k",
+      "customer_msg": "Verstehe. Dann müsste ich also zuerst drei Monate regelmässige Eingänge haben und dann kann ich nochmals anfragen?",
+      "actor_intent": "Nächste Schritte bestätigen",
+      "tone": "akzeptierend",
+      "advice_instructional": "Bestätigt kurz, next step.",
+      "next_id": "step_l"
+    },
+    {
+      "id": "step_l",
+      "customer_msg": "Eine andere Frage: Ich habe zusätzlich eine Karte für meine Partnerin beantragt. Kann das auch eine Rolle spielen? Ich verstehe dieses Thema mit Globallimite nicht.",
+      "actor_intent": "Zusatzthema ansprechen (Globallimite)",
+      "tone": "neugierig",
+      "advice_instructional": "Kurz erklären (Globallimite vs. Kartenlimite).",
+      "next_id": "step_m"
+    },
+    {
+      "id": "step_m",
+      "customer_msg": "Ja wir leben in demselben Haushalt. Also wenn wir beide Karten haben, teilen wir uns unter Umständen die gleiche Gesamtlimite?",
+      "actor_intent": "Verständnis bestätigen",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz bestätigen.",
+      "next_id": "step_n"
+    },
+    {
+      "id": "step_n",
+      "customer_msg": "Und wie ist das mit Bargeldbezug? Gibt es da auch eine separate Limite?",
+      "actor_intent": "Detailfrage zu Bargeldbezug",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz erklären.",
+      "next_id": "step_o"
+    },
+    {
+      "id": "step_o",
+      "customer_msg": "Okay. In Zukunft wollen wir wahrscheinlich eine noch höhere Limite, dauert das dann wieder 3 Monate?",
+      "actor_intent": "Zukünftige Erhöhung klären",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz erklären.",
+      "next_id": "step_p"
+    },
+    {
+      "id": "step_p",
+      "customer_msg": "Gut. Eine letzte Frage: Gibt es eine Alternative, falls ich die Kreditlimite nicht bekomme? Zum Beispiel, dass ich Geld einzahle und die Karte wie eine Prepaid nutze?",
+      "actor_intent": "Alternative erfragen",
+      "tone": "sachlich",
+      "advice_instructional": "Kurz antworten (Visa Free: Globallimite 0, Einzahlung möglich).",
+      "next_id": "step_q"
+    },
+    {
+      "id": "step_q",
+      "customer_msg": "Danke, das hilft mir sehr. Dann wäre der nächste Schritt: Ich warte die drei Monatseingänge ab und stelle dann erneut die Anfrage, richtig?",
+      "actor_intent": "Zusammenfassung und Bestätigung",
+      "tone": "zufrieden",
+      "advice_instructional": "Kurz zusammenfassen, bestätigen, Abschluss.",
+      "next_id": "step_r"
+    },
+    {
+      "id": "step_r",
+      "customer_msg": "Perfekt, vielen Dank und einen schönen Tag.",
+      "actor_intent": "Gespräch beenden",
+      "tone": "freundlich",
+      "advice_instructional": "Verabschiedung.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "civil",
+    "instruction": "Bleibe freundlich und respektvoll. Gib Informationen nur, wenn der Agent gezielt fragt. Nutze die vorgesehenen Punkte, damit alle Prozessaspekte vorkommen.",
+    "escalation_cues": [
+      "Agent gibt keine klare Erklärung für die Ablehnung",
+      "Agent nennt keine konkreten nächsten Schritte",
+      "Agent kann die Bonitätsprüfung nicht verständlich erklären"
+    ],
+    "deescalation_cues": [
+      "Agent erklärt den Ablehnungsgrund verständlich",
+      "Agent nennt konkrete nächste Schritte und Zeitrahmen",
+      "Agent bietet Alternativen an (Visa Free)"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Ich habe das Konto erst seit kurzem.",
+      "Meine Partnerin lebt im selben Haushalt.",
+      "Ich möchte die Karte auch für Reisen nutzen.",
+      "Ich habe bei einer anderen Bank bereits eine Kreditkarte."
+    ],
+    "must_ask_checkpoints": [
+      "Was genau bedeutet Bonitätsprüfung?",
+      "Wie funktioniert die Globallimite?",
+      "Gibt es eine Prepaid-Alternative?",
+      "Wie lange muss ich warten bis zum nächsten Antrag?"
+    ]
+  }
+}

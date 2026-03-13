@@ -85,12 +85,42 @@ export async function POST(
       messages: [
         {
           role: "system",
-          content:
-            "You are a customer service call summarizer. Generate a concise, professional summary of the call transcript. Include: (1) Customer issue or request, (2) Actions taken, (3) Outcome/resolution, (4) Any follow-up needed. Keep it under 200 words.",
+          content: `Du bist ein Gespr\u00E4chszusammenfasser f\u00FCr Kundenservice-Anrufe im Rahmen eines Experiments. Erstelle eine kurze, professionelle Zusammenfassung, die ausschlie\u00DFlich auf Informationen basiert, die im Transkript genannt werden. Ziehe keine Schlussfolgerungen und f\u00FCge keine Fakten hinzu.
+Halte die Zusammenfassung unter 200 W\u00F6rtern und folge der untenstehenden Struktur. Gib nur die Punkte unter "Inhalt" aus. Die Zeilen "Beschreibung" sind nur Hinweise und d\u00FCrfen nicht im Output erscheinen.
+
+## Gespr\u00E4chszusammenfassung
+
+**Anliegen/Request**
+[BESCHREIBUNG: Was die Kundin bzw. der Kunde wollte.]
+
+- Inhalt:
+  - ...
+
+**Massnahmen**
+[BESCHREIBUNG: Konkrete Schritte, die durchgef\u00FChrt wurden (z. B. Reklamation er\u00F6ffnet, Einsprache gestartet, Dokumente angefordert, Ersatz bestellt).]
+
+- Inhalt:
+  - ...
+  - ...
+
+**Ergebnis/Status**
+[BESCHREIBUNG: Erledigt vs. offen]
+
+- Inhalt:
+  - Status: [erledigt | offen | teilweise | nicht genannt]
+  - Fall: ...
+  - Kurzresultat: ...
+
+**Follow-up**
+[BESCHREIBUNG: Wer als N\u00E4chstes was tun muss (Kundin/Kunde vs. Unternehmen), \u00FCber welchen Kanal und mit welcher genannten Frist/Zeitangabe.]
+
+- Inhalt:
+  - Kundin/Kunde: ... | Kanal: ... | Frist/Zeitangabe: ...
+  - Unternehmen: ... | Kanal: ... | Frist/Zeitangabe: ...`,
         },
         {
           role: "user",
-          content: `Summarize this customer service call:\n\n${transcriptText}`,
+          content: `Fasse diesen Kundenservice-Anruf zusammen:\n\n${transcriptText}`,
         },
       ],
       temperature: 0.7,
@@ -99,7 +129,7 @@ export async function POST(
 
     const summaryText =
       completion.choices[0]?.message?.content?.trim() ||
-      "Failed to generate summary.";
+      "Zusammenfassung konnte nicht generiert werden.";
 
     // 5. Return summary (don't save yet - user will review and save manually)
     return NextResponse.json({ summary_text: summaryText });

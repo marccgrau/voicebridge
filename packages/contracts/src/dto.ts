@@ -26,7 +26,7 @@ export type ProcessCandidate = z.infer<typeof ProcessCandidateSchema>;
  */
 export const ProcessLookupInputSchema = z.object({
   query: z.string().min(1),
-  locale: z.string().default("en"),
+  locale: z.string().default("de"),
   domain: z.string().optional(),
   queueTag: z.string().optional(),
   limit: z.number().int().min(1).max(10).default(5),
@@ -74,7 +74,7 @@ export type ProcessSelectionResult = z.infer<
  */
 export const SessionConfigSchema = z.object({
   sessionId: z.string().uuid().optional(),
-  locale: z.string().default("en"),
+  locale: z.string().default("de"),
   domain: z.string().optional(),
   queueTag: z.string().optional(),
   agentId: z.string().optional(),
@@ -361,7 +361,7 @@ export type SessionSummaryUpdateResponse = z.infer<
  * Customer-initiated session creation request
  */
 export const SessionCreateRequestSchema = z.object({
-  locale: z.string().default("en"),
+  locale: z.string().default("de"),
   domain: z.string().optional(),
   metadata: z.record(z.unknown()).optional(),
   customerId: z.string().uuid(),

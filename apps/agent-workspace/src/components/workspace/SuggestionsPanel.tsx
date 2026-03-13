@@ -27,7 +27,7 @@ export function SuggestionsPanel({
       >
         <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         <span className="text-sm font-medium text-muted-foreground">
-          Suggestions
+          Vorschläge
         </span>
         {suggestions.length > 0 && (
           <span className="rounded-lg bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
@@ -53,7 +53,7 @@ export function SuggestionsPanel({
       >
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          Suggested Responses
+          Vorgeschlagene Antworten
         </span>
         {suggestions.length > 0 && (
           <span className="rounded-lg bg-accent/10 px-2.5 py-1 text-sm font-medium text-accent">
@@ -68,8 +68,8 @@ export function SuggestionsPanel({
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-muted-foreground">
               {isConnected
-                ? "Suggestions will appear based on the conversation"
-                : "Start a session to receive suggestions"}
+                ? "Vorschläge erscheinen basierend auf dem Gespräch"
+                : "Sitzung starten, um Vorschläge zu erhalten"}
             </p>
           </div>
         ) : (
@@ -94,22 +94,22 @@ function SuggestionCard({ suggestion }: SuggestionCardProps) {
     response: {
       color: "text-info",
       bgColor: "bg-info/5 border-l-info",
-      label: "Response",
+      label: "Antwort",
     },
     question: {
       color: "text-warning",
       bgColor: "bg-warning/5 border-l-warning",
-      label: "Question",
+      label: "Frage",
     },
     action: {
       color: "text-success",
       bgColor: "bg-success/5 border-l-success",
-      label: "Action",
+      label: "Aktion",
     },
     escalation: {
       color: "text-destructive",
       bgColor: "bg-destructive/5 border-l-destructive",
-      label: "Escalate",
+      label: "Eskalation",
     },
   };
 

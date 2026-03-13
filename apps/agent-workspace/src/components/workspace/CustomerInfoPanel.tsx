@@ -44,7 +44,7 @@ export function CustomerInfoPanel({
           <>
             <span className="h-8 w-8 animate-pulse rounded-full bg-muted" />
             <span className="text-sm text-muted-foreground">
-              Loading customer brief...
+              Kundenprofil wird geladen...
             </span>
           </>
         ) : customer ? (
@@ -59,8 +59,8 @@ export function CustomerInfoPanel({
               <p className="font-mono-ui text-[11px] uppercase tracking-wide text-muted-foreground">
                 {customer.preferredLanguage.toUpperCase()} ·{" "}
                 {resolvedRouting.source === "voice_ai"
-                  ? "Voice AI transfer"
-                  : "Direct queue"}
+                  ? "Voice-AI-Übergabe"
+                  : "Direkte Warteschlange"}
               </p>
             </div>
             <ClassificationBadge classification={customer.classification} />
@@ -68,9 +68,7 @@ export function CustomerInfoPanel({
         ) : (
           <>
             <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-            <span className="text-sm text-muted-foreground">
-              Customer Brief
-            </span>
+            <span className="text-sm text-muted-foreground">Kundenprofil</span>
           </>
         )}
       </button>
@@ -86,12 +84,12 @@ export function CustomerInfoPanel({
       >
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          Customer Brief
+          Kundenprofil
         </span>
         {customer && (
           <span className="font-mono-ui text-xs uppercase tracking-wide text-muted-foreground">
-            {interactions.length} interaction
-            {interactions.length === 1 ? "" : "s"}
+            {interactions.length} Interaktion
+            {interactions.length === 1 ? "" : "en"}
           </span>
         )}
       </button>
@@ -194,20 +192,20 @@ function CustomerIdentityCard({
             <ClassificationBadge classification={customer.classification} />
           </div>
           <p className="font-mono-ui mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-            {customer.gender} · customer since{" "}
+            {customer.gender} · Kunde seit{" "}
             {formatMonthYear(customer.customerSince)}
             {customer.dateOfBirth
-              ? ` · DOB ${formatMonthDayYear(customer.dateOfBirth)}`
+              ? ` · Geb. ${formatMonthDayYear(customer.dateOfBirth)}`
               : ""}
           </p>
           {customer.customerCode && (
             <p className="font-mono-ui mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-              Customer code: {customer.customerCode}
+              Kundennummer: {customer.customerCode}
             </p>
           )}
           <p className="mt-2 text-sm text-muted-foreground">
-            {interactionCount} historical interaction
-            {interactionCount === 1 ? "" : "s"} available for context
+            {interactionCount} historische Interaktion
+            {interactionCount === 1 ? "" : "en"} als Kontext verfügbar
           </p>
         </div>
       </div>
@@ -225,20 +223,21 @@ function RoutingContextCard({
   if (routingContext.source === "voice_ai") {
     return (
       <section className="rounded-2xl border-2 border-accent/45 bg-accent/10 p-4 shadow-sm">
-        <SectionTitle number="1" title="Routing Context" />
+        <SectionTitle number="1" title="Routing-Kontext" />
         <p className="mt-2 text-sm font-semibold text-foreground">
-          Arrived via Voice AI triage
+          Via Voice-AI-Triage eingegangen
         </p>
         <p className="mt-1 text-sm leading-relaxed text-foreground">
-          {routingContext.handoffSummary ?? "No AI handoff summary provided."}
+          {routingContext.handoffSummary ??
+            "Keine KI-Übergabezusammenfassung vorhanden."}
         </p>
         <div className="mt-3 rounded-xl border border-accent/35 bg-card/90 px-3 py-2">
           <p className="font-mono-ui text-[11px] uppercase tracking-wide text-muted-foreground">
-            Transfer Reason
+            Übergabegrund
           </p>
           <p className="mt-1 text-sm font-medium text-foreground">
             {routingContext.transferReason ??
-              "No explicit transfer reason provided."}
+              "Kein expliziter Übergabegrund angegeben."}
           </p>
         </div>
       </section>
@@ -247,27 +246,27 @@ function RoutingContextCard({
 
   return (
     <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-      <SectionTitle number="1" title="Routing Context" />
+      <SectionTitle number="1" title="Routing-Kontext" />
       <p className="mt-2 text-sm font-semibold text-foreground">
-        Arrived directly in agent queue
+        Direkt in Agent-Warteschlange eingegangen
       </p>
       {lastInteraction ? (
         <div className="mt-2 rounded-xl border border-border/70 bg-muted/30 p-3">
           <p className="font-mono-ui text-[11px] uppercase tracking-wide text-muted-foreground">
-            Last customer interaction · {formatMonthDay(lastInteraction.date)}
+            Letzte Kundeninteraktion · {formatMonthDay(lastInteraction.date)}
           </p>
           <p className="mt-1 text-sm leading-relaxed text-foreground">
             {lastInteraction.summary}
           </p>
           {lastInteraction.outcome && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Outcome: {lastInteraction.outcome}
+              Ergebnis: {lastInteraction.outcome}
             </p>
           )}
         </div>
       ) : (
         <p className="mt-2 text-sm text-muted-foreground">
-          No prior interaction history available.
+          Keine bisherige Interaktionshistorie vorhanden.
         </p>
       )}
     </section>
@@ -283,30 +282,30 @@ function CustomerEssentialsCard({
 }) {
   return (
     <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-      <SectionTitle number="2" title="Customer Essentials" />
+      <SectionTitle number="2" title="Kundenübersicht" />
       <div className="mt-3 grid grid-cols-2 gap-2">
         <FactTile
-          label="Language"
+          label="Sprache"
           value={customer.preferredLanguage.toUpperCase()}
         />
         <FactTile label="Segment" value={customer.classification} />
         <FactTile
-          label="Since"
+          label="Seit"
           value={formatMonthYear(customer.customerSince)}
         />
-        <FactTile label="History" value={String(interactionCount)} />
+        <FactTile label="Historie" value={String(interactionCount)} />
       </div>
 
       <div className="mt-3 grid gap-2">
-        <FactLine label="Email" value={customer.email ?? "Not available"} />
-        <FactLine label="Phone" value={customer.phone ?? "Not available"} />
+        <FactLine label="E-Mail" value={customer.email ?? "Nicht verfügbar"} />
+        <FactLine label="Telefon" value={customer.phone ?? "Nicht verfügbar"} />
         <FactLine
-          label="Preferred Channel"
-          value={customer.preferredContactChannel ?? "Not specified"}
+          label="Bevorzugter Kanal"
+          value={customer.preferredContactChannel ?? "Nicht angegeben"}
         />
         <FactLine
-          label="Address"
-          value={formatAddress(customer) ?? "Not available"}
+          label="Adresse"
+          value={formatAddress(customer) ?? "Nicht verfügbar"}
         />
       </div>
     </section>
@@ -338,10 +337,10 @@ function FactLine({ label, value }: { label: string; value: string }) {
 function ProductPortfolioCard({ products }: { products: string[] }) {
   return (
     <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-      <SectionTitle number="3" title="Product Portfolio" />
+      <SectionTitle number="3" title="Produktportfolio" />
       {products.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
-          No products on file.
+          Keine Produkte hinterlegt.
         </p>
       ) : (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -367,10 +366,10 @@ function ProductPortfolioCard({ products }: { products: string[] }) {
 function ServiceNoteCard({ notes }: { notes: string | null }) {
   return (
     <section className="rounded-2xl border-2 border-warning/45 bg-warning/10 p-4 shadow-sm">
-      <SectionTitle number="4" title="Priority Service Note" />
+      <SectionTitle number="4" title="Prioritäts-Servicenotiz" />
       <p className="mt-2 text-sm leading-relaxed text-foreground">
         {notes ??
-          "No service notes available for this customer. Confirm expectations explicitly during this call."}
+          "Keine Servicenotizen vorhanden. Erwartungen während des Gesprächs explizit klären."}
       </p>
     </section>
   );
@@ -385,10 +384,10 @@ function RecentInteractionsCard({
 
   return (
     <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
-      <SectionTitle number="5" title="Recent Interactions" />
+      <SectionTitle number="5" title="Letzte Interaktionen" />
       {recentInteractions.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">
-          No previous interactions.
+          Keine bisherigen Interaktionen.
         </p>
       ) : (
         <div className="mt-3 space-y-2">
@@ -404,7 +403,7 @@ function RecentInteractionsCard({
 function InteractionRow({ interaction }: { interaction: CustomerInteraction }) {
   const typeConfig = {
     phone: {
-      label: "Phone",
+      label: "Telefon",
       tagClass: "border-blue-500/40 bg-blue-500/10 text-blue-700",
     },
     chat: {
@@ -412,31 +411,31 @@ function InteractionRow({ interaction }: { interaction: CustomerInteraction }) {
       tagClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
     },
     mobile_app_chat: {
-      label: "Mobile App Chat",
+      label: "App-Chat",
       tagClass: "border-sky-500/40 bg-sky-500/10 text-sky-700",
     },
     portal_message: {
-      label: "Portal Message",
+      label: "Portal-Nachricht",
       tagClass: "border-violet-500/40 bg-violet-500/10 text-violet-700",
     },
     secure_message: {
-      label: "Secure Message",
+      label: "Sichere Nachricht",
       tagClass: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700",
     },
     branch_visit: {
-      label: "Branch Visit",
+      label: "Filialbesuch",
       tagClass: "border-amber-500/40 bg-amber-500/10 text-amber-700",
     },
     service_desk: {
-      label: "Service Desk",
+      label: "Service-Desk",
       tagClass: "border-orange-500/40 bg-orange-500/10 text-orange-700",
     },
     video_call: {
-      label: "Video Call",
+      label: "Videoanruf",
       tagClass: "border-teal-500/40 bg-teal-500/10 text-teal-700",
     },
     email: {
-      label: "Email",
+      label: "E-Mail",
       tagClass: "border-cyan-500/40 bg-cyan-500/10 text-cyan-700",
     },
   };
@@ -463,7 +462,7 @@ function InteractionRow({ interaction }: { interaction: CustomerInteraction }) {
       </p>
       {interaction.outcome && (
         <p className="mt-1 text-xs text-muted-foreground">
-          Outcome: {interaction.outcome}
+          Ergebnis: {interaction.outcome}
         </p>
       )}
     </article>
@@ -478,10 +477,10 @@ function EmptyCustomerState({
   isConnected: boolean;
 }) {
   const message = customerId
-    ? "Customer profile not found for this session."
+    ? "Kundenprofil für diese Sitzung nicht gefunden."
     : isConnected
-      ? "No customer profile is linked to this active call."
-      : "No customer profile linked. Select a pending call to preview context.";
+      ? "Kein Kundenprofil mit diesem aktiven Anruf verknüpft."
+      : "Kein Kundenprofil verknüpft. Wählen Sie einen wartenden Anruf zur Kontextvorschau.";
 
   return (
     <div className="flex h-full items-center justify-center">
@@ -508,38 +507,64 @@ function SectionTitle({ number, title }: { number: string; title: string }) {
 function getProductFamily(product: string): string {
   const normalized = product.toLowerCase();
 
-  if (normalized.includes("family office") || normalized.includes("wealth")) {
-    return "Wealth Management";
+  if (
+    normalized.includes("family office") ||
+    normalized.includes("wealth") ||
+    normalized.includes("vermögen")
+  ) {
+    return "Vermögensverwaltung";
   }
   if (normalized.includes("private banking")) {
     return "Private Banking";
   }
-  if (normalized.includes("portfolio") || normalized.includes("investment")) {
-    return "Investments";
+  if (
+    normalized.includes("portfolio") ||
+    normalized.includes("investment") ||
+    normalized.includes("anlage") ||
+    normalized.includes("depot")
+  ) {
+    return "Anlagen";
   }
   if (
     normalized.includes("mortgage") ||
     normalized.includes("financing") ||
-    normalized.includes("loan")
+    normalized.includes("loan") ||
+    normalized.includes("hypothek") ||
+    normalized.includes("kredit") ||
+    normalized.includes("finanzierung")
   ) {
-    return "Lending";
+    return "Kredite";
   }
   if (
     normalized.includes("tax") ||
     normalized.includes("estate") ||
     normalized.includes("advisory") ||
-    normalized.includes("philanthropy")
+    normalized.includes("philanthropy") ||
+    normalized.includes("steuer") ||
+    normalized.includes("beratung")
   ) {
-    return "Advisory";
+    return "Beratung";
   }
-  if (normalized.includes("card")) {
-    return "Cards & Payments";
+  if (normalized.includes("card") || normalized.includes("karte")) {
+    return "Karten & Zahlungen";
   }
-  if (normalized.includes("account") || normalized.includes("savings")) {
-    return "Accounts";
+  if (
+    normalized.includes("account") ||
+    normalized.includes("savings") ||
+    normalized.includes("konto") ||
+    normalized.includes("spar")
+  ) {
+    return "Konten";
+  }
+  if (
+    normalized.includes("versicherung") ||
+    normalized.includes("insurance") ||
+    normalized.includes("police")
+  ) {
+    return "Versicherungen";
   }
 
-  return "Specialty Services";
+  return "Spezialdienstleistungen";
 }
 
 function getInitials(name: string): string {
@@ -552,21 +577,21 @@ function getInitials(name: string): string {
 }
 
 function formatMonthYear(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, {
+  return new Date(value).toLocaleDateString("de-DE", {
     year: "numeric",
     month: "short",
   });
 }
 
 function formatMonthDay(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, {
+  return new Date(value).toLocaleDateString("de-DE", {
     month: "short",
     day: "numeric",
   });
 }
 
 function formatMonthDayYear(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, {
+  return new Date(value).toLocaleDateString("de-DE", {
     year: "numeric",
     month: "short",
     day: "numeric",

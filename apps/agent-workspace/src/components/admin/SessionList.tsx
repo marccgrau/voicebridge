@@ -97,9 +97,9 @@ export function SessionList({
     <div className="flex h-full flex-col border-r border-border">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <h2 className="font-semibold">Sessions</h2>
+        <h2 className="font-semibold">Sitzungen</h2>
         <span className="text-xs text-muted-foreground">
-          {sessions.length} loaded
+          {sessions.length} geladen
         </span>
       </div>
 
@@ -107,11 +107,13 @@ export function SessionList({
       <div className="flex-1 overflow-y-auto">
         {isLoading && sessions.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted-foreground">Laden...</p>
           </div>
         ) : sessions.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">No sessions found</p>
+            <p className="text-sm text-muted-foreground">
+              Keine Sitzungen gefunden
+            </p>
           </div>
         ) : (
           <div className="space-y-1 p-2">
@@ -177,7 +179,7 @@ export function SessionList({
             onClick={loadSessions}
             className="w-full rounded-md bg-muted px-3 py-2 text-sm font-medium hover:bg-muted/80"
           >
-            Load More
+            Mehr laden
           </button>
         </div>
       )}

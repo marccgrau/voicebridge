@@ -1,0 +1,134 @@
+{
+  "scenario_id": "bank_unauth_transaction_uncivil",
+  "title": "TWINT – Empfänger hat Geld nicht erhalten (Unzivil)",
+  "domain": "banking",
+  "background": "Du hast per TWINT CHF 120 an «Marco» überwiesen. Der Empfänger sagt, er habe das Geld nicht erhalten. Du bist gereizt und machst der Bank Vorwürfe.",
+  "customer_goal": "Sofortige Korrektur der Transaktion, Frust über den Prozess, Fall eskalieren.",
+  "guidelines": {},
+  "conversation": [
+    {
+      "id": "step_a",
+      "customer_msg": "Guten Tag. Ich sehe eine TWINT-Zahlung über 120 Franken. Der Empfänger sagt, er hat das Geld nicht erhalten. Das ist doch ein Systemfehler. Ich will, dass Sie das sofort korrigieren.",
+      "actor_intent": "Sofortige Korrektur fordern",
+      "tone": "verärgert",
+      "advice_instructional": "Begrüsst kurz, versucht zu strukturieren, Identitätsprüfung ankündigen.",
+      "next_id": "step_b"
+    },
+    {
+      "id": "step_b",
+      "customer_msg": "Nein, hören Sie: Ich habe das Geld verloren, und jetzt soll ich mich noch durch Fragen kämpfen?",
+      "actor_intent": "Widerstand gegen Identifikation",
+      "tone": "aggressiv",
+      "advice_instructional": "Kurz erklären (Sicherheit/Datenschutz), Identitätsdaten verlangen.",
+      "next_id": "step_c"
+    },
+    {
+      "id": "step_c",
+      "customer_msg": "Also gut: Sarah Steiner, 21. November 1985, Gartenweg 27, 8400 Winterthur.",
+      "actor_intent": "Widerwillig kooperieren",
+      "tone": "genervt",
+      "advice_instructional": "Bestätigt, fragt nach Transaktionsdetails.",
+      "next_id": "step_d"
+    },
+    {
+      "id": "step_d",
+      "customer_msg": "120 Franken an «Marco», vor sechs Tagen. In der App steht «erfolgreich». Und ja, es ist definitiv abgebucht.",
+      "actor_intent": "Transaktionsdetails liefern",
+      "tone": "ungeduldig",
+      "advice_instructional": "Klärt Sachverhalt, fragt nach Kontaktversuchen.",
+      "next_id": "step_e"
+    },
+    {
+      "id": "step_e",
+      "customer_msg": "Ich habe ihm gestern in der TWINT-App geschrieben und eine Geldanforderung geschickt. Keine Antwort. Was soll ich denn noch machen?",
+      "actor_intent": "Frustration über mangelnde Reaktion",
+      "tone": "gereizt",
+      "advice_instructional": "Fragt nach zweitem Kontaktweg (SMS) und Nachweisen.",
+      "next_id": "step_f"
+    },
+    {
+      "id": "step_f",
+      "customer_msg": "Ich soll ihm jetzt auch noch SMS schreiben? Ich bin doch nicht der Support für TWINT!",
+      "actor_intent": "Widerstand gegen weitere Aufwände",
+      "tone": "empört",
+      "advice_instructional": "Erklärt kurz die Vorabklärung (2 Kontaktversuche + Screenshots) und 2-Tage-Regel.",
+      "next_id": "step_g"
+    },
+    {
+      "id": "step_g",
+      "customer_msg": "Also ich soll jetzt warten, obwohl mein Geld weg ist? Das ist ja absurd.",
+      "actor_intent": "Wartezeit als inakzeptabel darstellen",
+      "tone": "wütend",
+      "advice_instructional": "Bleibt ruhig, erklärt: erst nach 2 Tagen + Nachweisen wird der Fall formal weitergeleitet.",
+      "next_id": "step_h"
+    },
+    {
+      "id": "step_h",
+      "customer_msg": "Und wenn Marco behauptet weiterhin, er hat nichts bekommen?",
+      "actor_intent": "Sorge um Patt-Situation",
+      "tone": "fordernd",
+      "advice_instructional": "Kurz: schriftliche Bestätigung vom Empfänger nötig.",
+      "next_id": "step_i"
+    },
+    {
+      "id": "step_i",
+      "customer_msg": "Super, jetzt soll ich auch noch seine Bestätigung organisieren. Und am Schluss heisst es dann, ich sei schuld.",
+      "actor_intent": "Schuldzuweisung befürchten",
+      "tone": "sarkastisch",
+      "advice_instructional": "Gebührenhinweis CHF 60 bei Irrtum sachlich kommunizieren.",
+      "next_id": "step_j"
+    },
+    {
+      "id": "step_j",
+      "customer_msg": "Moment – es gibt eine Gebühr? Ich mache eine Beschwerde, wenn ich dafür zahlen muss.",
+      "actor_intent": "Drohung mit Beschwerde wegen Gebühr",
+      "tone": "drohend",
+      "advice_instructional": "Kurz: Gebühr nur bei ungerechtfertigter Abklärung/Irrtum; steht im Formular.",
+      "next_id": "step_k"
+    },
+    {
+      "id": "step_k",
+      "customer_msg": "Gut. Dann mache ich das jetzt: Ich schreibe Marco per SMS, mache Screenshots und wenn nach zwei Tagen nichts da ist, will ich, dass Sie das offiziell weiterleiten. Sonst kündige ich.",
+      "actor_intent": "Zusammenfassung mit Drohung",
+      "tone": "fordernd",
+      "advice_instructional": "Kurz zusammenfassen (Next Steps), Abschluss.",
+      "next_id": "step_l"
+    },
+    {
+      "id": "step_l",
+      "customer_msg": "Ich bin nicht zufrieden, aber ich mache es so.",
+      "actor_intent": "Widerwillige Akzeptanz",
+      "tone": "resigniert",
+      "advice_instructional": "Verabschiedung.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "uncivil",
+    "instruction": "Starte deutlich verärgert. Wenn der Agent deeskaliert, bleibe angespannt, aber lass dich langsam auf den Prozess zurückführen. Unterbrich 1–2×, setze 1× eine Drohung («kündigen», «Beschwerde»).",
+    "escalation_cues": [
+      "Agent kann Transaktion nicht einordnen",
+      "Agent erklärt den Prozess zu vage",
+      "Agent nennt keine konkreten nächsten Schritte"
+    ],
+    "deescalation_cues": [
+      "Agent ordnet die Transaktion klar ein",
+      "Agent bleibt ruhig und sachlich",
+      "Agent fasst nächste Schritte zusammen"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Die Transaktion war vor 6 Tagen.",
+      "Ich habe einen Screenshot der Geldanforderung.",
+      "Marco ist ein Bekannter.",
+      "Der Betrag ist definitiv abgebucht."
+    ],
+    "must_ask_checkpoints": [
+      "Was muss der Empfänger bestätigen?",
+      "Wie lange muss ich warten?",
+      "Gibt es eine Gebühr?",
+      "Wer leitet den Fall weiter?"
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # VoiceBridge
 
-VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations over WebRTC, uses LLM flows to detect processes and track progress, and delivers real-time suggestions to agents.
+VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations over WebRTC, uses LLM flows to detect processes and track progress, and delivers real-time suggestions to agents. The UI and all experiment content (personas, scenarios, process definitions, knowledge base) are in **German**.
 
 ## Monorepo Layout
 
@@ -10,8 +10,7 @@ voicebridge/
 │   ├── agent-workspace/     # Next.js agent UI (port 3000)
 │   └── customer/            # Next.js customer UI (port 3001)
 ├── services/
-│   ├── pcc/                 # Pipecat Cloud voice pipeline (port 7860)
-│   └── orchestrator/        # Legacy orchestrator (deprecated, superseded by PCC)
+│   └── pcc/                 # Pipecat Cloud voice pipeline (port 7860)
 ├── packages/
 │   ├── contracts/           # Shared Zod schemas and TypeScript types
 │   └── db/                  # Supabase query helpers
@@ -201,12 +200,18 @@ Summary save/generate is allowed for terminal statuses only: `completed`, `aband
 
 ## Process Definitions
 
-Process definitions currently live in `services/pcc/process_content/` (4 experiment-aligned markdown files).
+Process definitions live in `services/pcc/process_content/` and knowledge base articles in `services/pcc/kb_content/` (all in German).
 
-- YAML frontmatter: `process_key`, `name`, `domain`, `intents`
-- Steps parsed from `## Step N: ...` headings
-- Catalog content is embedded into the process-LLM system prompt (`PROCESS_MODEL`)
-- `PROCESS_CONTENT_PATH` can override the default markdown directory
+Current process definitions:
+
+- `bank_unauth_transaction` — Unautorisierte Bankbuchung
+- `bank_credit_denial` — Kreditantrag abgelehnt
+- `insurance_unauth_claim` — Unautorisierter Versicherungsanspruch
+- `insurance_claim_denial` — Versicherungsantrag abgelehnt
+
+Each file uses YAML frontmatter (`process_key`, `name`, `domain`, `intents`) and `## Step N: ...` headings.
+Catalog content is embedded into the process-LLM system prompt (`PROCESS_MODEL`).
+`PROCESS_CONTENT_PATH` can override the default markdown directory.
 
 ## Testing
 

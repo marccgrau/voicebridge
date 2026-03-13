@@ -1,0 +1,190 @@
+{
+  "scenario_id": "bank_credit_denial_uncivil",
+  "title": "Kreditlimite / Kreditkartenantrag – Ablehnung (Unzivil)",
+  "domain": "banking",
+  "background": "Du hast eine Nachricht bekommen, dass dein Kreditkartenantrag abgelehnt wurde. Du bist verärgert und machst Vorwürfe.",
+  "customer_goal": "Verstehen warum der Antrag abgelehnt wurde, Frust abbauen, Alternativen finden.",
+  "guidelines": {},
+  "conversation": [
+    {
+      "id": "step_a",
+      "customer_msg": "Endlich. Ich habe gerade gesehen, dass Sie meinen Kreditkartenantrag abgelehnt haben. Was soll das?",
+      "actor_intent": "Frust und Vorwurf signalisieren",
+      "tone": "gereizt",
+      "advice_instructional": "Kurz begrüssen, Rahmen setzen.",
+      "next_id": "step_b"
+    },
+    {
+      "id": "step_b",
+      "customer_msg": "Nein, ich will keine Standardsätze. Warum wurde das abgelehnt? Das ist doch lächerlich.",
+      "actor_intent": "Sofortige Erklärung fordern",
+      "tone": "aggressiv",
+      "advice_instructional": "Empathie/Deeskalation versuchen, Identitätsprüfung ankündigen.",
+      "next_id": "step_c"
+    },
+    {
+      "id": "step_c",
+      "customer_msg": "Wieso muss ich mich jetzt identifizieren? Sie sehen doch mein Konto.",
+      "actor_intent": "Widerstand gegen Identifikation",
+      "tone": "ungeduldig",
+      "advice_instructional": "Kurz begründen.",
+      "next_id": "step_d"
+    },
+    {
+      "id": "step_d",
+      "customer_msg": "Also gut. Was müssen sie wissen?",
+      "actor_intent": "Widerwillig kooperieren",
+      "tone": "genervt",
+      "advice_instructional": "Name, Adresse, Geburtsdatum.",
+      "next_id": "step_e"
+    },
+    {
+      "id": "step_e",
+      "customer_msg": "Sarah Steiner, 21. November 1985, Gartenweg 27, 8400 Winterthur",
+      "actor_intent": "Identifikationsdaten bereitstellen",
+      "tone": "knapp",
+      "advice_instructional": "Bestätigt, klärt Falltyp.",
+      "next_id": "step_f"
+    },
+    {
+      "id": "step_f",
+      "customer_msg": "Ich habe den Antrag online ausgefüllt. Und dann kommt einfach «abgelehnt». Ohne Begründung. Was für ein Laden.",
+      "actor_intent": "Vorwurf wegen fehlender Begründung",
+      "tone": "verärgert",
+      "advice_instructional": "Fragt nach Bestätigung/Abschicken/Info.",
+      "next_id": "step_g"
+    },
+    {
+      "id": "step_g",
+      "customer_msg": "Keine Ahnung, ob ich eine Bestätigung bekommen habe. Ich habe auf «Senden» geklickt. Reicht das nicht?",
+      "actor_intent": "Verantwortung zurückweisen",
+      "tone": "gereizt",
+      "advice_instructional": "Kurz erklären (Bestätigung/Status prüfen).",
+      "next_id": "step_h"
+    },
+    {
+      "id": "step_h",
+      "customer_msg": "In der Nachricht steht «Bonitätsprüfung». Was heisst das? Heisst das, Sie halten mich für zahlungsunfähig oder was?",
+      "actor_intent": "Persönlichen Angriff vermuten",
+      "tone": "konfrontativ",
+      "advice_instructional": "Kurz erklären (Bonitätsprüfung, Kriterien).",
+      "next_id": "step_i"
+    },
+    {
+      "id": "step_i",
+      "customer_msg": "Ich habe monatlich etwa 6'500 Franken Eingang. Und jetzt lehnen Sie ab. Das ist unfair.",
+      "actor_intent": "Unfairness betonen",
+      "tone": "verärgert",
+      "advice_instructional": "Kurz einordnen (Monatseingang vs. gewünschte Limite).",
+      "next_id": "step_j"
+    },
+    {
+      "id": "step_j",
+      "customer_msg": "Ich wollte 6'000 Franken. Wieso funktioniert das nicht?! Soll ich mein Gehalt erhöhen oder was? Ich brauche die Karte, und zwar jetzt!",
+      "actor_intent": "Dringlichkeit und Frust eskalieren",
+      "tone": "wütend",
+      "advice_instructional": "Next step nennen, ruhig bleiben.",
+      "next_id": "step_k"
+    },
+    {
+      "id": "step_k",
+      "customer_msg": "Das Konto ist erst neu, ja. Aber dann sagen Sie mir: Wie lange soll ich warten? Ich kann doch nicht drei Monate ohne Karte sein.",
+      "actor_intent": "Wartezeit als unzumutbar darstellen",
+      "tone": "ungeduldig",
+      "advice_instructional": "Kurz erklären (3 Monatseingänge abwarten).",
+      "next_id": "step_l"
+    },
+    {
+      "id": "step_l",
+      "customer_msg": "Super... Dann könnte ich ja gleich zur Konkurrenz.",
+      "actor_intent": "Drohung mit Bankwechsel",
+      "tone": "drohend",
+      "advice_instructional": "Deeskalation + Optionen/Alternativen kurz nennen.",
+      "next_id": "step_m"
+    },
+    {
+      "id": "step_m",
+      "customer_msg": "Und dann noch was: Ich will eine Zusatzkarte für meinen Partner. Gibt es da noch weitere Hürden?",
+      "actor_intent": "Zusatzthema ansprechen (Globallimite)",
+      "tone": "fordernd",
+      "advice_instructional": "Kurz erklären (Globallimite vs. Kartenlimite).",
+      "next_id": "step_n"
+    },
+    {
+      "id": "step_n",
+      "customer_msg": "Natürlich lebt er in demselben Haushalt. Was denn sonst?! Dann teilen wir uns die Limite?",
+      "actor_intent": "Genervt bestätigen",
+      "tone": "sarkastisch",
+      "advice_instructional": "Kurz bestätigen/erklären.",
+      "next_id": "step_o"
+    },
+    {
+      "id": "step_o",
+      "customer_msg": "Und Bargeld? Ich will wissen, wie viel ich überhaupt abheben darf.",
+      "actor_intent": "Bargeldbezug klären",
+      "tone": "fordernd",
+      "advice_instructional": "Kurz erklären (40% der Kartenlimite, max. 1'000/Tag).",
+      "next_id": "step_p"
+    },
+    {
+      "id": "step_p",
+      "customer_msg": "Und falls wir irgendwann die Limite nochmals erhöhen wollen: gilt das dann sofort oder muss ich wieder warten?",
+      "actor_intent": "Zukünftige Erhöhung klären",
+      "tone": "skeptisch",
+      "advice_instructional": "Kurz erklären.",
+      "next_id": "step_q"
+    },
+    {
+      "id": "step_q",
+      "customer_msg": "Gibt es wenigstens irgendeine Lösung, dass ich Geld einzahle und die Karte nutze? Oder geht bei Ihnen gar nichts?",
+      "actor_intent": "Alternative fordern",
+      "tone": "sarkastisch",
+      "advice_instructional": "Kurz antworten (Visa Free: Globallimite 0, Einzahlung möglich).",
+      "next_id": "step_r"
+    },
+    {
+      "id": "step_r",
+      "customer_msg": "Gut. Dann halten wir fest: Ich soll drei Monate Eingänge haben und dann nochmals anfragen. Und bis dahin kann ich höchstens über diese Einzahlungslösung arbeiten. Richtig?",
+      "actor_intent": "Zusammenfassung erzwingen",
+      "tone": "angespannt",
+      "advice_instructional": "Kurz zusammenfassen, next step bestätigen.",
+      "next_id": "step_s"
+    },
+    {
+      "id": "step_s",
+      "customer_msg": "Okay. Ich bin immer noch nicht zufrieden, aber ich mache das jetzt so.",
+      "actor_intent": "Widerwillige Akzeptanz",
+      "tone": "resigniert",
+      "advice_instructional": "Abschluss/Verabschiedung.",
+      "next_id": null
+    }
+  ],
+  "behavioral_condition": {
+    "civility_condition": "uncivil",
+    "instruction": "Starte deutlich verärgert. Wenn der Agent deeskaliert, bleibe angespannt, aber lass dich langsam auf den Prozess zurückführen. Unterbrich 1–2×, setze 1× eine Drohung («kündigen», «Beschwerde»).",
+    "escalation_cues": [
+      "Agent gibt keine klare Begründung",
+      "Agent wiederholt Standardsätze",
+      "Agent kann Bonitätsprüfung nicht verständlich erklären"
+    ],
+    "deescalation_cues": [
+      "Agent erklärt den Ablehnungsgrund klar und sachlich",
+      "Agent bietet konkrete Alternativen (Visa Free)",
+      "Agent nennt konkreten Zeitrahmen für nächsten Antrag"
+    ]
+  },
+  "actor_guidance": {
+    "reveal_when_asked": [
+      "Mein Partner lebt im selben Haushalt.",
+      "Das Konto ist erst seit kurzem eröffnet.",
+      "Ich brauche die Karte für Reisen.",
+      "Ich habe bei einer anderen Bank keine Kreditkarte."
+    ],
+    "must_ask_checkpoints": [
+      "Warum wurde mein Antrag abgelehnt?",
+      "Wie funktioniert die Globallimite?",
+      "Gibt es eine Prepaid-Alternative?",
+      "Wie lange muss ich warten?"
+    ]
+  }
+}

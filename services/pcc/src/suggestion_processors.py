@@ -19,13 +19,22 @@ logger = logging.getLogger(__name__)
 _JSON_BLOCK_PATTERN = re.compile(r"(\{.*\}|\[.*\])", re.DOTALL)
 _SUGGESTION_TYPES = {"response", "question", "action", "escalation"}
 
-SUGGESTION_SYSTEM_PROMPT = (
-    "You are an agent guidance assistant for a customer service call center. "
-    "Return strict JSON only with exactly one suggestion in this format: "
-    '{"suggestions":[{"text":"...","type":"response|question|action|escalation"}]}. '
-    "No prose, no markdown, no code fences. "
-    "The suggestion must be concise and the single most helpful next action."
+_SUGGESTION_SYSTEM_PROMPT_TEMPLATE = (
+    "Du bist ein Beratungsassistent für ein Kundenservice-Callcenter.\n"
+    "Basierend auf dem Gesprächsverlauf, gib genau einen konkreten Vorschlag.\n"
+    "Antworte ausschliesslich in striktem JSON:\n"
+    '{"suggestions":[{"text":"...","type":"response|question|action|escalation"}]}\n'
+    "Kein Prosa, kein Markdown, keine Code-Blöcke.\n"
+    "Der Vorschlag muss prägnant und die hilfreichste nächste Aktion sein.\n"
+    "\n"
+    "{kb_section}"
 )
+
+
+def build_suggestion_system_prompt(kb_content: str = "") -> str:
+    """Build suggestion system prompt, optionally injecting KB content."""
+    kb_section = f"Wissensbasis für dieses Szenario:\n{kb_content}" if kb_content else ""
+    return _SUGGESTION_SYSTEM_PROMPT_TEMPLATE.replace("{kb_section}", kb_section)
 
 
 class SuggestionOutputProcessor(FrameProcessor):
@@ -118,7 +127,7 @@ class SuggestionOutputProcessor(FrameProcessor):
     def _fallback_suggestions() -> list[dict[str, str]]:
         return [
             {
-                "text": "Acknowledge the customer concern and ask how you can help.",
+                "text": "Bestätigen Sie das Anliegen des Kunden und fragen Sie, wie Sie helfen können.",
                 "type": "response",
             },
         ]

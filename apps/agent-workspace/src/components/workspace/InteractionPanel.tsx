@@ -32,7 +32,7 @@ export function InteractionPanel({
       ? lastMessage.text.length > 60
         ? lastMessage.text.slice(0, 60) + "..."
         : lastMessage.text
-      : "No messages";
+      : "Keine Nachrichten";
 
     return (
       <button
@@ -41,7 +41,7 @@ export function InteractionPanel({
       >
         <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         <span className="text-sm font-medium text-muted-foreground">
-          Transcript
+          Transkript
         </span>
         {transcript.length > 0 && (
           <span className="rounded-lg bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
@@ -65,12 +65,12 @@ export function InteractionPanel({
       >
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          Live Transcript
+          Live-Transkript
         </span>
         {isConnected && (
           <span className="flex items-center gap-2 text-sm text-success">
             <span className="h-2 w-2 animate-pulse-dot rounded-full bg-success" />
-            Listening
+            Zuhören
           </span>
         )}
       </button>
@@ -81,8 +81,8 @@ export function InteractionPanel({
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-muted-foreground">
               {isConnected
-                ? "Waiting for conversation..."
-                : "Start a session to see the transcript"}
+                ? "Warten auf Gespräch..."
+                : "Sitzung starten, um das Transkript zu sehen"}
             </p>
           </div>
         ) : (
@@ -109,7 +109,7 @@ function TranscriptMessage({ entry }: { entry: TranscriptEntry }) {
       >
         <div className="mb-1 flex items-center gap-2 justify-between">
           <span className="font-mono-ui text-xs uppercase opacity-80">
-            {isCustomer ? "Customer" : "Agent"}
+            {isCustomer ? "Kunde" : "Agent"}
           </span>
           <span className="text-xs opacity-60">
             {formatTime(entry.timestamp)}

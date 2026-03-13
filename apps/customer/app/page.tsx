@@ -197,7 +197,7 @@ export default function CustomerCallPage() {
         <header className="mb-6 border-b border-border pb-4 text-center">
           <h1 className="text-2xl font-semibold">VoiceBridge Experiment</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Customer role interface
+            Kundenrollen-Schnittstelle
           </p>
         </header>
 
@@ -209,21 +209,21 @@ export default function CustomerCallPage() {
 
         {scenarioError && (
           <div className="mb-4 rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
-            Failed to load scenarios: {scenarioError}
+            Szenarien konnten nicht geladen werden: {scenarioError}
           </div>
         )}
 
         {callState === "idle" && prepStage === "selection" && (
           <section className="grid gap-6 md:grid-cols-2">
             <div className="space-y-4">
-              <h2 className="text-lg font-medium">1. Select persona</h2>
+              <h2 className="text-lg font-medium">1. Persona auswählen</h2>
               <select
                 value={selectedCustomerId}
                 onChange={(event) => handleCustomerChange(event.target.value)}
                 disabled={isLoadingCustomers}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="">Choose persona...</option>
+                <option value="">Persona wählen...</option>
                 {filteredCustomers.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.name} ({customer.classification})
@@ -243,14 +243,14 @@ export default function CustomerCallPage() {
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-lg font-medium">2. Select scenario</h2>
+              <h2 className="text-lg font-medium">2. Szenario auswählen</h2>
               <select
                 value={selectedScenarioId}
                 onChange={(event) => handleScenarioChange(event.target.value)}
                 disabled={isLoadingScenarios}
                 className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="">Choose scenario...</option>
+                <option value="">Szenario wählen...</option>
                 {filteredScenarios.map((scenario) => (
                   <option key={scenario.scenarioId} value={scenario.scenarioId}>
                     {scenario.title}
@@ -260,7 +260,7 @@ export default function CustomerCallPage() {
               {selectedScenario && (
                 <p className="text-sm text-muted-foreground">
                   {selectedScenario.behavioralCondition.civilityCondition.toUpperCase()}{" "}
-                  condition
+                  Bedingung
                 </p>
               )}
             </div>
@@ -271,7 +271,7 @@ export default function CustomerCallPage() {
                 disabled={!canContinue || isLoading}
                 className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
-                Continue to briefing
+                Weiter zum Briefing
               </button>
             </div>
           </section>
@@ -284,10 +284,10 @@ export default function CustomerCallPage() {
             <section className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <article className="rounded-lg border border-border bg-muted/20 p-4">
-                  <h2 className="text-base font-medium">Persona briefing</h2>
+                  <h2 className="text-base font-medium">Persona-Briefing</h2>
                   <p className="mt-2 text-sm">{selectedCustomer.name}</p>
                   <p className="text-sm text-muted-foreground">
-                    Customer code: {selectedCustomer.customerCode ?? "N/A"}
+                    Kundennummer: {selectedCustomer.customerCode ?? "N/A"}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     {selectedCustomer.quickInternalNote ??
@@ -296,13 +296,13 @@ export default function CustomerCallPage() {
                 </article>
 
                 <article className="rounded-lg border border-border bg-muted/20 p-4">
-                  <h2 className="text-base font-medium">Scenario briefing</h2>
+                  <h2 className="text-base font-medium">Szenario-Briefing</h2>
                   <p className="mt-2 text-sm">{selectedScenario.background}</p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Goal: {selectedScenario.customerGoal}
+                    Ziel: {selectedScenario.customerGoal}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Tone instruction:{" "}
+                    Tonanweisung:{" "}
                     {selectedScenario.behavioralCondition.instruction}
                   </p>
                 </article>
@@ -312,7 +312,7 @@ export default function CustomerCallPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <article className="rounded-lg border border-border bg-muted/10 p-4">
                     <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                      Escalation cues
+                      Eskalationshinweise
                     </h3>
                     <ul className="mt-2 space-y-1">
                       {selectedScenario.behavioralCondition.escalationCues.map(
@@ -328,7 +328,7 @@ export default function CustomerCallPage() {
                   {selectedScenario.behavioralCondition.deescalationCues && (
                     <article className="rounded-lg border border-border bg-muted/10 p-4">
                       <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                        De-escalation cues
+                        Deeskalationshinweise
                       </h3>
                       <ul className="mt-2 space-y-1">
                         {selectedScenario.behavioralCondition.deescalationCues.map(
@@ -352,7 +352,7 @@ export default function CustomerCallPage() {
                   {renderedActorGuidance.mustAskCheckpoints.length > 0 && (
                     <article className="rounded-lg border border-border bg-muted/10 p-4">
                       <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                        Must-ask checkpoints
+                        Pflicht-Checkpoints
                       </h3>
                       <ul className="mt-2 space-y-1">
                         {renderedActorGuidance.mustAskCheckpoints.map(
@@ -372,7 +372,7 @@ export default function CustomerCallPage() {
                   {renderedActorGuidance.revealWhenAsked.length > 0 && (
                     <article className="rounded-lg border border-border bg-muted/10 p-4">
                       <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                        Reveal when asked
+                        Nur auf Nachfrage preisgeben
                       </h3>
                       <ul className="mt-2 space-y-1">
                         {renderedActorGuidance.revealWhenAsked.map(
@@ -393,7 +393,7 @@ export default function CustomerCallPage() {
 
               <article className="rounded-lg border border-border bg-muted/10 p-4">
                 <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                  First scripted turns
+                  Erste Dialogschritte
                 </h3>
                 <div className="mt-3 space-y-2">
                   {renderedConversation.slice(0, 3).map((step) => (
@@ -409,14 +409,14 @@ export default function CustomerCallPage() {
                   onClick={() => setPrepStage("selection")}
                   className="rounded-md border border-border px-4 py-3 text-sm font-medium hover:bg-muted/30"
                 >
-                  Back to selection
+                  Zurück zur Auswahl
                 </button>
                 <button
                   onClick={handleStartCall}
                   disabled={isLoading}
                   className="rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {isLoading ? "Starting call..." : "Start Call"}
+                  {isLoading ? "Anruf wird gestartet..." : "Anruf starten"}
                 </button>
               </div>
             </section>
@@ -427,12 +427,12 @@ export default function CustomerCallPage() {
             <span className="mx-auto block h-4 w-4 animate-pulse rounded-full bg-primary" />
             <p className="text-muted-foreground">
               {isAudioConnected
-                ? "Connected. Waiting for an agent to accept..."
-                : "Connecting to room..."}
+                ? "Verbunden. Warten auf Agent-Annahme..."
+                : "Verbindung wird hergestellt..."}
             </p>
             {sessionId && (
               <p className="text-xs text-muted-foreground">
-                Session: {sessionId.slice(0, 8)}...
+                Sitzung: {sessionId.slice(0, 8)}...
               </p>
             )}
             <button
@@ -440,7 +440,7 @@ export default function CustomerCallPage() {
               disabled={isLoading}
               className="w-full rounded-md bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
             >
-              Cancel
+              Abbrechen
             </button>
           </section>
         )}
@@ -448,12 +448,12 @@ export default function CustomerCallPage() {
         {callState === "connected" && (
           <section className="space-y-6">
             <div className="rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
-              Agent accepted the call. Follow your script below.
+              Agent hat den Anruf angenommen. Folgen Sie dem Skript unten.
             </div>
 
             {sessionId && (
               <p className="text-xs text-muted-foreground">
-                Session: {sessionId.slice(0, 8)}...
+                Sitzung: {sessionId.slice(0, 8)}...
               </p>
             )}
 
@@ -464,10 +464,10 @@ export default function CustomerCallPage() {
                   className="flex w-full items-center justify-between text-left"
                 >
                   <h3 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                    Actor Reference
+                    Schauspieler-Referenz
                   </h3>
                   <span className="text-xs text-muted-foreground">
-                    {showActorReference ? "Hide" : "Show"}
+                    {showActorReference ? "Ausblenden" : "Anzeigen"}
                   </span>
                 </button>
 
@@ -476,7 +476,7 @@ export default function CustomerCallPage() {
                     {renderedActorGuidance.mustAskCheckpoints.length > 0 && (
                       <div>
                         <h4 className="text-xs font-medium uppercase text-muted-foreground">
-                          Must-ask checkpoints
+                          Pflicht-Checkpoints
                         </h4>
                         <ul className="mt-1 space-y-1">
                           {renderedActorGuidance.mustAskCheckpoints.map(
@@ -509,7 +509,7 @@ export default function CustomerCallPage() {
                     {renderedActorGuidance.revealWhenAsked.length > 0 && (
                       <div>
                         <h4 className="text-xs font-medium uppercase text-muted-foreground">
-                          Reveal when asked
+                          Nur auf Nachfrage preisgeben
                         </h4>
                         <ul className="mt-1 space-y-1">
                           {renderedActorGuidance.revealWhenAsked.map(
@@ -548,17 +548,17 @@ export default function CustomerCallPage() {
                           {step.customerMsg}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Intent: {step.actorIntent}
+                          Absicht: {step.actorIntent}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Tone: {step.tone}
+                          Ton: {step.tone}
                         </p>
                       </div>
                       <button
                         onClick={() => toggleStepCompleted(step)}
                         className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted/30"
                       >
-                        {done ? "Undo" : "Mark done"}
+                        {done ? "Rückgängig" : "Erledigt"}
                       </button>
                     </div>
                   </article>
@@ -571,19 +571,19 @@ export default function CustomerCallPage() {
               disabled={isLoading}
               className="w-full rounded-md bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
             >
-              End Call
+              Anruf beenden
             </button>
           </section>
         )}
 
         {callState === "ended" && (
           <section className="space-y-4 text-center">
-            <p className="text-muted-foreground">Call ended. Thank you!</p>
+            <p className="text-muted-foreground">Anruf beendet. Vielen Dank!</p>
             <button
               onClick={() => window.location.reload()}
               className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
-              Start New Call
+              Neuen Anruf starten
             </button>
           </section>
         )}
