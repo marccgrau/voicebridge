@@ -98,8 +98,8 @@ The app:
 
 1. Sends `POST /api/sessions/create` with required `customer_id` and `scenario_id`
 2. API route validates both IDs against `customers` and active `scenarios`
-3. API route calls PCC `/start` to create a Daily room and spawn a bot
-4. API route generates customer + agent tokens via Daily REST API
+3. API route calls PCC `/start` to create a Daily room and spawn a bot (metadata includes `customer_id`/`customer_name`)
+4. API route generates Daily tokens with `user_name` (customer="Kunde", agent="Berater") for speaker identification
 5. API route inserts a `pending` session with persona/scenario metadata in row columns + `state`
 6. Customer connects to the Daily room with audio
 7. Subscribes to Supabase Realtime for session status changes
@@ -146,9 +146,9 @@ When the session status changes to `completed` or `abandoned`, or the customer c
 
 Creates a new customer-initiated session:
 
-1. Validates selected `customer_id` and active `scenario_id`
-2. Calls PCC service `/start` to create a Daily room and bot instance
-3. Generates customer token (non-owner) and agent token (owner) via Daily REST API
+1. Validates selected `customer_id` (with `name`) and active `scenario_id`
+2. Calls PCC service `/start` to create a Daily room and bot instance, passing `customer_id`/`customer_name` in metadata for scenario-aware prompts
+3. Generates Daily tokens with `user_name` for speaker identification (customer="Kunde", agent="Berater")
 4. Inserts a `pending` session row into Supabase with room URL, agent token, selected persona ID, and selected scenario metadata in both columns and `state`
 5. Returns `{ session_id, room_url, customer_token }` to the client
 
