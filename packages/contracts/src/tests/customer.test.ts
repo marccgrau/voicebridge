@@ -32,16 +32,22 @@ describe("Customer Schemas", () => {
   describe("CustomerSchema", () => {
     it("validates complete customer profile", () => {
       const customer = {
-        id: "c1a1a1a1-1111-1111-1111-111111111111",
-        name: "Anna Müller",
+        id: "0c4bffe9-0730-4ac0-a533-610bf1f054f4",
+        name: "Laura Baumann",
         gender: "female",
-        email: "anna.mueller@example.ch",
-        phone: "+41 79 123 4567",
-        customerSince: "2023-06-15",
-        classification: "basis",
-        products: ["Savings Account", "Debit Card"],
+        email: "laura.baumann@examplemail.ch",
+        phone: "+41 79 331 74 25",
+        customerSince: "2019-04-01",
+        classification: "Standard",
+        products: [
+          "Grundversicherung (KVG)",
+          "Zusatzversicherung Ambulant",
+          "Unfallzusatz",
+          "Rechtsschutz Gesundheit",
+        ],
         preferredLanguage: "de",
-        notes: "Young professional, prefers digital banking",
+        notes:
+          "Strukturierte Kommunikation; benötigt verständliche Erklärungen und explizite Checklisten.",
       };
       const result = CustomerSchema.safeParse(customer);
       expect(result.success).toBe(true);
@@ -49,14 +55,14 @@ describe("Customer Schemas", () => {
 
     it("validates customer with nullable fields", () => {
       const customer = {
-        id: "c1a1a1a1-1111-1111-1111-111111111111",
-        name: "Thomas Weber",
+        id: "572fb421-2f53-4b54-a356-52dd5e3a4f38",
+        name: "Alex Meyer",
         gender: "male",
         email: null,
         phone: null,
-        customerSince: "2021-03-10",
-        classification: "HNWI",
-        products: ["Private Banking"],
+        customerSince: "2018-09-01",
+        classification: "Affluent",
+        products: ["Privatkonto Plus"],
         preferredLanguage: "de",
         notes: null,
       };

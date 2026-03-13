@@ -279,6 +279,7 @@ export const CustomerSchema = z.object({
   notes: z.string().nullable(),
   quickInternalNote: z.string().nullable().optional(),
   domain: z.string().nullable().optional(),
+  scenarioId: z.string().nullable().optional(),
 });
 
 export type Customer = z.infer<typeof CustomerSchema>;
