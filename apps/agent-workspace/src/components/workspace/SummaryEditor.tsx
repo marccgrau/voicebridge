@@ -20,15 +20,15 @@ export function SummaryEditor({
   error,
 }: SummaryEditorProps) {
   return (
-    <div className="panel-morph flex h-full flex-col rounded-2xl border border-border/60 bg-card shadow-sm">
+    <div className="panel-morph flex h-full flex-col rounded-2xl border border-border bg-white shadow-card">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
           Gesprächszusammenfassung
         </span>
         {isSaved && (
-          <span className="flex items-center gap-1.5 text-xs text-success">
+          <span className="flex items-center gap-1.5 text-xs text-accent font-medium">
             <svg
               className="h-3.5 w-3.5"
               viewBox="0 0 20 20"
@@ -55,7 +55,7 @@ export function SummaryEditor({
                 Zusammenfassung wird erstellt...
               </span>
             </div>
-            <p className="text-xs text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground/50">
               Transkript wird analysiert und Notizen vorbereitet
             </p>
           </div>
@@ -65,7 +65,7 @@ export function SummaryEditor({
               value={summaryText}
               onChange={(e) => onSummaryChange(e.target.value)}
               placeholder="Zusammenfassung der Sitzung schreiben..."
-              className="flex-1 resize-none rounded-xl border border-border/60 bg-background p-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent/50"
+              className="flex-1 resize-none rounded-xl border border-border bg-background p-4 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-accent/25 focus:border-accent/50 transition-colors"
             />
 
             {error && <p className="text-xs text-destructive">{error}</p>}

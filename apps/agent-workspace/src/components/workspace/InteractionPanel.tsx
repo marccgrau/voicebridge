@@ -37,10 +37,10 @@ export function InteractionPanel({
     return (
       <button
         onClick={onToggle}
-        className="panel-morph flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-left shadow-sm hover:shadow-md transition-shadow"
+        className="panel-morph flex w-full items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 text-left shadow-card hover:shadow-card-hover transition-shadow"
       >
         {isConnected ? (
-          <span className="h-2 w-2 animate-pulse-dot rounded-full bg-success" />
+          <span className="h-2 w-2 animate-pulse-dot rounded-full bg-accent" />
         ) : (
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         )}
@@ -77,15 +77,15 @@ export function InteractionPanel({
       <button
         onClick={onToggle}
         disabled={!onToggle}
-        className="flex items-center justify-between border-b border-border/60 px-5 py-4 text-left disabled:cursor-default"
+        className="flex items-center justify-between border-b border-border px-5 py-4 text-left disabled:cursor-default"
       >
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
           Live-Transkript
         </span>
         {isConnected && (
-          <span className="flex items-center gap-2 text-sm text-success">
-            <span className="h-2 w-2 animate-pulse-dot rounded-full bg-success" />
+          <span className="flex items-center gap-2 text-sm text-accent font-medium">
+            <span className="h-2 w-2 animate-pulse-dot rounded-full bg-accent" />
             Zuhören
           </span>
         )}
@@ -119,7 +119,7 @@ function TranscriptMessage({ entry }: { entry: TranscriptEntry }) {
       <div
         className={`max-w-[80%] rounded-xl px-3 py-2 ${
           isCustomer
-            ? "bg-muted text-foreground border-l-2 border-accent/40"
+            ? "bg-muted text-foreground border-l-2 border-l-accent/40"
             : "gradient-accent text-white"
         }`}
       >
@@ -127,11 +127,11 @@ function TranscriptMessage({ entry }: { entry: TranscriptEntry }) {
           <span className="font-mono-ui text-xs uppercase opacity-80">
             {isCustomer ? "Kunde" : "Agent"}
           </span>
-          <span className="text-xs opacity-60">
+          <span className="text-xs opacity-50">
             {formatTime(entry.timestamp)}
           </span>
         </div>
-        <p className="text-sm">{entry.text}</p>
+        <p className="text-sm leading-relaxed">{entry.text}</p>
       </div>
     </div>
   );

@@ -23,7 +23,7 @@ export function SuggestionsPanel({
     return (
       <button
         onClick={onToggle}
-        className="panel-morph flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-left shadow-sm hover:shadow-md transition-shadow"
+        className="panel-morph flex w-full items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 text-left shadow-card hover:shadow-card-hover transition-shadow"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         <span className="text-sm font-medium text-muted-foreground">
@@ -49,7 +49,7 @@ export function SuggestionsPanel({
       <button
         onClick={onToggle}
         disabled={!onToggle}
-        className="flex items-center justify-between border-b border-border/60 px-5 py-4 text-left disabled:cursor-default"
+        className="flex items-center justify-between border-b border-border px-5 py-4 text-left disabled:cursor-default"
       >
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -102,8 +102,8 @@ function SuggestionCard({ suggestion }: SuggestionCardProps) {
       label: "Frage",
     },
     action: {
-      color: "text-success",
-      bgColor: "bg-success/5 border-l-success",
+      color: "text-accent",
+      bgColor: "bg-accent/5 border-l-accent",
       label: "Aktion",
     },
     escalation: {
@@ -117,7 +117,7 @@ function SuggestionCard({ suggestion }: SuggestionCardProps) {
 
   return (
     <div
-      className={`rounded-xl border border-border ${config.bgColor} p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all border-l-4`}
+      className={`rounded-xl border border-border/60 ${config.bgColor} p-4 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all border-l-4`}
     >
       <div className="mb-2.5 flex items-center justify-between">
         <span

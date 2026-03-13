@@ -154,12 +154,14 @@ export default function WorkspacePage() {
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="flex h-16 items-center justify-between bg-card px-6 shadow-sm">
+      <header className="flex h-16 items-center justify-between border-b border-border bg-white px-6">
         <div className="flex items-center gap-4">
-          <h1 className="font-display text-xl gradient-text">VoiceBridge</h1>
+          <h1 className="font-display text-xl font-semibold gradient-text">
+            VoiceBridge
+          </h1>
           <Link
             href={{ pathname: "/admin" }}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm text-muted-foreground/70 hover:text-foreground transition-colors"
           >
             Admin
           </Link>
@@ -173,13 +175,13 @@ export default function WorkspacePage() {
         <div className="flex items-center gap-3">
           {isConnected && (
             <>
-              <span className="flex items-center gap-2 text-sm text-success">
-                <span className="h-2 w-2 rounded-full gradient-accent" />
+              <span className="flex items-center gap-2 text-sm text-accent font-medium">
+                <span className="h-2 w-2 rounded-full gradient-accent animate-pulse-dot" />
                 Verbunden
               </span>
               <button
                 onClick={stopSession}
-                className="rounded-xl border border-destructive px-4 py-1.5 text-sm font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all hover:-translate-y-0.5"
+                className="rounded-xl border border-destructive/60 px-4 py-1.5 text-sm font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all hover:-translate-y-0.5"
               >
                 Sitzung beenden
               </button>
@@ -460,12 +462,13 @@ function WorkspacePanels({
     return (
       <main className="flex flex-1 items-center justify-center bg-background p-5">
         <div className="text-center">
-          <p className="text-lg text-muted-foreground">
+          <p className="font-display text-xl font-semibold text-muted-foreground">
             Warten auf eingehende Anrufe...
           </p>
-          <p className="mt-2 text-sm text-muted-foreground/60">
+          <p className="mt-3 text-sm text-muted-foreground/50">
             Anrufe erscheinen hier, wenn Kunden sich verbinden
           </p>
+          <div className="mx-auto mt-6 h-px w-16 bg-accent/20" />
         </div>
       </main>
     );
@@ -485,7 +488,7 @@ function WorkspacePanels({
 
         {/* Customer info - full width expanded */}
         <div className="flex-1 overflow-hidden p-5">
-          <div className="h-full overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="h-full overflow-hidden rounded-2xl border border-border bg-card shadow-card">
             <CustomerInfoPanel
               customerId={
                 selectedPendingSession
@@ -524,7 +527,7 @@ function WorkspacePanels({
               variant="compact"
               onToggle={() => toggleDensity("customer")}
             />
-            <div className="flex-1 overflow-hidden rounded-2xl border border-border/60 bg-card flex flex-col shadow-sm">
+            <div className="flex-1 overflow-hidden rounded-2xl border border-border bg-card flex flex-col shadow-card">
               <InteractionPanel
                 transcript={transcript}
                 isConnected={false}
@@ -547,7 +550,7 @@ function WorkspacePanels({
             />
             <button
               onClick={onClearSession}
-              className="rounded-xl border border-border/60 bg-card px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-accent/30 transition-all"
+              className="rounded-xl border border-border bg-white px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-accent/30 hover:bg-accent/5 transition-all"
             >
               Zurück zur Warteschlange
             </button>
@@ -576,7 +579,7 @@ function WorkspacePanels({
           <div
             className={`overflow-hidden flex flex-col min-h-0 ${
               density.customer === "expanded"
-                ? "flex-1 rounded-2xl border border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow"
+                ? "flex-1 rounded-2xl border border-border bg-card shadow-card hover:shadow-card-hover transition-shadow"
                 : ""
             }`}
           >
@@ -591,7 +594,7 @@ function WorkspacePanels({
           <div
             className={`overflow-hidden flex flex-col min-h-0 ${
               density.transcript === "expanded"
-                ? "flex-1 rounded-2xl border border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow"
+                ? "flex-1 rounded-2xl border border-border bg-card shadow-card hover:shadow-card-hover transition-shadow"
                 : ""
             }`}
           >
@@ -605,7 +608,7 @@ function WorkspacePanels({
         </div>
 
         {/* Right column */}
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-card flex flex-col shadow-sm hover:shadow-md transition-shadow min-h-0">
+        <div className="overflow-hidden rounded-2xl border border-border bg-card flex flex-col shadow-card hover:shadow-card-hover transition-shadow min-h-0">
           <SuggestionsPanel
             suggestions={suggestions}
             isConnected={isConnected}
