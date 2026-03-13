@@ -38,21 +38,24 @@ function getPccHeaders(): Record<string, string> {
 
 async function createDailyToken(
   roomName: string,
-  isOwner: boolean
+  isOwner: boolean,
+  userName?: string
 ): Promise<string> {
+  const properties: Record<string, unknown> = {
+    room_name: roomName,
+    is_owner: isOwner,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  };
+  if (userName) {
+    properties.user_name = userName;
+  }
   const res = await fetch("https://api.daily.co/v1/meeting-tokens", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${DAILY_API_KEY}`,
     },
-    body: JSON.stringify({
-      properties: {
-        room_name: roomName,
-        is_owner: isOwner,
-        exp: Math.floor(Date.now() / 1000) + 3600,
-      },
-    }),
+    body: JSON.stringify({ properties }),
   });
 
   if (!res.ok) {
@@ -122,7 +125,7 @@ export async function POST(request: Request) {
     ] = await Promise.all([
       supabase
         .from("customers")
-        .select("id")
+        .select("id, name")
         .eq("id", normalizedCustomerId)
         .single(),
       supabase
@@ -161,6 +164,8 @@ export async function POST(request: Request) {
             scenario_id: scenario.scenario_id,
             scenario_family: scenario.scenario_family,
             domain: scenario.domain,
+            customer_id: customer.id,
+            customer_name: customer.name,
           },
         },
       }),
@@ -181,8 +186,8 @@ export async function POST(request: Request) {
 
     // 2. Create customer + agent tokens via Daily REST API
     const [customerToken, agentToken] = await Promise.all([
-      createDailyToken(roomName, false),
-      createDailyToken(roomName, true),
+      createDailyToken(roomName, false, "Kunde"),
+      createDailyToken(roomName, true, "Berater"),
     ]);
 
     // 3. Insert pending session into Supabase

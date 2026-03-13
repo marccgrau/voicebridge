@@ -27,14 +27,24 @@ _SUGGESTION_SYSTEM_PROMPT_TEMPLATE = (
     "Kein Prosa, kein Markdown, keine Code-Blöcke.\n"
     "Der Vorschlag muss prägnant und die hilfreichste nächste Aktion sein.\n"
     "\n"
+    "- Transkript-Einträge sind mit [Kunde] oder [Berater] gekennzeichnet\n"
+    "- Berücksichtige was der Berater bereits gesagt hat, um keine redundanten Vorschläge zu machen\n"
+    "\n"
+    "{process_section}\n"
+    "\n"
     "{kb_section}"
 )
 
 
-def build_suggestion_system_prompt(kb_content: str = "") -> str:
-    """Build suggestion system prompt, optionally injecting KB content."""
+def build_suggestion_system_prompt(kb_content: str = "", process_content: str = "") -> str:
+    """Build suggestion system prompt, optionally injecting KB and process content."""
     kb_section = f"Wissensbasis für dieses Szenario:\n{kb_content}" if kb_content else ""
-    return _SUGGESTION_SYSTEM_PROMPT_TEMPLATE.replace("{kb_section}", kb_section)
+    process_section = f"Prozessdefinition:\n{process_content}" if process_content else ""
+    return (
+        _SUGGESTION_SYSTEM_PROMPT_TEMPLATE
+        .replace("{kb_section}", kb_section)
+        .replace("{process_section}", process_section)
+    )
 
 
 class SuggestionOutputProcessor(FrameProcessor):

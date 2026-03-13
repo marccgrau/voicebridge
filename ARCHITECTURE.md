@@ -80,7 +80,8 @@ VoiceBridge uses two complementary realtime channels optimized for different pur
        │
        ├─ Validates selected customer and scenario rows in Supabase
        ├─ Calls PCC /start → creates Daily room + bot instance
-       ├─ Creates Daily tokens (customer + agent) via Daily REST API
+       │   metadata includes: scenario_id, scenario_family, domain, customer_id, customer_name
+       ├─ Creates Daily tokens with user_name (customer="Kunde", agent="Berater") for speaker identification
        └─ Inserts `pending` session with customer/scenario metadata
            (`scenario_id`, `scenario_family`, `civility_condition`) and routing context in `state`
        │
@@ -137,22 +138,29 @@ transport.input()
 DeepgramSTTService (nova-3-general, streaming)
     │
     ▼
+SpeakerLabelingProcessor
+    Prefixes transcription text with [Kunde]/[Berater] based on
+    Daily participant tracking (on_participant_joined → speaker_map)
+    │
+    ▼
 ParallelPipeline
     ├─ Branch 1: transcript
-    │   TranscriptWriter
-    │   └─ Emits `transcript_segment` RTVI messages
+    │   TranscriptWriter (strips label prefix, resolves speaker from speaker_map)
+    │   └─ Emits `transcript_segment` RTVI messages with correct speaker field
     │
     ├─ Branch 2: process identification
     │   LLMContextAggregatorPair.user()
     │   OpenAILLMService (PROCESS_MODEL, default gpt-4.1-nano)
     │   ProcessOutputProcessor
     │   └─ Parses strict JSON and emits `process_illustration` messages
+    │       System prompt includes step descriptions + speaker awareness rules
     │
     └─ Branch 3: suggestion generation
         LLMContextAggregatorPair.user()
         OpenAILLMService (SUGGESTION_MODEL, default gpt-4.1)
         SuggestionOutputProcessor
         └─ Parses strict JSON and emits `agent_guidance` messages
+            System prompt includes process definition + KB content (scenario-aware)
     ▼
 transport.output()
 ```
@@ -173,11 +181,12 @@ Process identification is **catalog-informed + LLM-evaluated**:
 
 1. Process definitions are loaded from markdown files in `process_content/` on startup
 2. Each file has YAML frontmatter with `process_key`, `name`, `domain`, and `intents`
-3. Steps are extracted from `## Step N: Label` headings
-4. Catalog summaries are embedded into the process system prompt
-5. `OpenAILLMService` returns strict JSON (`processKey`, `currentStep`)
-6. `ProcessOutputProcessor` validates output and maps step statuses
-7. Valid output is emitted as `process_illustration` with step progress
+3. Steps are extracted from `## Step N: Label` headings (with descriptions from step body text)
+4. Catalog summaries with step descriptions are embedded into the process system prompt
+5. Speaker-labeled transcript entries (`[Kunde]`/`[Berater]`) help the LLM focus on customer utterances
+6. `OpenAILLMService` returns strict JSON (`processKey`, `currentStep`)
+7. `ProcessOutputProcessor` validates output and maps step statuses
+8. Valid output is emitted as `process_illustration` with step progress
 
 By default, PCC resolves process markdown from `services/pcc/process_content/` (or `PROCESS_CONTENT_PATH` when set). The repository currently includes four experiment-aligned process definitions (all in German):
 
@@ -407,11 +416,12 @@ The PCC service has no database connection. All data flows through the pipeline 
 
 The `ParallelPipeline` is critical for latency:
 
-- **Branch 1 (transcript)**: emits transcript updates as STT frames arrive
-- **Branch 2 (process LLM)**: identifies process + current step
-- **Branch 3 (suggestion LLM)**: generates a single next-best suggestion
+- **Speaker labeling**: `SpeakerLabelingProcessor` prefixes text with `[Kunde]`/`[Berater]` before fan-out
+- **Branch 1 (transcript)**: emits transcript updates with correct `speaker` field, stripping label prefixes
+- **Branch 2 (process LLM)**: identifies process + current step using speaker-aware, step-description-enriched prompts
+- **Branch 3 (suggestion LLM)**: generates a single next-best suggestion using scenario-aware prompts (process definition + KB content)
 
-This ensures transcript updates are delivered in real time while process and suggestion LLM work runs in parallel.
+This ensures transcript updates are delivered in real time while process and suggestion LLM work runs in parallel. Speaker diarization uses Daily participant tracking (`on_participant_joined` handler) to map participant IDs to roles based on token ownership.
 
 ### RTVI Over Supabase Realtime
 

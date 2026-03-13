@@ -122,7 +122,8 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 **Unified PCC Service** (`services/pcc/`)
 
 - Single listen-only bot with one Daily transport and one Deepgram STT stream
-- Pipeline: `transport.input() → DeepgramSTT → ParallelPipeline(...) → transport.output()`
+- Pipeline: `transport.input() → DeepgramSTT → SpeakerLabelingProcessor → ParallelPipeline(...) → transport.output()`
+- Speaker diarization via Daily participant tracking (`on_participant_joined`), maps `TranscriptionFrame.user_id` to `[Kunde]`/`[Berater]` labels
 - Parallel branches:
   - Transcript branch emits `transcript_segment`
   - Process branch emits `process_illustration`
@@ -147,7 +148,8 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 POST /api/sessions/create
   → Validate selected customer_id + scenario_id
   → POST pcc/start  { createDailyRoom: true, body: { session_id, metadata } }  ← creates room + starts branches
-  → Create Daily tokens (customer + agent)
+    metadata includes: scenario_id, scenario_family, domain, customer_id, customer_name
+  → Create Daily tokens with user_name (customer="Kunde", agent="Berater") for speaker identification
   → Insert pending session into Supabase with scenario metadata
   ← { session_id, room_url, customer_token }
 ```
@@ -205,7 +207,7 @@ The unified PCC service is configured as listen-only (`audio_out_enabled=False`)
 
 ### LLM Branches For Process + Suggestion
 
-The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT.
+The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT. Both receive speaker-labeled transcript entries (`[Kunde]`/`[Berater]`). The suggestion branch is scenario-aware — its system prompt includes the matching process definition (steps with descriptions) and knowledge base content for the active scenario.
 
 ### RTVI Over Supabase Realtime
 

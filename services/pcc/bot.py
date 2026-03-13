@@ -38,7 +38,7 @@ from pipecat.turns.user_turn_strategies import UserTurnStrategies
 from src.process_catalog import ProcessCatalog
 from src.process_processors import PROCESS_SYSTEM_PROMPT, ProcessOutputProcessor
 from src.suggestion_processors import SuggestionOutputProcessor, build_suggestion_system_prompt
-from src.transcript_processors import TranscriptWriter
+from src.transcript_processors import SpeakerLabelingProcessor, TranscriptWriter
 
 load_dotenv()
 
@@ -80,16 +80,18 @@ def build_process_system_prompt(catalog: ProcessCatalog) -> str:
     else:
         lines = []
         for definition in definitions:
-            step_labels = ", ".join(
-                f"{idx}:{step.label}" for idx, step in enumerate(definition.steps)
-            )
             intents = ", ".join(definition.intents) if definition.intents else "(none)"
             lines.append(
                 f"- {definition.process_key}: {definition.name} | "
                 f"domain: {definition.domain or '(none)'} | "
-                f"intents: {intents} | "
-                f"steps: {step_labels or '(no steps)'}"
+                f"intents: {intents}"
             )
+            for idx, step in enumerate(definition.steps):
+                desc = step.content.split("\n")[0].strip() if step.content else ""
+                if desc:
+                    lines.append(f"  Step {idx} – {step.label}: {desc}")
+                else:
+                    lines.append(f"  Step {idx} – {step.label}")
         catalog_summary = "\n".join(lines)
 
     return PROCESS_SYSTEM_PROMPT.replace("{catalog_summary}", catalog_summary)
@@ -140,11 +142,25 @@ async def bot(runner_args: RunnerArguments):
         ),
     )
 
+    # Speaker diarization: map participant IDs to roles
+    speaker_map: dict[str, str] = {}
+
+    @transport.event_handler("on_participant_joined")
+    async def on_participant_joined(_transport_ref, participant):
+        pid = participant["id"]
+        name = participant.get("user_name", "")
+        if name == "VoiceBridge":
+            return  # skip bot itself
+        role = "agent" if participant.get("owner") else "customer"
+        speaker_map[pid] = role
+        logger.info("Participant %s mapped to %s (user_name=%s)", pid, role, name)
+
     @stt.event_handler("on_connection_error")
     async def on_stt_connection_error(_stt, error):
         logger.warning("[session=%s] Deepgram connection error: %s", session_id, error)
 
-    transcript_writer = TranscriptWriter(session_id=session_id)
+    speaker_labeler = SpeakerLabelingProcessor(speaker_map=speaker_map)
+    transcript_writer = TranscriptWriter(session_id=session_id, speaker_map=speaker_map)
 
     process_catalog = ProcessCatalog(process_content_path=str(_resolve_process_content_path()))
     process_catalog.load()
@@ -169,7 +185,22 @@ async def bot(runner_args: RunnerArguments):
     metadata = body.get("metadata", {})
     scenario_family = metadata.get("scenario_family", "")
     kb_content = _load_kb_content(scenario_family)
-    suggestion_system_prompt = build_suggestion_system_prompt(kb_content)
+
+    # Build process content for suggestion prompt from matching process definition
+    process_def = process_catalog.get_definition(scenario_family)
+    if process_def:
+        process_lines = [f"Prozess: {process_def.name}"]
+        for idx, step in enumerate(process_def.steps):
+            desc = step.content.split("\n")[0].strip() if step.content else ""
+            if desc:
+                process_lines.append(f"  Step {idx} – {step.label}: {desc}")
+            else:
+                process_lines.append(f"  Step {idx} – {step.label}")
+        process_content = "\n".join(process_lines)
+    else:
+        process_content = ""
+
+    suggestion_system_prompt = build_suggestion_system_prompt(kb_content, process_content)
 
     suggestion_context = LLMContext(
         messages=[{"role": "system", "content": suggestion_system_prompt}]
@@ -194,6 +225,7 @@ async def bot(runner_args: RunnerArguments):
         [
             transport.input(),
             stt,
+            speaker_labeler,
             ParallelPipeline(
                 [
                     transcript_writer,
