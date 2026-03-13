@@ -39,7 +39,11 @@ export function InteractionPanel({
         onClick={onToggle}
         className="panel-morph flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-left shadow-sm hover:shadow-md transition-shadow"
       >
-        <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        {isConnected ? (
+          <span className="h-2 w-2 animate-pulse-dot rounded-full bg-success" />
+        ) : (
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+        )}
         <span className="text-sm font-medium text-muted-foreground">
           Transkript
         </span>
@@ -51,6 +55,18 @@ export function InteractionPanel({
         <span className="ml-auto truncate text-xs text-muted-foreground max-w-[200px]">
           {preview}
         </span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className="h-4 w-4 shrink-0 text-muted-foreground/60"
+        >
+          <path
+            fillRule="evenodd"
+            d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
+            clipRule="evenodd"
+          />
+        </svg>
       </button>
     );
   }
