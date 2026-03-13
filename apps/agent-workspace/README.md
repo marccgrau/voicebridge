@@ -117,8 +117,8 @@ apps/agent-workspace/
 **Shows**:
 
 - Process layer (detecting state)
-- Customer info (compact, toggleable)
-- Live transcript (expanded)
+- Customer info (expanded, toggleable)
+- Live transcript (compact, toggleable — pulsing indicator when connected)
 - Suggestions panel
 
 ### 4. Active (In-Process) Phase
@@ -127,8 +127,8 @@ apps/agent-workspace/
 **Shows**:
 
 - Process layer (steps + progress)
-- Customer info (compact, toggleable)
-- Live transcript (expanded)
+- Customer info (expanded, toggleable)
+- Live transcript (compact, toggleable — pulsing indicator when connected)
 - Suggestions panel (process-aware)
 
 ### 5. Postcall Summary Phase

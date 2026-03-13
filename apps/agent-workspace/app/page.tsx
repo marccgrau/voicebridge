@@ -573,14 +573,28 @@ function WorkspacePanels({
       <div className="flex-1 grid grid-cols-[1.1fr_0.9fr] gap-5 p-5 overflow-hidden">
         {/* Left column */}
         <div className="flex flex-col gap-3 overflow-hidden min-h-0">
-          <CustomerInfoPanel
-            customerId={customerId}
-            routingContext={sessionRoutingContext}
-            isConnected={isConnected}
-            variant={density.customer}
-            onToggle={() => toggleDensity("customer")}
-          />
-          <div className="flex-1 overflow-hidden rounded-2xl border border-border/60 bg-card flex flex-col shadow-sm hover:shadow-md transition-shadow min-h-0">
+          <div
+            className={`overflow-hidden flex flex-col min-h-0 ${
+              density.customer === "expanded"
+                ? "flex-1 rounded-2xl border border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow"
+                : ""
+            }`}
+          >
+            <CustomerInfoPanel
+              customerId={customerId}
+              routingContext={sessionRoutingContext}
+              isConnected={isConnected}
+              variant={density.customer}
+              onToggle={() => toggleDensity("customer")}
+            />
+          </div>
+          <div
+            className={`overflow-hidden flex flex-col min-h-0 ${
+              density.transcript === "expanded"
+                ? "flex-1 rounded-2xl border border-border/60 bg-card shadow-sm hover:shadow-md transition-shadow"
+                : ""
+            }`}
+          >
             <InteractionPanel
               transcript={transcript}
               isConnected={isConnected}

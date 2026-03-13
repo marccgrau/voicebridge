@@ -32,13 +32,13 @@ const PHASE_DEFAULTS: Record<UIPhase, PanelDensity> = {
     suggestions: "expanded",
   },
   active_preprocess: {
-    customer: "compact",
-    transcript: "expanded",
+    customer: "expanded",
+    transcript: "compact",
     suggestions: "expanded",
   },
   active_inprocess: {
-    customer: "compact",
-    transcript: "expanded",
+    customer: "expanded",
+    transcript: "compact",
     suggestions: "expanded",
   },
   postcall_summary: {
