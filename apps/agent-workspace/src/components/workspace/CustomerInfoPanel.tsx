@@ -38,7 +38,7 @@ export function CustomerInfoPanel({
     return (
       <button
         onClick={onToggle}
-        className="panel-morph flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-4 py-3 text-left shadow-sm hover:shadow-md transition-shadow"
+        className="panel-morph flex w-full items-center gap-3 rounded-2xl border border-border bg-white px-4 py-3 text-left shadow-card hover:shadow-card-hover transition-shadow"
       >
         {isLoading ? (
           <>
@@ -80,7 +80,7 @@ export function CustomerInfoPanel({
       <button
         onClick={onToggle}
         disabled={!onToggle}
-        className="flex items-center justify-between border-b border-border/60 px-5 py-4 text-left disabled:cursor-default"
+        className="flex items-center justify-between border-b border-border px-5 py-4 text-left disabled:cursor-default"
       >
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
@@ -131,13 +131,13 @@ export function CustomerInfoPanel({
 }
 
 const classificationStyles = {
-  basis: "border-blue-500/40 bg-blue-500/10 text-blue-700",
-  "basis plus": "border-blue-500/40 bg-blue-500/10 text-blue-700",
-  standard: "border-blue-500/40 bg-blue-500/10 text-blue-700",
-  "standard plus": "border-blue-500/40 bg-blue-500/10 text-blue-700",
-  affluent: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
-  hnwi: "border-amber-500/40 bg-amber-500/10 text-amber-700",
-  uhnwi: "border-rose-500/40 bg-rose-500/10 text-rose-700",
+  basis: "border-blue-500/40 bg-blue-50 text-blue-700",
+  "basis plus": "border-blue-500/40 bg-blue-50 text-blue-700",
+  standard: "border-blue-500/40 bg-blue-50 text-blue-700",
+  "standard plus": "border-blue-500/40 bg-blue-50 text-blue-700",
+  affluent: "border-emerald-500/40 bg-emerald-50 text-emerald-700",
+  hnwi: "border-amber-500/40 bg-amber-50 text-amber-700",
+  uhnwi: "border-rose-500/40 bg-rose-50 text-rose-700",
 };
 
 function LoadingState() {
@@ -179,7 +179,7 @@ function CustomerIdentityCard({
   interactionCount: number;
 }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-gradient-to-r from-card via-card to-muted/45 p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-gradient-to-r from-white via-white to-muted/30 p-4 shadow-card">
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full gradient-accent text-sm font-semibold text-white">
           {getInitials(customer.name)}
@@ -222,7 +222,7 @@ function RoutingContextCard({
 }) {
   if (routingContext.source === "voice_ai") {
     return (
-      <section className="rounded-2xl border-2 border-accent/45 bg-accent/10 p-4 shadow-sm">
+      <section className="rounded-2xl border-2 border-accent/40 bg-accent/5 p-4 shadow-card">
         <SectionTitle number="1" title="Routing-Kontext" />
         <p className="mt-2 text-sm font-semibold text-foreground">
           Via Voice-AI-Triage eingegangen
@@ -231,7 +231,7 @@ function RoutingContextCard({
           {routingContext.handoffSummary ??
             "Keine KI-Übergabezusammenfassung vorhanden."}
         </p>
-        <div className="mt-3 rounded-xl border border-accent/35 bg-card/90 px-3 py-2">
+        <div className="mt-3 rounded-xl border border-accent/30 bg-white/80 px-3 py-2">
           <p className="font-mono-ui text-[11px] uppercase tracking-wide text-muted-foreground">
             Übergabegrund
           </p>
@@ -245,13 +245,13 @@ function RoutingContextCard({
   }
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-white p-4 shadow-card">
       <SectionTitle number="1" title="Routing-Kontext" />
       <p className="mt-2 text-sm font-semibold text-foreground">
         Direkt in Agent-Warteschlange eingegangen
       </p>
       {lastInteraction ? (
-        <div className="mt-2 rounded-xl border border-border/70 bg-muted/30 p-3">
+        <div className="mt-2 rounded-xl border border-border bg-muted/30 p-3">
           <p className="font-mono-ui text-[11px] uppercase tracking-wide text-muted-foreground">
             Letzte Kundeninteraktion · {formatMonthDay(lastInteraction.date)}
           </p>
@@ -281,7 +281,7 @@ function CustomerEssentialsCard({
   interactionCount: number;
 }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-white p-4 shadow-card">
       <SectionTitle number="2" title="Kundenübersicht" />
       <div className="mt-3 grid grid-cols-2 gap-2">
         <FactTile
@@ -314,7 +314,7 @@ function CustomerEssentialsCard({
 
 function FactTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2">
+    <div className="rounded-xl border border-border/60 bg-background px-3 py-2">
       <p className="font-mono-ui text-[10px] uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
@@ -325,7 +325,7 @@ function FactTile({ label, value }: { label: string; value: string }) {
 
 function FactLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2">
+    <div className="rounded-xl border border-border/60 bg-background px-3 py-2">
       <p className="font-mono-ui text-[10px] uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
@@ -336,7 +336,7 @@ function FactLine({ label, value }: { label: string; value: string }) {
 
 function ProductPortfolioCard({ products }: { products: string[] }) {
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-white p-4 shadow-card">
       <SectionTitle number="3" title="Produktportfolio" />
       {products.length === 0 ? (
         <p className="mt-3 text-sm text-muted-foreground">
@@ -347,7 +347,7 @@ function ProductPortfolioCard({ products }: { products: string[] }) {
           {products.map((product) => (
             <article
               key={product}
-              className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2"
+              className="rounded-xl border border-border/60 bg-background px-3 py-2"
             >
               <p className="font-mono-ui text-[10px] uppercase tracking-wide text-muted-foreground">
                 {getProductFamily(product)}
@@ -365,7 +365,7 @@ function ProductPortfolioCard({ products }: { products: string[] }) {
 
 function ServiceNoteCard({ notes }: { notes: string | null }) {
   return (
-    <section className="rounded-2xl border-2 border-warning/45 bg-warning/10 p-4 shadow-sm">
+    <section className="rounded-2xl border-2 border-warning/40 bg-warning/5 p-4 shadow-card">
       <SectionTitle number="4" title="Prioritäts-Servicenotiz" />
       <p className="mt-2 text-sm leading-relaxed text-foreground">
         {notes ??
@@ -383,7 +383,7 @@ function RecentInteractionsCard({
   const recentInteractions = interactions.slice(0, 4);
 
   return (
-    <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
+    <section className="rounded-2xl border border-border bg-white p-4 shadow-card">
       <SectionTitle number="5" title="Letzte Interaktionen" />
       {recentInteractions.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">
@@ -404,39 +404,39 @@ function InteractionRow({ interaction }: { interaction: CustomerInteraction }) {
   const typeConfig = {
     phone: {
       label: "Telefon",
-      tagClass: "border-blue-500/40 bg-blue-500/10 text-blue-700",
+      tagClass: "border-blue-500/40 bg-blue-50 text-blue-700",
     },
     chat: {
       label: "Chat",
-      tagClass: "border-emerald-500/40 bg-emerald-500/10 text-emerald-700",
+      tagClass: "border-emerald-500/40 bg-emerald-50 text-emerald-700",
     },
     mobile_app_chat: {
       label: "App-Chat",
-      tagClass: "border-sky-500/40 bg-sky-500/10 text-sky-700",
+      tagClass: "border-sky-500/40 bg-sky-50 text-sky-700",
     },
     portal_message: {
       label: "Portal-Nachricht",
-      tagClass: "border-violet-500/40 bg-violet-500/10 text-violet-700",
+      tagClass: "border-violet-500/40 bg-violet-50 text-violet-700",
     },
     secure_message: {
       label: "Sichere Nachricht",
-      tagClass: "border-indigo-500/40 bg-indigo-500/10 text-indigo-700",
+      tagClass: "border-indigo-500/40 bg-indigo-50 text-indigo-700",
     },
     branch_visit: {
       label: "Filialbesuch",
-      tagClass: "border-amber-500/40 bg-amber-500/10 text-amber-700",
+      tagClass: "border-amber-500/40 bg-amber-50 text-amber-700",
     },
     service_desk: {
       label: "Service-Desk",
-      tagClass: "border-orange-500/40 bg-orange-500/10 text-orange-700",
+      tagClass: "border-orange-500/40 bg-orange-50 text-orange-700",
     },
     video_call: {
       label: "Videoanruf",
-      tagClass: "border-teal-500/40 bg-teal-500/10 text-teal-700",
+      tagClass: "border-teal-500/40 bg-teal-50 text-teal-700",
     },
     email: {
       label: "E-Mail",
-      tagClass: "border-cyan-500/40 bg-cyan-500/10 text-cyan-700",
+      tagClass: "border-cyan-500/40 bg-cyan-50 text-cyan-700",
     },
   };
 
@@ -446,7 +446,7 @@ function InteractionRow({ interaction }: { interaction: CustomerInteraction }) {
   };
 
   return (
-    <article className="rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+    <article className="rounded-xl border border-border/60 bg-background px-3 py-2.5">
       <div className="flex items-center justify-between gap-2">
         <span
           className={`font-mono-ui rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-wide ${config.tagClass}`}
@@ -494,7 +494,7 @@ function EmptyCustomerState({
 function SectionTitle({ number, title }: { number: string; title: string }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono-ui inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent/15 text-[10px] font-semibold text-accent">
+      <span className="font-mono-ui inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent/10 text-[10px] font-semibold text-accent">
         {number}
       </span>
       <p className="font-mono-ui text-[11px] uppercase tracking-wide text-muted-foreground">

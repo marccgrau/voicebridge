@@ -51,16 +51,19 @@ export default function CustomerCallPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 md:p-8">
-        <header className="mb-6 border-b border-border pb-4 text-center">
-          <h1 className="text-2xl font-semibold">VoiceBridge Experiment</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+      <div className="w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-card md:p-8">
+        <header className="mb-6 pb-4 text-center">
+          <h1 className="font-display text-2xl font-semibold gradient-text">
+            VoiceBridge Experiment
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
             Kundenrollen-Schnittstelle
           </p>
+          <div className="mx-auto mt-4 h-px w-12 bg-gradient-to-r from-transparent via-accent/30 to-transparent" />
         </header>
 
         {error && (
-          <div className="mb-4 rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          <div className="mb-4 rounded-xl border-l-4 border-l-destructive bg-destructive/5 px-4 py-2.5 text-sm text-destructive">
             {error}
           </div>
         )}
@@ -68,12 +71,14 @@ export default function CustomerCallPage() {
         {callState === "idle" && (
           <section className="space-y-4">
             <div className="space-y-2">
-              <h2 className="text-lg font-medium">Persona auswählen</h2>
+              <h2 className="text-lg font-medium text-foreground">
+                Persona auswählen
+              </h2>
               <select
                 value={selectedCustomerId}
                 onChange={(event) => setSelectedCustomerId(event.target.value)}
                 disabled={isLoadingCustomers}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/25 focus:border-accent/50 transition-colors"
               >
                 <option value="">Persona wählen...</option>
                 {customers.map((customer) => (
@@ -92,7 +97,7 @@ export default function CustomerCallPage() {
             <button
               onClick={handleStartCall}
               disabled={!canStartCall || isLoading}
-              className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="w-full rounded-xl gradient-accent px-4 py-3 text-sm font-medium text-white shadow-card hover:-translate-y-0.5 hover:shadow-accent transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-card"
             >
               {isLoading ? "Anruf wird gestartet..." : "Anruf starten"}
             </button>
@@ -100,22 +105,27 @@ export default function CustomerCallPage() {
         )}
 
         {callState === "calling" && (
-          <section className="space-y-4 text-center">
-            <span className="mx-auto block h-4 w-4 animate-pulse rounded-full bg-primary" />
-            <p className="text-muted-foreground">
+          <section className="space-y-5 text-center">
+            <div className="relative mx-auto flex h-16 w-16 items-center justify-center">
+              <span className="absolute inset-0 rounded-full border-2 border-accent/30 animate-ring-1" />
+              <span className="absolute inset-0 rounded-full border-2 border-accent/20 animate-ring-2" />
+              <span className="absolute inset-0 rounded-full border-2 border-accent/10 animate-ring-3" />
+              <span className="h-4 w-4 rounded-full gradient-accent" />
+            </div>
+            <p className="text-sm text-muted-foreground">
               {isAudioConnected
                 ? "Verbunden. Warten auf Agent-Annahme..."
                 : "Verbindung wird hergestellt..."}
             </p>
             {sessionId && (
-              <p className="text-xs text-muted-foreground">
+              <p className="font-mono-ui text-xs text-muted-foreground/60">
                 Sitzung: {sessionId.slice(0, 8)}...
               </p>
             )}
             <button
               onClick={endCall}
               disabled={isLoading}
-              className="w-full rounded-md bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+              className="w-full rounded-xl border border-destructive/60 px-4 py-3 text-sm font-medium text-destructive hover:bg-destructive hover:text-white hover:border-destructive transition-all disabled:opacity-50"
             >
               Abbrechen
             </button>
@@ -124,12 +134,12 @@ export default function CustomerCallPage() {
 
         {callState === "connected" && (
           <section className="space-y-4 text-center">
-            <div className="rounded-lg border border-success/40 bg-success/10 px-4 py-3 text-sm text-success">
+            <div className="rounded-xl border-2 border-accent/40 bg-accent/5 px-4 py-3.5 text-sm font-semibold text-accent">
               Anruf aktiv
             </div>
 
             {sessionId && (
-              <p className="text-xs text-muted-foreground">
+              <p className="font-mono-ui text-xs text-muted-foreground/60">
                 Sitzung: {sessionId.slice(0, 8)}...
               </p>
             )}
@@ -137,7 +147,7 @@ export default function CustomerCallPage() {
             <button
               onClick={endCall}
               disabled={isLoading}
-              className="w-full rounded-md bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+              className="w-full rounded-xl bg-destructive px-4 py-3 text-sm font-medium text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
             >
               Anruf beenden
             </button>
@@ -149,7 +159,7 @@ export default function CustomerCallPage() {
             <p className="text-muted-foreground">Anruf beendet. Vielen Dank!</p>
             <button
               onClick={() => window.location.reload()}
-              className="w-full rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              className="w-full rounded-xl gradient-accent px-4 py-3 text-sm font-medium text-white shadow-card hover:-translate-y-0.5 hover:shadow-accent transition-all"
             >
               Neuen Anruf starten
             </button>

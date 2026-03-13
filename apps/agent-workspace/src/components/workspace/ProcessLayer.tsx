@@ -23,7 +23,7 @@ export function ProcessLayer({
   const hasProcess = processKey !== null;
 
   return (
-    <div className="panel-morph mx-5 mt-3 rounded-2xl border border-border/60 bg-card px-5 py-3 shadow-sm">
+    <div className="panel-morph mx-5 mt-3 rounded-2xl border border-border bg-white px-5 py-3 shadow-card">
       {!hasProcess ? (
         <div className="flex items-center gap-3">
           <span className="h-2 w-2 animate-pulse-dot rounded-full bg-accent" />
@@ -33,10 +33,13 @@ export function ProcessLayer({
         </div>
       ) : (
         <div className="flex items-center gap-4">
-          <span className="text-sm font-medium text-foreground">
+          <span className="font-display text-sm font-semibold text-foreground">
             {processName}
           </span>
-          <div className="flex items-center gap-1.5">
+          {/* Step track with connecting line */}
+          <div className="relative flex items-center gap-1.5">
+            {/* Connecting track line */}
+            <div className="absolute top-1/2 left-0 right-0 h-px -translate-y-1/2 bg-border" />
             {steps.map((step) => (
               <StepPill
                 key={step.key}
@@ -59,15 +62,16 @@ function StepPill({
   isCurrent: boolean;
 }) {
   const statusStyles: Record<ProcessStep["status"], string> = {
-    pending: "bg-muted text-muted-foreground",
-    in_progress: "gradient-accent text-white ring-2 ring-accent/20",
-    completed: "bg-success text-white",
-    skipped: "bg-muted text-muted-foreground line-through opacity-60",
+    pending: "bg-muted text-muted-foreground border border-border",
+    in_progress:
+      "gradient-accent text-white ring-2 ring-accent/25 shadow-accent",
+    completed: "bg-accent text-white",
+    skipped: "bg-muted text-muted-foreground/50 line-through opacity-60",
   };
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
+      className={`relative z-10 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-all ${
         statusStyles[step.status]
       } ${isCurrent ? "scale-105" : ""}`}
       title={step.label}

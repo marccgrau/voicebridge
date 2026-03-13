@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
-import { Inter, Calistoga, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, Sora, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const dmSans = DM_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-dm-sans",
 });
 
-const calistoga = Calistoga({
-  weight: "400",
+const sora = Sora({
   subsets: ["latin"],
-  variable: "--font-calistoga",
+  variable: "--font-sora",
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -31,7 +30,7 @@ export default function RootLayout({
   return (
     <html
       lang="de"
-      className={`${inter.variable} ${calistoga.variable} ${jetbrainsMono.variable}`}
+      className={`${dmSans.variable} ${sora.variable} ${jetbrainsMono.variable}`}
     >
       <body className="min-h-screen bg-background font-sans antialiased">
         {children}

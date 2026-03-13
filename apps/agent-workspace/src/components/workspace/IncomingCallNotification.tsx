@@ -42,10 +42,10 @@ export function IncomingCallNotification({
                 onSelectSession(session.id);
               }
             }}
-            className={`flex cursor-pointer items-center justify-between rounded-2xl border-2 px-5 py-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+            className={`flex cursor-pointer items-center justify-between rounded-2xl border-2 px-5 py-4 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/25 ${
               isSelected
-                ? "border-accent/45 bg-accent/10 shadow-accent"
-                : "border-border/70 bg-card hover:border-accent/30 hover:bg-accent/5"
+                ? "border-accent/45 bg-accent/5 shadow-accent"
+                : "border-border bg-white shadow-card hover:border-accent/30 hover:bg-accent/5"
             }`}
           >
             <div className="flex items-center gap-3">
@@ -65,7 +65,7 @@ export function IncomingCallNotification({
                     </span>
                   )}
                   {isSelected && (
-                    <span className="ml-2 rounded-lg bg-accent/15 px-2 py-0.5 text-xs text-accent">
+                    <span className="ml-2 rounded-lg bg-accent/10 px-2 py-0.5 text-xs text-accent font-medium">
                       Kundenvorschau
                     </span>
                   )}
