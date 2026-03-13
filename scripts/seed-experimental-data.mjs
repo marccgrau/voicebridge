@@ -389,6 +389,8 @@ async function main() {
     notes: profile.quick_internal_note ?? null,
     quick_internal_note: profile.quick_internal_note ?? null,
     domain: typeof payload.domain === "string" ? payload.domain : null,
+    scenario_id:
+      typeof payload.scenario_id === "string" ? payload.scenario_id : null,
   }));
 
   const interactionRows = personas.flatMap(({ dbCustomerId, interactions }) =>
@@ -447,6 +449,13 @@ async function main() {
     }
   }
 
+  const { error: scenarioError } = await supabase
+    .from("scenarios")
+    .upsert(scenarios, { onConflict: "scenario_id" });
+  if (scenarioError) {
+    throw new Error(`Failed inserting scenarios: ${scenarioError.message}`);
+  }
+
   const { error: customerError } = await supabase
     .from("customers")
     .upsert(customerRows, { onConflict: "id" });
@@ -461,13 +470,6 @@ async function main() {
     throw new Error(
       `Failed inserting customer interactions: ${interactionError.message}`
     );
-  }
-
-  const { error: scenarioError } = await supabase
-    .from("scenarios")
-    .upsert(scenarios, { onConflict: "scenario_id" });
-  if (scenarioError) {
-    throw new Error(`Failed inserting scenarios: ${scenarioError.message}`);
   }
 
   console.log(`Seeded ${customerRows.length} customers`);

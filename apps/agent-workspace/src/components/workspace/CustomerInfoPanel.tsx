@@ -526,6 +526,25 @@ function getProductFamily(product: string): string {
     return "Anlagen";
   }
   if (
+    normalized.includes("versicherung") ||
+    normalized.includes("insurance") ||
+    normalized.includes("police") ||
+    normalized.includes("zusatz") ||
+    normalized.includes("rechtsschutz") ||
+    normalized.includes("telemedizin") ||
+    normalized.includes("spital") ||
+    normalized.includes("unfall")
+  ) {
+    return "Versicherungen";
+  }
+  if (
+    normalized.includes("kreditkarte") ||
+    normalized.includes("card") ||
+    normalized.includes("karte")
+  ) {
+    return "Karten & Zahlungen";
+  }
+  if (
     normalized.includes("mortgage") ||
     normalized.includes("financing") ||
     normalized.includes("loan") ||
@@ -545,23 +564,14 @@ function getProductFamily(product: string): string {
   ) {
     return "Beratung";
   }
-  if (normalized.includes("card") || normalized.includes("karte")) {
-    return "Karten & Zahlungen";
-  }
   if (
     normalized.includes("account") ||
     normalized.includes("savings") ||
     normalized.includes("konto") ||
-    normalized.includes("spar")
+    normalized.includes("spar") ||
+    normalized.includes("banking")
   ) {
     return "Konten";
-  }
-  if (
-    normalized.includes("versicherung") ||
-    normalized.includes("insurance") ||
-    normalized.includes("police")
-  ) {
-    return "Versicherungen";
   }
 
   return "Spezialdienstleistungen";

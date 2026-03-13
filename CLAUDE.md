@@ -115,7 +115,7 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 **Customer App** (`apps/customer/`)
 
 - Customer-facing call interface (idle → calling → connected → ended)
-- Selection/briefing flow with domain-compatible persona+scenario pairing and actor guidance references
+- Simple persona selection with 1:1 customer-scenario mapping (each persona has a fixed `scenario_id`)
 - Creates bot sessions by starting the unified PCC service
 - Connects to Daily.co room with audio via `@daily-co/daily-js`
 
@@ -167,12 +167,14 @@ Migrations (in `supabase/migrations/`):
 - `007_experiment_schema.sql` — scenarios, session_events, and experiment metadata columns
 - `008_drop_legacy_process_catalog.sql` — remove DB-backed process_catalog table
 - `009_cross_combinable_experiments.sql` — add `customers.domain` and `scenarios.actor_guidance`
+- `010_customer_scenario_mapping.sql` — add `customers.scenario_id` FK to scenarios
+- `011_replace_seed_customers.sql` — replace legacy English seed customers with German experiment personas
 
 Key tables:
 
 - `sessions`: Session state (JSONB), status, room URL/name, `customer_id`, `scenario_id`, scenario metadata, timestamps
 - `transcript_segments`: STT output segments by speaker (agent/customer)
-- `customers`: Persona-backed customer profiles (includes `domain`)
+- `customers`: Persona-backed customer profiles (includes `domain`, `scenario_id`)
 - `customer_interactions`: Historical interaction context linked to customers
 - `scenarios`: Scenario catalog for experiment selection (includes optional `actor_guidance`)
 - `session_events`: Experiment telemetry events
