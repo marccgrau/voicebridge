@@ -130,6 +130,7 @@ export default function WorkspacePage() {
     roomToken,
     acceptSession,
     stopSession,
+    disconnectRoom,
     clearSession,
   } = useSession();
   const { pendingSessions } = usePendingSessions();
@@ -147,7 +148,8 @@ export default function WorkspacePage() {
         // Session was already accepted — pending list auto-updates via Realtime
         return;
       }
-      throw err;
+      // Network errors and other failures are already surfaced via useSession().error
+      console.error("Failed to accept session:", err);
     }
   };
 
@@ -201,6 +203,7 @@ export default function WorkspacePage() {
         pendingSessions={pendingSessions}
         onAccept={handleAccept}
         onClearSession={clearSession}
+        onDisconnectRoom={disconnectRoom}
       />
     </div>
   );
@@ -216,6 +219,7 @@ function WorkspacePanels({
   pendingSessions,
   onAccept,
   onClearSession,
+  onDisconnectRoom,
 }: {
   sessionId: string | null;
   isConnected: boolean;
@@ -235,6 +239,7 @@ function WorkspacePanels({
   }[];
   onAccept: (sessionId: string) => void;
   onClearSession: () => void;
+  onDisconnectRoom: () => void;
 }) {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -372,6 +377,14 @@ function WorkspacePanels({
       channel.unsubscribe();
     };
   }, [sessionId]);
+
+  // Disconnect room when session reaches a terminal status (e.g. customer ended call)
+  useEffect(() => {
+    const terminalStatuses = ["completed", "abandoned", "escalated", "error"];
+    if (sessionStatus && terminalStatuses.includes(sessionStatus)) {
+      onDisconnectRoom();
+    }
+  }, [sessionStatus, onDisconnectRoom]);
 
   // Subscribe to RTVI messages via WebRTC data channel
   useRTVI(

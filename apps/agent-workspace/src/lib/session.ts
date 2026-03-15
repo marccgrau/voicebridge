@@ -191,6 +191,18 @@ export function useSession() {
     }
   }, [state.sessionId]);
 
+  /** Disconnect from room without writing to Supabase — used when the other
+   *  participant ends the call and we detect it via Realtime. */
+  const disconnectRoom = useCallback(() => {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    setState((prev) => ({
+      ...prev,
+      roomUrl: null,
+      roomToken: null,
+      isConnected: false,
+    }));
+  }, []);
+
   /** Fully clear session state — call when leaving postcall to return to idle. */
   const clearSession = useCallback(() => {
     localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -208,6 +220,7 @@ export function useSession() {
     ...state,
     acceptSession,
     stopSession,
+    disconnectRoom,
     clearSession,
   };
 }

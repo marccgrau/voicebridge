@@ -294,6 +294,7 @@ PIPECAT_CLOUD_API_KEY                 # Required for production deployment
   - Terminal states (completed/abandoned/escalated/error) clear localStorage automatically
   - Stale sessions (>1 hour old) are cleared on restoration
   - Only truly active sessions with complete data (room_url, agent_token) are restored
+- **Bidirectional call termination**: Both UIs detect the other side ending the call via Supabase Realtime. The customer app's Realtime subscription must stay active for the entire session lifecycle (not just the "calling" phase). The agent workspace uses `disconnectRoom()` (clears room credentials without writing to Supabase) when it detects a terminal session status set by the customer, which causes `useRTVI` to auto-disconnect. `stopSession()` (agent-initiated) and `disconnectRoom()` (Realtime-triggered) are idempotent — both can fire safely.
 - **Phase-based UI**: Agent workspace adapts its layout based on call state (idle → incoming → active-preprocess → active-inprocess → postcall), showing only relevant information for the current phase
 - **Next.js 16 Async Params**: Route params are Promises and must be awaited before access in App Router API routes
 - **PCC startup failures**: Session creation fails fast if the unified PCC `/start` call cannot return `dailyRoom` and `dailyToken`
