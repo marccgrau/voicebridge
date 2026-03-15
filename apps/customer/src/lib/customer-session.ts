@@ -47,7 +47,7 @@ export function useCustomerSession() {
   // Subscribe to session updates to detect when agent joins
   useEffect(() => {
     const sessionId = state.sessionId;
-    if (!sessionId || state.callState !== "calling") {
+    if (!sessionId) {
       if (channelRef.current) {
         channelRef.current.unsubscribe();
         channelRef.current = null;
@@ -90,7 +90,7 @@ export function useCustomerSession() {
       channel.unsubscribe();
       channelRef.current = null;
     };
-  }, [state.sessionId, state.callState]);
+  }, [state.sessionId]);
 
   const startCall = useCallback(
     async ({ customerId, scenarioId, routing }: StartCallOptions) => {
