@@ -15,6 +15,7 @@ import { useRTVIConnection } from "@/lib/use-rtvi-connection";
 import { useRTVIMessages } from "@/lib/use-rtvi-messages";
 import { usePhase } from "@/lib/use-phase";
 import { useSummary } from "@/lib/use-summary";
+import { DailyRoomAudio } from "@/components/DailyRoomAudio";
 import { supabase } from "@/lib/supabase";
 import type {
   TranscriptEntry,
@@ -157,6 +158,7 @@ export default function WorkspacePageClient() {
 
   return (
     <PipecatRTVIProvider>
+      <DailyRoomAudio />
       <div className="flex h-screen flex-col">
         {/* Header */}
         <header className="flex h-16 items-center justify-between border-b border-border bg-white px-6">
