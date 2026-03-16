@@ -218,6 +218,8 @@ export async function POST(request: Request) {
         dailyToken: botToken,
         body: {
           session_id: sessionId,
+          dailyRoom: roomUrl,
+          dailyToken: botToken,
           metadata: {
             scenario_id: scenario.scenario_id,
             scenario_family: scenario.scenario_family,
