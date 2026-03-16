@@ -9,7 +9,10 @@ function requireEnv(name: string): string {
   return value;
 }
 
-const PCC_AGENT_URL = requireEnv("PCC_AGENT_URL");
+const PIPECAT_API_URL = process.env.PIPECAT_API_URL;
+const PCC_AGENT = process.env.PCC_AGENT;
+const PCC_PUBLIC_KEY = process.env.PCC_PUBLIC_KEY;
+const PCC_AGENT_URL = process.env.PCC_AGENT_URL; // optional, local dev fallback
 const DAILY_API_KEY = requireEnv("DAILY_API_KEY");
 const SUPABASE_URL = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -34,11 +37,25 @@ function getSupabaseAdmin() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 }
 
+function getPccStartUrl(): string {
+  if (PIPECAT_API_URL && PCC_AGENT) {
+    return `https://api.${PIPECAT_API_URL}/public/${PCC_AGENT}/start`;
+  }
+  if (PCC_AGENT_URL) {
+    return `${PCC_AGENT_URL}/start`;
+  }
+  throw new Error(
+    "Missing PCC configuration: set PIPECAT_API_URL + PCC_AGENT, or PCC_AGENT_URL"
+  );
+}
+
 function getPccHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (process.env.PIPECAT_CLOUD_API_KEY) {
+  if (PCC_PUBLIC_KEY) {
+    headers["Authorization"] = `Bearer ${PCC_PUBLIC_KEY}`;
+  } else if (process.env.PIPECAT_CLOUD_API_KEY) {
     headers["Authorization"] = `Bearer ${process.env.PIPECAT_CLOUD_API_KEY}`;
   }
   return headers;
@@ -161,7 +178,7 @@ export async function POST(request: Request) {
     }
 
     // 1. Start unified PCC service — it creates the Daily room
-    const pccResponse = await fetch(`${PCC_AGENT_URL}/start`, {
+    const pccResponse = await fetch(getPccStartUrl(), {
       method: "POST",
       headers: getPccHeaders(),
       body: JSON.stringify({
