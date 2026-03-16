@@ -124,8 +124,7 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 
 - Single listen-only bot with one Daily transport and one Deepgram STT stream
 - Bot subscribes only to customer audio — agent microphone is unsubscribed at the transport level (`update_subscriptions`) when the agent joins, so agent speech never reaches STT
-- Pipeline: `transport.input() → DeepgramSTT → SpeakerLabelingProcessor → ParallelPipeline(...) → transport.output()`
-- Speaker identification via Daily participant tracking (`on_participant_joined`), maps participant IDs to roles using the `owner` flag
+- Pipeline: `transport.input() → DeepgramSTT → ParallelPipeline(...) → transport.output()`
 - Parallel branches:
   - Transcript branch emits `transcript_segment`
   - Process branch emits `process_illustration`
@@ -213,7 +212,7 @@ The unified PCC service is configured as listen-only (`audio_out_enabled=False`)
 
 ### LLM Branches For Process + Advice
 
-The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT. Both receive customer-only transcript entries (`[Kunde]`), since agent audio is filtered at the transport level. The suggestion branch acts as "Process-Pilot" — an invisible AI coach that speaks directly to the agent using German imperatives. Its system prompt includes the matching process definition (steps with descriptions) and knowledge base content for the active scenario. It emits 2–4 advice items per response as `{"advice": ["..."]}` JSON.
+The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT. Both receive customer-only transcript entries, since agent audio is unsubscribed at the transport level. The suggestion branch acts as "Process-Pilot" — an invisible AI coach that speaks directly to the agent using German imperatives. Its system prompt includes the matching process definition (steps with descriptions) and knowledge base content for the active scenario. It emits 2–4 advice items per response as `{"advice": ["..."]}` JSON.
 
 ### RTVI Over Supabase Realtime
 

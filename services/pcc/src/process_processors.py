@@ -35,8 +35,7 @@ PROCESS_SYSTEM_PROMPT = (
     "- processKey muss ein Katalogschlüssel oder null sein\n"
     "- currentStep muss nullbasiert sein\n"
     "- wähle nur einen Prozess\n"
-    "- Transkript-Einträge sind mit [Kunde] oder [Berater] gekennzeichnet\n"
-    "- Fokussiere auf Kundenäusserungen für die Prozesserkennung"
+    "- Alle Transkript-Einträge sind Kundenäusserungen (nur Kundenaudio wird transkribiert)"
 )
 
 
