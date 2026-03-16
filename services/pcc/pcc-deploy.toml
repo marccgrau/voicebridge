@@ -1,6 +1,11 @@
 agent_name = "voicebridge"
 secret_set = "voicebridge-secrets"
+image = "marccgrau/voicebridge:0.1"
 agent_profile = "agent-2x"
+region = "eu-central"
 
 [scaling]
-    min_agents = 0
+min_agents = 0
+
+[docker]
+auto_latest = false
