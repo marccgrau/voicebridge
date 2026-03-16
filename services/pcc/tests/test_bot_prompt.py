@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from bot import build_process_system_prompt
+from bot import LiveOptions, build_process_system_prompt
 from src.process_catalog import ProcessCatalog
 from src.process_processors import PROCESS_SYSTEM_PROMPT
 
@@ -103,3 +103,7 @@ def test_process_system_prompt_has_speaker_awareness_rules():
     assert "[Kunde]" in PROCESS_SYSTEM_PROMPT
     assert "[Berater]" in PROCESS_SYSTEM_PROMPT
     assert "Fokussiere auf Kundenäusserungen" in PROCESS_SYSTEM_PROMPT
+
+
+def test_bot_uses_stable_deepgram_live_options_import():
+    assert LiveOptions.__module__ == "deepgram.clients.listen.v1.websocket.options"
