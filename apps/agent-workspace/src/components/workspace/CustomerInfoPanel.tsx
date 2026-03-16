@@ -102,9 +102,6 @@ export function CustomerInfoPanel({
               routingContext={resolvedRouting}
               lastInteraction={interactions[0] ?? null}
             />
-            <ServiceNoteCard
-              notes={customer.quickInternalNote ?? customer.notes}
-            />
             <RecentInteractionsCard interactions={interactions} />
           </div>
         )}
@@ -154,31 +151,77 @@ function ClassificationBadge({
 }
 
 function CustomerIdentityCard({ customer }: { customer: Customer }) {
+  const addressLine = [
+    customer.address?.street,
+    [customer.address?.postalCode, customer.address?.city]
+      .filter(Boolean)
+      .join(" "),
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   return (
     <section className="rounded-2xl border border-border bg-gradient-to-r from-white via-white to-muted/30 p-4 shadow-card">
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full gradient-accent text-sm font-semibold text-white">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full gradient-accent text-base font-semibold text-white shadow-accent">
           {getInitials(customer.name)}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-lg font-semibold text-foreground">
+            <h3 className="truncate font-display text-xl font-semibold text-foreground">
               {customer.name}
             </h3>
             <ClassificationBadge classification={customer.classification} />
           </div>
-          <p className="font-mono-ui mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-            Kunde seit {formatMonthYear(customer.customerSince)}
-            {customer.dateOfBirth
-              ? ` · Geb. ${formatMonthDayYear(customer.dateOfBirth)}`
-              : ""}
-          </p>
+          <div className="mt-2 space-y-1">
+            {customer.dateOfBirth && (
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+                  <path d="M2 6h12" />
+                  <path d="M5.5 1v2.5M10.5 1v2.5" />
+                </svg>
+                <span className="text-sm text-foreground">
+                  Geb. {formatDotDate(customer.dateOfBirth)}
+                </span>
+                <span className="text-sm text-muted-foreground">·</span>
+                <span className="text-sm text-foreground">
+                  Kunde seit {formatMonthYear(customer.customerSince)}
+                </span>
+              </div>
+            )}
+            {addressLine && (
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M8 1.5a4.5 4.5 0 0 1 4.5 4.5c0 3.5-4.5 8.5-4.5 8.5S3.5 9.5 3.5 6A4.5 4.5 0 0 1 8 1.5Z" />
+                  <circle cx="8" cy="6" r="1.5" />
+                </svg>
+                <span className="text-sm text-foreground">{addressLine}</span>
+              </div>
+            )}
+          </div>
           {customer.products.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
               {customer.products.map((product) => (
                 <span
                   key={product}
-                  className="rounded-md border border-border/60 bg-background px-2 py-0.5 text-xs text-foreground"
+                  className="rounded-md border border-accent/20 bg-accent/5 px-2 py-0.5 text-xs font-medium text-accent"
                 >
                   {product}
                 </span>
@@ -251,18 +294,6 @@ function RoutingContextCard({
   );
 }
 
-function ServiceNoteCard({ notes }: { notes: string | null }) {
-  return (
-    <section className="rounded-2xl border-2 border-warning/40 bg-warning/5 p-4 shadow-card">
-      <SectionTitle number="2" title="Prioritäts-Servicenotiz" />
-      <p className="mt-2 text-sm leading-relaxed text-foreground">
-        {notes ??
-          "Keine Servicenotizen vorhanden. Erwartungen während des Gesprächs explizit klären."}
-      </p>
-    </section>
-  );
-}
-
 function RecentInteractionsCard({
   interactions,
 }: {
@@ -272,7 +303,7 @@ function RecentInteractionsCard({
 
   return (
     <section className="rounded-2xl border border-border bg-white p-4 shadow-card">
-      <SectionTitle number="3" title="Letzte Interaktionen" />
+      <SectionTitle number="2" title="Letzte Interaktionen" />
       {recentInteractions.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">
           Keine bisherigen Interaktionen.
@@ -415,10 +446,10 @@ function formatMonthDay(value: string): string {
   });
 }
 
-function formatMonthDayYear(value: string): string {
-  return new Date(value).toLocaleDateString("de-DE", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+function formatDotDate(value: string): string {
+  const d = new Date(value);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
 }
