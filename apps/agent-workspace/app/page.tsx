@@ -16,7 +16,7 @@ import { useSummary } from "@/lib/use-summary";
 import { supabase } from "@/lib/supabase";
 import type {
   TranscriptEntry,
-  Suggestion,
+  AdviceItem,
   ProcessStep,
 } from "@voicebridge/contracts";
 
@@ -242,7 +242,7 @@ function WorkspacePanels({
   onDisconnectRoom: () => void;
 }) {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [advice, setAdvice] = useState<AdviceItem[]>([]);
   const [processKey, setProcessKey] = useState<string | null>(null);
   const [processName, setProcessName] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
@@ -421,15 +421,15 @@ function WorkspacePanels({
         }
       },
       onSuggestion: (message) => {
-        setSuggestions(
-          message.data.suggestions.map((s: Suggestion, _i: number) => ({
-            ...s,
-            id: s.id ?? crypto.randomUUID(),
+        setAdvice(
+          message.data.advice.map((a) => ({
+            ...a,
+            id: a.id ?? crypto.randomUUID(),
           }))
         );
 
         persistSessionEvent("agent_guidance_received", {
-          suggestions: message.data.suggestions,
+          advice: message.data.advice,
           serviceType: message.data.serviceType,
         });
       },
@@ -623,7 +623,7 @@ function WorkspacePanels({
         {/* Right column */}
         <div className="overflow-hidden rounded-2xl border border-border bg-card flex flex-col shadow-card hover:shadow-card-hover transition-shadow min-h-0">
           <SuggestionsPanel
-            suggestions={suggestions}
+            advice={advice}
             isConnected={isConnected}
             sessionId={sessionId}
             variant={density.suggestions}

@@ -3,6 +3,7 @@
 import json
 import logging
 import re
+import uuid
 from typing import Any
 
 from pipecat.frames.frames import (
@@ -17,18 +18,26 @@ from pipecat.processors.frameworks.rtvi import RTVIServerMessageFrame
 logger = logging.getLogger(__name__)
 
 _JSON_BLOCK_PATTERN = re.compile(r"(\{.*\}|\[.*\])", re.DOTALL)
-_SUGGESTION_TYPES = {"response", "question", "action", "escalation"}
 
 _SUGGESTION_SYSTEM_PROMPT_TEMPLATE = (
-    "Du bist ein Beratungsassistent für ein Kundenservice-Callcenter.\n"
-    "Basierend auf dem Gesprächsverlauf, gib genau einen konkreten Vorschlag.\n"
-    "Antworte ausschliesslich in striktem JSON:\n"
-    '{"suggestions":[{"text":"...","type":"response|question|action|escalation"}]}\n'
-    "Kein Prosa, kein Markdown, keine Code-Blöcke.\n"
-    "Der Vorschlag muss prägnant und die hilfreichste nächste Aktion sein.\n"
+    "Du bist Process-Pilot, ein unsichtbarer KI-Coach, der ausschliesslich den menschlichen Berater unterstützt.\n"
+    "Du sprichst den Berater direkt an — niemals den Kunden.\n"
+    "Verwende deutsche Imperativformen: «Bestätigen Sie…», «Erklären Sie…», «Bieten Sie an…».\n"
+    "Sprich nie als Kunde oder Berater. Keine Entschuldigungen, keine Empathiefloskeln, keine Emojis, kein Markdown.\n"
     "\n"
+    "Antworte ausschliesslich in striktem JSON:\n"
+    '{"advice": ["Hinweis 1", "Hinweis 2", "Hinweis 3"]}\n'
+    "Kein Prosa, kein Markdown, keine Code-Blöcke.\n"
+    "\n"
+    "Jeder Hinweis ist entweder:\n"
+    "- Eine kurze Schlüsselinformation für den Berater\n"
+    "- Eine konkrete Handlungsanweisung im Imperativ\n"
+    "\n"
+    "Regeln:\n"
     "- Transkript-Einträge sind mit [Kunde] oder [Berater] gekennzeichnet\n"
-    "- Berücksichtige was der Berater bereits gesagt hat, um keine redundanten Vorschläge zu machen\n"
+    "- Berücksichtige was der Berater bereits gesagt hat, um keine redundanten Hinweise zu geben\n"
+    "- Falls der Kunde die Richtlinie anzweifelt, bekräftige die Vorgabe und biete eine konkrete Alternative an\n"
+    "- Gib 2–4 Hinweise pro Antwort\n"
     "\n"
     "{process_section}\n"
     "\n"
@@ -77,21 +86,19 @@ class SuggestionOutputProcessor(FrameProcessor):
             raw_text = "".join(self._buffer)
             self._buffer.clear()
 
-            suggestions = self._parse_suggestions(raw_text)
-            if not suggestions:
+            advice = self._parse_advice(raw_text)
+            if not advice:
                 logger.warning(
-                    "[session=%s] LLM response parse failed, using fallback suggestion",
+                    "[session=%s] LLM response parse failed, using fallback advice",
                     self.session_id,
                 )
-                suggestions = self._fallback_suggestions()
-            else:
-                suggestions = suggestions[:1]
+                advice = self._fallback_advice()
 
             rtvi_msg = RTVIServerMessageFrame(
                 data={
                     "action": "agent_guidance",
                     "data": {
-                        "suggestions": suggestions,
+                        "advice": advice,
                         "serviceType": "suggestion_agent",
                         "toolsUsed": ["llm_inference"],
                     },
@@ -102,43 +109,34 @@ class SuggestionOutputProcessor(FrameProcessor):
 
         await self.push_frame(frame, direction)
 
-    def _parse_suggestions(self, raw_text: str) -> list[dict[str, str]]:
+    def _parse_advice(self, raw_text: str) -> list[dict[str, str]]:
         payload = _parse_json_payload(raw_text)
         if payload is None:
             return []
 
         if isinstance(payload, dict):
-            suggestions_list = payload.get("suggestions")
+            advice_list = payload.get("advice")
         elif isinstance(payload, list):
-            suggestions_list = payload
+            advice_list = payload
         else:
             return []
 
-        if not isinstance(suggestions_list, list):
+        if not isinstance(advice_list, list):
             return []
 
-        normalized: list[dict[str, str]] = []
-        for item in suggestions_list:
-            if not isinstance(item, dict):
-                continue
-            text = item.get("text")
-            suggestion_type = item.get("type")
-            if not isinstance(text, str) or not text.strip():
-                continue
-            if suggestion_type not in _SUGGESTION_TYPES:
-                suggestion_type = "action"
-            normalized.append({"text": text.strip(), "type": suggestion_type})
-            if len(normalized) == 1:
-                break
+        items: list[dict[str, str]] = []
+        for item in advice_list:
+            if isinstance(item, str) and item.strip():
+                items.append({"id": str(uuid.uuid4()), "text": item.strip()})
 
-        return normalized
+        return items
 
     @staticmethod
-    def _fallback_suggestions() -> list[dict[str, str]]:
+    def _fallback_advice() -> list[dict[str, str]]:
         return [
             {
-                "text": "Bestätigen Sie das Anliegen des Kunden und fragen Sie, wie Sie helfen können.",
-                "type": "response",
+                "id": str(uuid.uuid4()),
+                "text": "Anliegen bestätigen und offene Fragen klären",
             },
         ]
 
