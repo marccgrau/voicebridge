@@ -1,0 +1,5 @@
+{
+  "installCommand": "corepack enable && cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm --filter @voicebridge/customer... build",
+  "outputDirectory": ".next"
+}
