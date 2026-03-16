@@ -1,91 +1,80 @@
-# AGENTS.md
+# CLAUDE.md
 
-This file provides guidance to coding agents working in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
 
-VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes and track progress, and delivers real-time Process-Pilot advice to agents.
-
-The system consists of:
-
-- `apps/agent-workspace` (Next.js, agent UI, port 3000)
-- `apps/customer` (Next.js, customer UI, port 3001)
-- `services/pcc` (Pipecat Cloud voice pipeline, port 7860)
-- `packages/contracts` (shared Zod schemas/types)
-- `packages/db` (Supabase query helpers)
-- `services/orchestrator` (legacy, deprecated — superseded by PCC)
+VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes, track step progress, and provide real-time Process-Pilot advice to agents. The system consists of a Customer App, an Agent Workspace, and one unified Pipecat service with three parallel branches (transcript, process, suggestion). All user-facing UI, experiment content (personas, scenarios, process definitions, knowledge base), and LLM prompts are in **German**.
 
 ## Development Commands
 
 ### Setup
 
 ```bash
-make install              # Install pnpm + uv deps
-make db-migrate           # Push Supabase migrations
+make install              # Install all dependencies (pnpm + uv for unified PCC)
+make db-migrate          # Run Supabase migrations
 ```
 
 ### Development
 
 ```bash
-make dev                  # Run web + customer + pcc (all 3 in parallel)
-make web-dev              # Agent workspace only (port 3000)
-make customer-dev         # Customer app only (port 3001)
-make pcc-dev              # PCC service only (port 7860)
+make dev                 # Run all 3 services (agent-workspace + customer + unified PCC)
+make web-dev             # Agent workspace only (port 3000)
+make customer-dev        # Customer app only (port 3001)
+make pcc-dev             # Unified PCC service only (port 7860)
 ```
 
 ### Testing & Quality
 
 ```bash
-make test                 # pnpm workspace tests + PCC pytest
-make lint                 # eslint + ruff
-make typecheck            # TypeScript typecheck
-make format               # prettier + ruff format
+make test               # Run all tests (vitest + pytest for unified PCC)
+make lint               # Lint TypeScript (eslint) and Python (ruff)
+make typecheck          # TypeScript type checking
+make format             # Format code (prettier + ruff)
 ```
 
-### PCC Service
+### PCC-Specific Commands
 
 ```bash
-cd services/pcc
-uv run python bot.py -t daily --port 7860   # Run local dev server
-uv run pytest                                # Run tests
-uv run ruff check .                          # Lint
-uv run ruff format .                         # Format
+# Unified PCC service
+cd services/pcc && uv run pytest              # Run tests
+cd services/pcc && uv run ruff check .        # Lint
 ```
 
 ### Database
 
 ```bash
-make db-migrate           # supabase db push
-make db-reset             # supabase db reset
+make db-reset           # Reset database to clean state
+make db-migrate         # Push migrations (supabase db push)
 ```
 
 ## Development Practices
 
-### Branching and PR Workflow
-
-For every new feature:
-
-1. Create a new git branch before making code changes.
-2. Implement the feature on that branch only.
-3. Commit regularly.
-4. Fully test the feature with all relevant automated tests.
-5. Prepare a pull request with a clear summary and test evidence.
-
 ### Testing Requirements
 
-Always add tests for new behavior and run relevant suites before considering work complete.
+- Always implement new features, changes etc. in a new branch that we can later merge with main once accepted
+- Commit regularly and often
 
-- TypeScript/React changes: run workspace tests (`pnpm -r test`) or `make test`
-- Python PCC changes: run `cd services/pcc && uv run pytest`
-- Contract/schema changes: run `packages/contracts` vitest suite
+**Always write tests and run them when implementing features.** This is non-negotiable for verifying that implementations work correctly.
 
-For PCC service work, prioritize tests for:
+- **TypeScript/React**: Write tests for new components and utilities, run with `make test` or `pnpm test`
+- **Python**: Write pytest tests for PCC processors and utilities, run with `cd services/pcc && uv run pytest`
+- **Contracts**: The `packages/contracts` package has vitest tests for schema validation - run these when modifying schemas
+
+After implementing a feature:
+
+1. Write appropriate tests (unit tests for utilities, integration tests for processors)
+2. Run the relevant test suite to verify functionality
+3. Run the full test suite (`make test`) to ensure no regressions
+4. Only consider the feature complete after tests pass
+
+For the PCC service, tests should cover:
 
 - Pipeline processor logic (transcript, process LLM output parsing, advice LLM output parsing)
 - RTVI bot-action payload shape and validation (`transcript_segment`, `process_illustration`, `agent_guidance`)
 - Process catalog loading and prompt/catalog alignment for process identification
 
-For Next.js apps, prioritize tests for:
+For the Next.js apps, tests should cover:
 
 - Component rendering and state management
 - RTVI message handling and Supabase Realtime subscription logic
@@ -93,63 +82,79 @@ For Next.js apps, prioritize tests for:
 
 ## Architecture
 
-### High-Level Flow
+### High-Level Data Flow
 
-```text
-Daily.co WebRTC → Deepgram STT → Pipecat Pipeline (PCC) → RTVI / Supabase Realtime → Next.js UIs
+```
+                                  ┌─ Transcript branch → RTVI (transcript_segment)
+Daily.co WebRTC → Unified PCC ───┼─ Process branch    → RTVI (process_illustration)
+(same room)       (shared STT)   └─ Suggestion branch → RTVI (agent_guidance)
+
+Supabase Realtime → Agent Workspace (session state only)
 ```
 
-The PCC bot is listen-only (`audio_out_enabled=False`). It never speaks; it emits guidance events.
+The system operates one **listen-only voice pipeline** with three parallel branches after shared STT. Real-time data is delivered via two channels:
 
-Realtime channels:
-
-- RTVI (WebRTC data channel): transcript segments, process illustrations, Process-Pilot advice
-- Supabase Realtime: session lifecycle updates (pending/active/completed) and pending-call notifications
+- **RTVI (WebRTC data channel)**: Process-Pilot advice, process illustrations, and transcript segments (low latency)
+- **Supabase Realtime**: Session state changes and pending session notifications (agent workspace only)
 
 ### Component Responsibilities
 
-#### Agent Workspace (`apps/agent-workspace`)
+**Agent Workspace** (`apps/agent-workspace/`)
 
-- Phase-based UI:
-  - `idle`
-  - `incoming`
-  - `active_preprocess`
-  - `active_inprocess`
-  - `postcall_summary`
-- Accepts pending sessions via Supabase (updates status to active)
-- Connects to Daily.co room via @pipecat-ai/client-js RTVI client
-- Receives RTVI actions:
-  - `transcript_segment`
-  - `process_illustration`
-  - `agent_guidance`
-- Fetches customer profile/interactions from Supabase when `customer_id` exists
-- API routes for postcall summary save and AI generation
-- Includes `/admin` route with session list + session transcript/detail inspector
+- **Phase-based procedural UI** that adapts to the current call state, showing only contextually relevant information:
+  - **Idle**: Waiting screen for incoming calls
+  - **Incoming**: Customer info + accept/reject interface
+  - **Active (Pre-process)**: Customer info + transcript + Process-Pilot advice (process detection in progress)
+  - **Active (In-process)**: Full 4-panel workspace - customer info, transcript, Process-Pilot advice, process visualization
+  - **Postcall Summary**: Transcript review + AI-generated summary editor, auto-returns to idle after save
+- Incoming call notification via Supabase Realtime subscription on `sessions` table (pending status)
+- Connects to Daily.co room via `@pipecat-ai/client-js` RTVI client
+- Receives RTVI messages from unified PCC branches: `agent_guidance`, `process_illustration`, `transcript_segment`
+- Session management: accept pending sessions, stop active sessions
 
-#### Customer App (`apps/customer`)
+**Customer App** (`apps/customer/`)
 
-- Customer flow states: `idle → calling → connected → ended`
-- Prep flow includes persona/scenario briefing with civility cues and actor guidance when present
-- Persona/scenario selection is domain-compatible (`customers.domain` ↔ `scenarios.domain`)
-- Starts calls via `POST /api/sessions/create` (requires `customer_id` + `scenario_id`)
-- API route creates PCC bot, Daily tokens, and pending session in Supabase
-- Watches session status via Supabase Realtime to detect agent join/end
-- Connects to Daily room audio using `@daily-co/daily-js`
+- Customer-facing call interface (idle → calling → connected → ended)
+- Simple persona selection with 1:1 customer-scenario mapping (each persona has a fixed `scenario_id`)
+- Creates bot sessions by starting the unified PCC service
+- Connects to Daily.co room with audio via `@daily-co/daily-js`
 
-#### PCC Service (`services/pcc`)
+**Unified PCC Service** (`services/pcc/`)
 
-- Stateless Pipecat Cloud bot using standard runner pattern
-- Entry point: `bot.py` with `RunnerArguments`
-- Local dev: `python bot.py -t daily --port 7860` (HTTP server with `/start` endpoint)
-- Production: `pipecat cloud deploy`
-- Pipeline: `transport.input() -> DeepgramSTTService -> ParallelPipeline(...) -> transport.output()`
+- Single listen-only bot with one Daily transport and one Deepgram STT stream
+- Pipeline: `transport.input() → DeepgramSTT → SpeakerLabelingProcessor → ParallelPipeline(...) → transport.output()`
+- Speaker diarization via Daily participant tracking (`on_participant_joined`), maps `TranscriptionFrame.user_id` to `[Kunde]`/`[Berater]` labels
 - Parallel branches:
-  1. Transcript branch: `TranscriptWriter` emits `transcript_segment`
-  2. Process branch: `LLMContextAggregatorPair.user()` -> `OpenAILLMService(PROCESS_MODEL)` -> `ProcessOutputProcessor` emits `process_illustration`
-  3. Suggestion branch (Process-Pilot): `LLMContextAggregatorPair.user()` -> `OpenAILLMService(SUGGESTION_MODEL)` -> `SuggestionOutputProcessor` emits `agent_guidance` with `advice[]` items
-- Shared STT + parallel branches keep transcript delivery low-latency while LLM branches run concurrently
+  - Transcript branch emits `transcript_segment`
+  - Process branch emits `process_illustration`
+  - Suggestion branch emits `agent_guidance`
+- Bot name: `VoiceBridge`
 
-## Database Schema
+**Shared Contracts** (`packages/contracts/`)
+
+- Zod schemas for RTVI messages: `RTVISuggestionMessageSchema` (with `AdviceItemSchema`), `RTVIProcessIllustrationMessageSchema`, `RTVITranscriptSegmentMessageSchema`
+- Discriminated union: `RTVIMessageSchema` (on `action` field)
+- Zod schemas for DTOs (session config, process lookup, etc.)
+- Single source of truth for TypeScript types
+
+**Database Package** (`packages/db/`)
+
+- Supabase client wrapper
+- Query helpers for sessions, customers, and interactions
+
+### Session Creation Flow
+
+```
+POST /api/sessions/create
+  → Validate selected customer_id + scenario_id
+  → POST pcc/start  { createDailyRoom: true, body: { session_id, metadata } }  ← creates room + starts branches
+    metadata includes: scenario_id, scenario_family, domain, customer_id, customer_name
+  → Create Daily tokens with user_name (customer="Kunde", agent="Berater") for speaker identification
+  → Insert pending session into Supabase with scenario metadata
+  ← { session_id, room_url, customer_token }
+```
+
+### Database Schema
 
 Migrations (in `supabase/migrations/`):
 
@@ -162,90 +167,136 @@ Migrations (in `supabase/migrations/`):
 - `007_experiment_schema.sql` — scenarios, session_events, and experiment metadata columns
 - `008_drop_legacy_process_catalog.sql` — remove DB-backed process_catalog table
 - `009_cross_combinable_experiments.sql` — add `customers.domain` and `scenarios.actor_guidance`
+- `010_customer_scenario_mapping.sql` — add `customers.scenario_id` FK to scenarios
+- `011_replace_seed_customers.sql` — replace legacy English seed customers with German experiment personas
+- `012_fix_address_format.sql` — fix street address format to Swiss convention (street name before house number)
+- `013_align_products_with_steckbriefe.sql` — align customer products with steckbriefe (insurance: single tier, banking: none)
 
-Primary tables:
+Key tables:
 
-- `sessions` — status, room_url, room_name, agent_token, customer_id, scenario_id, scenario_family, civility_condition, state (JSONB), timestamps
-- `transcript_segments` — session_id, speaker, text, is_final, timestamps
-- `customers` — persona-backed customer profile data (identity, classification, contact, notes, domain)
-- `customer_interactions` — historical interaction context linked to customers
-- `scenarios` — scenario catalog (background, goal, conversation, civility condition, actor guidance)
-- `session_events` — experiment telemetry events linked to sessions
+- `sessions`: Session state (JSONB), status, room URL/name, `customer_id`, `scenario_id`, scenario metadata, timestamps
+- `transcript_segments`: STT output segments by speaker (agent/customer)
+- `customers`: Persona-backed customer profiles (includes `domain`, `scenario_id`)
+- `customer_interactions`: Historical interaction context linked to customers
+- `scenarios`: Scenario catalog for experiment selection (includes optional `actor_guidance`)
+- `session_events`: Experiment telemetry events
 
 Session statuses: `pending` → `active` → `completed` / `abandoned` / `escalated` / `error`
 
 Supabase Realtime enabled on `sessions` and `transcript_segments`.
 
-## Contracts and RTVI Actions
+### RTVI Actions
 
-### Shared Contracts (`packages/contracts`)
+The unified service emits three RTVI action payloads:
 
-- Zod schemas for RTVI events (`agent_guidance`, `process_illustration`, `transcript_segment`)
-- DTO schemas for session lifecycle, summary updates, and customer data
-- Cross-package TypeScript type source of truth
+- `transcript_segment`
+- `process_illustration`
+- `agent_guidance`
 
-- Runtime payloads emitted by PCC are RTVI bot-action messages:
-  - `transcript_segment`
-  - `process_illustration`
-  - `agent_guidance`
+### Process Catalog
 
-## Process Catalog
+Process definitions (in German) are loaded from markdown files under `services/pcc/process_content/`. Each file uses YAML frontmatter (`process_key`, `name`, `domain`, `intents`) and `## Step N: Label` headings for step extraction. Current definitions: `bank_unauth_transaction`, `bank_credit_denial`, `insurance_unauth_claim`, `insurance_claim_denial`.
 
-Process markdown content lives in `services/pcc/process_content/`.
-
-- Files use YAML frontmatter (`process_key`, `name`, `domain`, `intents`)
-- Steps are parsed from `## Step N: ...` headings
-- Repository currently contains 4 process content markdown files
-- Detection is catalog-informed and LLM-evaluated (`PROCESS_MODEL`, default `gpt-4.1-nano`)
+Supporting knowledge base articles (in German) are in `services/pcc/kb_content/`, one per process scenario.
 
 ## Key Design Patterns
 
-- **Listen-only bot**: No audio output from PCC service.
-- **Stateless PCC**: No database persistence; all data flows through RTVI.
-- **Decoupled flows**: Transcript, process identification, and advice generation run as independent branches after shared STT.
-- **Parallel processing**: Advice generation runs in a ParallelPipeline branch to avoid blocking transcript delivery.
-- **RTVI-first for live guidance**: Low-latency messages over WebRTC data channel.
-- **Session management in Next.js**: API routes in customer app handle room creation and session insertion.
+### Parallel Branches In One Agent
+
+Transcript, process detection, and advice generation run as parallel branches in one bot process after a shared STT stage. This removes room orchestration complexity and duplicate STT connections.
+
+### Listen-Only Bot
+
+The unified PCC service is configured as listen-only (`audio_out_enabled=False`). It does not respond verbally — it only publishes events to guide human agents.
+
+### LLM Branches For Process + Advice
+
+The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT. Both receive speaker-labeled transcript entries (`[Kunde]`/`[Berater]`). The suggestion branch acts as "Process-Pilot" — an invisible AI coach that speaks directly to the agent using German imperatives. Its system prompt includes the matching process definition (steps with descriptions) and knowledge base content for the active scenario. It emits 2–4 advice items per response as `{"advice": ["..."]}` JSON.
+
+### RTVI Over Supabase Realtime
+
+Advice, process illustrations, and transcript segments are delivered via RTVI (WebRTC data channel) for sub-second latency. Supabase Realtime is used only for session state changes and pending session notifications.
+
+### Type Safety Across Languages
+
+TypeScript Zod schemas in `packages/contracts` define the contract. Python code maintains compatible JSON structures (validated at runtime, not type-checked).
+
+### Monorepo Structure
+
+- pnpm workspaces for TypeScript packages
+- uv for Python dependency management (unified PCC venv)
+- Makefile coordinates cross-language operations
+
+## Pipecat Framework Reference
+
+### Core Concepts
+
+- **Frames**: Units of data flowing through the pipeline (audio, text, control).
+- **FrameProcessors**: Transform or react to frames. Must call `super().__init__()`, `await super().process_frame()`, and always `push_frame()` to avoid blocking the pipeline.
+- **Pipeline / PipelineTask / PipelineRunner**: Pipeline defines processor chain; PipelineTask wraps it for execution; PipelineRunner manages the event loop.
+
+### RTVI
+
+- Branch processors emit `RTVIServerMessageFrame` payloads as `bot-action` events.
+- The agent workspace receives transcript, process, and advice actions from one bot.
+
+### Design Principle
+
+Always prefer Pipecat abstractions (processors, pipeline, RTVI) over custom transport. Advice, process illustrations, and transcripts are sent to the client via RTVI — not written to Supabase for realtime pickup. Supabase Realtime is reserved for session state changes.
 
 ## Environment Variables
 
-### Agent Workspace (`apps/agent-workspace/.env.local`)
+### Required for Agent Workspace
 
-```bash
+```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
-OPENAI_API_KEY              # For AI-generated postcall summaries
 ```
 
-### Customer App (`apps/customer/.env.local`)
+### Required for Customer App
 
-```bash
+```
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-PCC_AGENT_URL=http://localhost:7860
+PCC_AGENT_URL                         # default: http://localhost:7860
 DAILY_API_KEY
-PIPECAT_CLOUD_API_KEY       # Optional, for cloud deployment
 ```
 
-### PCC Service (`services/pcc/.env`)
+### Required for Unified PCC Service
 
-```bash
+```
 DAILY_API_KEY
 DEEPGRAM_API_KEY
 OPENAI_API_KEY
-PIPECAT_CLOUD_API_KEY       # Optional, for cloud deployment
-SUGGESTION_MODEL            # Optional, default: gpt-4.1
+PROCESS_MODEL                         # default: gpt-4.1-nano
+SUGGESTION_MODEL                      # default: gpt-4.1
+```
+
+### Optional (unified PCC)
+
+```
+PIPECAT_CLOUD_API_KEY                 # Required for production deployment
 ```
 
 ## Common Gotchas
 
-- Python must be 3.13+; Node must be 24+; pnpm must be 10+.
-- Supabase CLI is required for migration/reset commands.
-- Daily rooms are ephemeral (1-hour expiry on room creation).
-- PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
-- PCC service is stateless — no DB persistence, all data flows through RTVI.
-- Process identification uses OpenAI (`PROCESS_MODEL`, default `gpt-4.1-nano`) against the loaded process catalog.
-- Summary save/generate is allowed for terminal statuses only (`completed`, `abandoned`, `escalated`).
-- Next.js 16 async params: Route params are Promises and must be awaited in App Router API routes.
+- **Python version**: Must use Python 3.13+ (specified in pyproject.toml)
+- **Node version**: Must use Node 24+ (see .nvmrc)
+- **Supabase CLI**: Database migrations require Supabase CLI to be installed
+- **Daily.co rooms**: Sessions create ephemeral rooms with 1-hour expiry
+- **VAD tuning**: Silero VAD parameters (`start_secs`, `stop_secs`) affect responsiveness vs. false positives
+- **Agent Invocation**:
+  - Unified PCC service uses `RunnerArguments` (Pipecat runner pattern)
+  - Local dev: `python bot.py -t daily --port 7860` starts HTTP server with `/start` endpoint
+  - Customer app starts one bot with `createDailyRoom: true`
+  - Production: `pipecat cloud deploy` for the unified service
+- **Session State Validation**:
+  - Agent workspace checks localStorage on mount and validates against database
+  - Terminal states (completed/abandoned/escalated/error) clear localStorage automatically
+  - Stale sessions (>1 hour old) are cleared on restoration
+  - Only truly active sessions with complete data (room_url, agent_token) are restored
+- **Bidirectional call termination**: Both UIs detect the other side ending the call via Supabase Realtime. The customer app's Realtime subscription must stay active for the entire session lifecycle (not just the "calling" phase). The agent workspace uses `disconnectRoom()` (clears room credentials without writing to Supabase) when it detects a terminal session status set by the customer, which causes `useRTVI` to auto-disconnect. `stopSession()` (agent-initiated) and `disconnectRoom()` (Realtime-triggered) are idempotent — both can fire safely.
+- **Phase-based UI**: Agent workspace adapts its layout based on call state (idle → incoming → active-preprocess → active-inprocess → postcall), showing only relevant information for the current phase
+- **Next.js 16 Async Params**: Route params are Promises and must be awaited before access in App Router API routes
+- **PCC startup failures**: Session creation fails fast if the unified PCC `/start` call cannot return `dailyRoom` and `dailyToken`
