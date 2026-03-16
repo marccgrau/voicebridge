@@ -9,7 +9,6 @@ function requireEnv(name: string): string {
   return value;
 }
 
-const PIPECAT_API_URL = process.env.PIPECAT_API_URL;
 const PCC_AGENT = process.env.PCC_AGENT;
 const PCC_PUBLIC_KEY = process.env.PCC_PUBLIC_KEY;
 const PCC_AGENT_URL = process.env.PCC_AGENT_URL; // optional, local dev fallback
@@ -38,15 +37,13 @@ function getSupabaseAdmin() {
 }
 
 function getPccStartUrl(): string {
-  if (PIPECAT_API_URL && PCC_AGENT) {
-    return `https://api.${PIPECAT_API_URL}/public/${PCC_AGENT}/start`;
+  if (PCC_AGENT) {
+    return `https://api.pipecat.daily.co/v1/public/${PCC_AGENT}/start`;
   }
   if (PCC_AGENT_URL) {
     return `${PCC_AGENT_URL}/start`;
   }
-  throw new Error(
-    "Missing PCC configuration: set PIPECAT_API_URL + PCC_AGENT, or PCC_AGENT_URL"
-  );
+  throw new Error("Missing PCC configuration: set PCC_AGENT or PCC_AGENT_URL");
 }
 
 function getPccHeaders(): Record<string, string> {
@@ -183,6 +180,7 @@ export async function POST(request: Request) {
       headers: getPccHeaders(),
       body: JSON.stringify({
         createDailyRoom: true,
+        dailyRoomProperties: {},
         body: {
           session_id: sessionId,
           metadata: {
@@ -194,6 +192,7 @@ export async function POST(request: Request) {
           },
         },
       }),
+      cache: "no-store",
     });
 
     if (!pccResponse.ok) {
