@@ -8,7 +8,7 @@ This experiment evaluates whether a **novel agent-assistance tool** improves cus
 
 The tool supports agents in real time with:
 
-1. **Actionable suggestions** (what to do/say next),
+1. **Process-Pilot advice** (actionable guidance on what to do/say next),
 2. **Process illustration** (where the agent is in the workflow),
 3. **Live transcript** (what the customer is saying).
 
@@ -44,7 +44,7 @@ The core research intent is to test if guided agents handle complex calls better
 4. Actor starts the call.
 5. Call is routed to agent workspace.
 6. Agent sees pre-call customer information, accepts call, and starts handling.
-7. During the call, agent receives suggestions, process view, and transcript.
+7. During the call, agent receives Process-Pilot advice, process view, and transcript.
 8. When resolved, call ends and agent receives call summary.
 
 ---
@@ -144,9 +144,9 @@ Before accepting, agent sees a concise customer snapshot:
 
 - System streams customer utterances to transcript panel.
 
-### Step C2 — Guidance Suggestions
+### Step C2 — Process-Pilot Advice
 
-- Agent receives context-aware suggestions for next action and phrasing.
+- Agent receives context-aware advice items (German imperatives) for next action and phrasing.
 
 ### Step C3 — Process Illustration
 

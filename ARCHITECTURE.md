@@ -4,7 +4,7 @@ This document describes the system architecture, data flows, and design patterns
 
 ## System Overview
 
-VoiceBridge is a **proactive guidance workspace** for live human-human customer service calls. It listens to conversations over WebRTC, uses a voice processing pipeline to detect customer service processes, track step progress, and generate AI-powered suggestions — all delivered in real time to the agent's workspace.
+VoiceBridge is a **proactive guidance workspace** for live human-human customer service calls. It listens to conversations over WebRTC, uses a voice processing pipeline to detect customer service processes, track step progress, and generate AI-powered Process-Pilot advice — all delivered in real time to the agent's workspace.
 
 The system does **not** replace the human agent. It augments them with contextual guidance while they handle the call.
 
@@ -20,7 +20,7 @@ The system does **not** replace the human agent. It augments them with contextua
 | Supabase        | PostgreSQL       | 54321 | Database + Realtime subscriptions                  |
 | Daily.co        | WebRTC           | —     | Audio transport (rooms + tokens)                   |
 | Deepgram        | API              | —     | Speech-to-text (STT)                               |
-| OpenAI          | API              | —     | LLM for suggestion generation + postcall summaries |
+| OpenAI          | API              | —     | LLM for advice generation + postcall summaries     |
 
 ## High-Level Data Flow
 
@@ -54,7 +54,7 @@ VoiceBridge uses two complementary realtime channels optimized for different pur
 
 - `transcript_segment` — Live transcription segments
 - `process_illustration` — Detected process with step progress tracking
-- `agent_guidance` — AI-generated suggestions for the agent
+- `agent_guidance` — Process-Pilot advice for the agent
 
 **Supabase Realtime** — Session lifecycle and notifications:
 
@@ -98,7 +98,7 @@ VoiceBridge uses two complementary realtime channels optimized for different pur
        │
        ├─ transcript_segment → live transcript
        ├─ process_illustration → detected process + steps
-       └─ agent_guidance → AI suggestions
+       └─ agent_guidance → Process-Pilot advice
        │
 8. Agent ends call → status becomes 'completed'
        │
@@ -173,7 +173,7 @@ The PCC service emits three bot-action messages over RTVI:
 | ---------------------- | ------------------------------------------------------ | ---------------- |
 | `transcript_segment`   | sessionId, speaker, text, timestamp, isFinal           | Live transcript  |
 | `process_illustration` | processKey, processName, steps[], currentStep, content | Process tracking |
-| `agent_guidance`       | suggestions[], serviceType, toolsUsed                  | Agent guidance   |
+| `agent_guidance`       | advice[], serviceType, toolsUsed                       | Agent guidance   |
 
 ### Process Detection
 
@@ -241,8 +241,8 @@ The agent workspace uses a **phase-based procedural UI** that adapts its layout 
 | -------------------- | ---------------- | ------------------------------------------------------ |
 | Idle                 | Centered message | Waiting indicator                                      |
 | Incoming             | Full-width       | Queue selector + accept action, customer brief preview |
-| Active (pre-process) | Two-column       | Customer info, transcript, suggestions                 |
-| Active (in-process)  | Two-column       | Customer info, transcript, suggestions, process steps  |
+| Active (pre-process) | Two-column       | Customer info, transcript, Process-Pilot advice        |
+| Active (in-process)  | Two-column       | Customer info, transcript, Process-Pilot advice, process steps |
 | Postcall summary     | Two-column       | Transcript (read-only), summary editor                 |
 
 ### Panel Density
@@ -419,13 +419,13 @@ The `ParallelPipeline` is critical for latency:
 - **Speaker labeling**: `SpeakerLabelingProcessor` prefixes text with `[Kunde]`/`[Berater]` before fan-out
 - **Branch 1 (transcript)**: emits transcript updates with correct `speaker` field, stripping label prefixes
 - **Branch 2 (process LLM)**: identifies process + current step using speaker-aware, step-description-enriched prompts
-- **Branch 3 (suggestion LLM)**: generates a single next-best suggestion using scenario-aware prompts (process definition + KB content)
+- **Branch 3 (suggestion LLM)**: acts as "Process-Pilot", generating 2–4 advice items (German imperatives) using scenario-aware prompts (process definition + KB content)
 
-This ensures transcript updates are delivered in real time while process and suggestion LLM work runs in parallel. Speaker diarization uses Daily participant tracking (`on_participant_joined` handler) to map participant IDs to roles based on token ownership.
+This ensures transcript updates are delivered in real time while process and advice LLM work runs in parallel. Speaker diarization uses Daily participant tracking (`on_participant_joined` handler) to map participant IDs to roles based on token ownership.
 
 ### RTVI Over Supabase Realtime
 
-Live call data (transcripts, suggestions, process updates) is delivered via RTVI (WebRTC data channel) for sub-second latency. Supabase Realtime is reserved for:
+Live call data (transcripts, advice, process updates) is delivered via RTVI (WebRTC data channel) for sub-second latency. Supabase Realtime is reserved for:
 
 - Session lifecycle events (pending/active/completed)
 - Pending call notifications to agents
@@ -454,7 +454,7 @@ TypeScript Zod schemas in `packages/contracts` define the contract for all RTVI 
 | Speech-to-text               | Deepgram (nova-3-general)     | Low-latency streaming, smart formatting                         |
 | Voice pipeline               | Pipecat                       | Frame-based processing, built-in RTVI support, cloud deployment |
 | LLM (process identification) | OpenAI (gpt-4.1-nano default) | Structured JSON classification against process catalog          |
-| LLM (suggestions)            | OpenAI (gpt-4.1 default)      | Fast, cost-effective structured next-action guidance            |
+| LLM (advice / Process-Pilot) | OpenAI (gpt-4.1 default)      | Fast, cost-effective structured next-action guidance            |
 | LLM (summaries)              | OpenAI                        | Used in agent workspace API route for postcall summaries        |
 | Frontend                     | Next.js 16 + React 19.2       | App Router, server components, API routes                       |
 | Database                     | Supabase (PostgreSQL)         | Realtime subscriptions, RLS, managed hosting                    |
