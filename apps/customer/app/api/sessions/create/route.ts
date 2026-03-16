@@ -58,6 +58,29 @@ function getPccHeaders(): Record<string, string> {
   return headers;
 }
 
+async function createDailyRoom(): Promise<{ url: string; name: string }> {
+  const res = await fetch("https://api.daily.co/v1/rooms", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${DAILY_API_KEY}`,
+    },
+    body: JSON.stringify({
+      properties: {
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Daily room creation failed: ${err}`);
+  }
+
+  const data = await res.json();
+  return { url: data.url as string, name: data.name as string };
+}
+
 async function createDailyToken(
   roomName: string,
   isOwner: boolean,
@@ -174,13 +197,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Start unified PCC service — it creates the Daily room
+    // 1. Create Daily room and tokens ourselves so all use the same API key
+    const room = await createDailyRoom();
+    const roomUrl = room.url;
+    const roomName = room.name;
+
+    const [customerToken, agentToken, botToken] = await Promise.all([
+      createDailyToken(roomName, false, "Kunde"),
+      createDailyToken(roomName, true, "Berater"),
+      createDailyToken(roomName, false, "VoiceBridge"),
+    ]);
+
+    // 2. Start unified PCC service — pass the room we created
     const pccResponse = await fetch(getPccStartUrl(), {
       method: "POST",
       headers: getPccHeaders(),
       body: JSON.stringify({
-        createDailyRoom: true,
-        dailyRoomProperties: {},
+        createDailyRoom: false,
+        dailyRoom: roomUrl,
+        dailyToken: botToken,
         body: {
           session_id: sessionId,
           metadata: {
@@ -199,20 +234,6 @@ export async function POST(request: Request) {
       const err = await pccResponse.text();
       throw new Error(`PCC agent start failed: ${err}`);
     }
-
-    const pccData = await pccResponse.json();
-    const roomUrl = pccData.dailyRoom as string | undefined;
-    const roomToken = pccData.dailyToken as string | undefined;
-    if (!roomUrl || !roomToken) {
-      throw new Error("PCC agent returned incomplete Daily room data");
-    }
-    const roomName = roomUrl.split("/").pop() || "";
-
-    // 2. Create customer + agent tokens via Daily REST API
-    const [customerToken, agentToken] = await Promise.all([
-      createDailyToken(roomName, false, "Kunde"),
-      createDailyToken(roomName, true, "Berater"),
-    ]);
 
     // 3. Insert pending session into Supabase
     const { error: insertError } = await supabase.from("sessions").insert({
