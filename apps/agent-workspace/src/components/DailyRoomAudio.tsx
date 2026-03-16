@@ -25,6 +25,8 @@ export function DailyRoomAudio() {
     const daily = (client.transport as any)?.dailyCallClient;
     if (!daily) return;
 
+    const audioElements = audioElementsRef.current;
+
     const handleTrackStarted = (ev: {
       participant?: { local?: boolean; session_id: string };
       track?: MediaStreamTrack;
@@ -35,7 +37,7 @@ export function DailyRoomAudio() {
       const id = ev.participant!.session_id;
 
       // Clean up any existing element for this participant
-      const existing = audioElementsRef.current.get(id);
+      const existing = audioElements.get(id);
       if (existing) {
         existing.srcObject = null;
       }
@@ -43,7 +45,7 @@ export function DailyRoomAudio() {
       const audio = document.createElement("audio");
       audio.autoplay = true;
       audio.srcObject = new MediaStream([ev.track!]);
-      audioElementsRef.current.set(id, audio);
+      audioElements.set(id, audio);
     };
 
     const handleTrackStopped = (ev: {
@@ -54,10 +56,10 @@ export function DailyRoomAudio() {
       if (ev.track?.kind !== "audio") return;
 
       const id = ev.participant!.session_id;
-      const audio = audioElementsRef.current.get(id);
+      const audio = audioElements.get(id);
       if (audio) {
         audio.srcObject = null;
-        audioElementsRef.current.delete(id);
+        audioElements.delete(id);
       }
     };
 
@@ -87,10 +89,10 @@ export function DailyRoomAudio() {
     return () => {
       daily.off("track-started", handleTrackStarted);
       daily.off("track-stopped", handleTrackStopped);
-      audioElementsRef.current.forEach((audio) => {
+      audioElements.forEach((audio) => {
         audio.srcObject = null;
       });
-      audioElementsRef.current.clear();
+      audioElements.clear();
     };
   }, [client]);
 

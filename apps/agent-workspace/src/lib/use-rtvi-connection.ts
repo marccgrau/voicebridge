@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   usePipecatClient,
   usePipecatClientTransportState,
@@ -20,10 +20,20 @@ export function useRTVIConnection(
 ): { transportState: TransportState } {
   const client = usePipecatClient();
   const transportState = usePipecatClientTransportState();
+  const enableMicRef = useRef(options?.enableMic ?? false);
+
+  // Keep ref in sync (declared before connect effect so it runs first on mount)
+  useEffect(() => {
+    enableMicRef.current = options?.enableMic ?? false;
+  }, [options?.enableMic]);
 
   // Manage connection lifecycle
   useEffect(() => {
     if (!client || !roomUrl || !roomToken) return;
+
+    // Set mic state before connect() so DailyTransport joins with the
+    // correct audio config (startAudioOff derived from enableMic).
+    client.enableMic(enableMicRef.current);
 
     client.connect({ url: roomUrl, token: roomToken }).catch((error) => {
       console.error("Failed to connect to Daily.co room:", error);

@@ -17,16 +17,18 @@ export function useDailyAudio(roomUrl: string | null, token: string | null) {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    const audioElements = audioElementsRef.current;
+
     if (!roomUrl || !token) {
       if (callRef.current) {
         callRef.current.leave();
         callRef.current.destroy();
         callRef.current = null;
       }
-      audioElementsRef.current.forEach((audio) => {
+      audioElements.forEach((audio) => {
         audio.srcObject = null;
       });
-      audioElementsRef.current.clear();
+      audioElements.clear();
       return;
     }
 
@@ -49,7 +51,7 @@ export function useDailyAudio(roomUrl: string | null, token: string | null) {
       const id = ev.participant.session_id;
 
       // Clean up any existing element for this participant
-      const existing = audioElementsRef.current.get(id);
+      const existing = audioElements.get(id);
       if (existing) {
         existing.srcObject = null;
       }
@@ -57,7 +59,7 @@ export function useDailyAudio(roomUrl: string | null, token: string | null) {
       const audio = document.createElement("audio");
       audio.autoplay = true;
       audio.srcObject = new MediaStream([ev.track]);
-      audioElementsRef.current.set(id, audio);
+      audioElements.set(id, audio);
     });
 
     call.on("track-stopped", (ev) => {
@@ -65,10 +67,10 @@ export function useDailyAudio(roomUrl: string | null, token: string | null) {
       if (ev?.track?.kind !== "audio") return;
 
       const id = ev.participant.session_id;
-      const audio = audioElementsRef.current.get(id);
+      const audio = audioElements.get(id);
       if (audio) {
         audio.srcObject = null;
-        audioElementsRef.current.delete(id);
+        audioElements.delete(id);
       }
     });
 
@@ -86,10 +88,10 @@ export function useDailyAudio(roomUrl: string | null, token: string | null) {
     callRef.current = call;
 
     return () => {
-      audioElementsRef.current.forEach((audio) => {
+      audioElements.forEach((audio) => {
         audio.srcObject = null;
       });
-      audioElementsRef.current.clear();
+      audioElements.clear();
       if (callRef.current) {
         callRef.current.leave();
         callRef.current.destroy();
