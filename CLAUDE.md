@@ -109,6 +109,7 @@ The system operates one **listen-only voice pipeline** with three parallel branc
   - **Postcall Summary**: Transcript review + AI-generated summary editor, auto-returns to idle after save
 - Incoming call notification via Supabase Realtime subscription on `sessions` table (pending status)
 - Connects to Daily.co room via `@pipecat-ai/client-js` RTVI client
+- Plays remote participant audio via `DailyRoomAudio` component, which listens for Daily `track-started` events and creates hidden `<audio>` elements (bypasses Pipecat's bot-only `tracks()` API)
 - Receives RTVI messages from unified PCC branches: `agent_guidance`, `process_illustration`, `transcript_segment`
 - Session management: accept pending sessions, stop active sessions
 
@@ -117,7 +118,7 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 - Customer-facing call interface (idle → calling → connected → ended)
 - Simple persona selection with 1:1 customer-scenario mapping (each persona has a fixed `scenario_id`)
 - Creates bot sessions by starting the unified PCC service
-- Connects to Daily.co room with audio via `@daily-co/daily-js`
+- Connects to Daily.co room with audio via `@daily-co/daily-js` — `useDailyAudio` hook handles both mic input and remote audio playback (via `track-started` event listeners and hidden `<audio>` elements)
 
 **Unified PCC Service** (`services/pcc/`)
 
@@ -300,3 +301,4 @@ PIPECAT_CLOUD_API_KEY                 # Required for production deployment
 - **Phase-based UI**: Agent workspace adapts its layout based on call state (idle → incoming → active-preprocess → active-inprocess → postcall), showing only relevant information for the current phase
 - **Next.js 16 Async Params**: Route params are Promises and must be awaited before access in App Router API routes
 - **PCC startup failures**: Session creation fails fast if the unified PCC `/start` call cannot return `dailyRoom` and `dailyToken`
+- **Daily.co audio playback**: `createCallObject()` does NOT auto-play remote participants' audio. Both apps must explicitly listen for `track-started` events and attach audio tracks to `<audio>` elements. The agent workspace uses `DailyRoomAudio` (accesses Daily call object from Pipecat transport); the customer app handles this in the `useDailyAudio` hook.
