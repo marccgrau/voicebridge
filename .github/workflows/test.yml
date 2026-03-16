@@ -7,8 +7,8 @@ on:
     branches: [main, develop]
 
 jobs:
-  test-orchestrator:
-    name: Python Orchestrator Tests
+  test-pcc:
+    name: Python PCC Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -26,11 +26,11 @@ jobs:
           enable-cache: true
 
       - name: Install dependencies
-        working-directory: services/orchestrator
+        working-directory: services/pcc
         run: uv sync --dev
 
       - name: Run tests with coverage
-        working-directory: services/orchestrator
+        working-directory: services/pcc
         run: |
           uv run pytest --cov=src --cov-report=term-missing --cov-report=xml | tee pytest-output.txt
           echo "## Python Test Coverage" >> $GITHUB_STEP_SUMMARY
@@ -40,8 +40,8 @@ jobs:
         uses: codecov/codecov-action@v4
         if: github.event_name == 'pull_request'
         with:
-          file: services/orchestrator/coverage.xml
-          flags: orchestrator
+          file: services/pcc/coverage.xml
+          flags: pcc
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -128,11 +128,11 @@ jobs:
         run: pnpm typecheck
 
       - name: Lint Python
-        working-directory: services/orchestrator
+        working-directory: services/pcc
         run: |
           uv sync --dev
           uv run ruff check .
 
       - name: Format check Python
-        working-directory: services/orchestrator
+        working-directory: services/pcc
         run: uv run ruff format --check .

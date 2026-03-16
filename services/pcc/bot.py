@@ -97,8 +97,18 @@ def build_process_system_prompt(catalog: ProcessCatalog) -> str:
     return PROCESS_SYSTEM_PROMPT.replace("{catalog_summary}", catalog_summary)
 
 
+def _require_env(name: str) -> str:
+    value = os.getenv(name)
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
 async def bot(runner_args: RunnerArguments):
     """Main bot entry point compatible with Pipecat runner and Pipecat Cloud."""
+    deepgram_api_key = _require_env("DEEPGRAM_API_KEY")
+    openai_api_key = _require_env("OPENAI_API_KEY")
+
     body = runner_args.body or {}
     session_id = body.get("session_id", "local")
 
@@ -131,7 +141,7 @@ async def bot(runner_args: RunnerArguments):
     )
 
     stt = DeepgramSTTService(
-        api_key=os.getenv("DEEPGRAM_API_KEY", ""),
+        api_key=deepgram_api_key,
         live_options=LiveOptions(
             model="nova-3-general",
             language="de",
@@ -177,7 +187,7 @@ async def bot(runner_args: RunnerArguments):
     )
     process_model = os.getenv("PROCESS_MODEL", "gpt-4.1-nano")
     process_llm = OpenAILLMService(
-        api_key=os.getenv("OPENAI_API_KEY", ""),
+        api_key=openai_api_key,
         model=process_model,
     )
     process_output = ProcessOutputProcessor(catalog=process_catalog)
@@ -216,7 +226,7 @@ async def bot(runner_args: RunnerArguments):
     )
     suggestion_model = os.getenv("SUGGESTION_MODEL", "gpt-4.1")
     suggestion_llm = OpenAILLMService(
-        api_key=os.getenv("OPENAI_API_KEY", ""),
+        api_key=openai_api_key,
         model=suggestion_model,
     )
     suggestion_output = SuggestionOutputProcessor(session_id=session_id)

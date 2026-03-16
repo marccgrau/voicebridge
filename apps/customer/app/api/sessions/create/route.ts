@@ -1,10 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-const PCC_AGENT_URL = process.env.PCC_AGENT_URL || "http://localhost:7860";
-const DAILY_API_KEY = process.env.DAILY_API_KEY || "";
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+const PCC_AGENT_URL = requireEnv("PCC_AGENT_URL");
+const DAILY_API_KEY = requireEnv("DAILY_API_KEY");
+const SUPABASE_URL = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 type RoutingSource = "direct" | "voice_ai";
 
