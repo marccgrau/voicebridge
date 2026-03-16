@@ -169,6 +169,8 @@ Migrations (in `supabase/migrations/`):
 - `009_cross_combinable_experiments.sql` — add `customers.domain` and `scenarios.actor_guidance`
 - `010_customer_scenario_mapping.sql` — add `customers.scenario_id` FK to scenarios
 - `011_replace_seed_customers.sql` — replace legacy English seed customers with German experiment personas
+- `012_fix_address_format.sql` — fix street address format to Swiss convention (street name before house number)
+- `013_align_products_with_steckbriefe.sql` — align customer products with steckbriefe (insurance: single tier, banking: none)
 
 Key tables:
 

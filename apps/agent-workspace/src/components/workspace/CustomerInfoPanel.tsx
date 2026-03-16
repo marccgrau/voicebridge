@@ -57,7 +57,6 @@ export function CustomerInfoPanel({
                 {customer.name}
               </p>
               <p className="font-mono-ui text-[11px] uppercase tracking-wide text-muted-foreground">
-                {customer.preferredLanguage.toUpperCase()} ·{" "}
                 {resolvedRouting.source === "voice_ai"
                   ? "Voice-AI-Übergabe"
                   : "Direkte Warteschlange"}
@@ -86,12 +85,6 @@ export function CustomerInfoPanel({
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
           Kundenprofil
         </span>
-        {customer && (
-          <span className="font-mono-ui text-xs uppercase tracking-wide text-muted-foreground">
-            {interactions.length} Interaktion
-            {interactions.length === 1 ? "" : "en"}
-          </span>
-        )}
       </button>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -104,23 +97,10 @@ export function CustomerInfoPanel({
           />
         ) : (
           <div className="space-y-4">
-            <CustomerIdentityCard
-              customer={customer}
-              interactionCount={interactions.length}
-            />
+            <CustomerIdentityCard customer={customer} />
             <RoutingContextCard
               routingContext={resolvedRouting}
               lastInteraction={interactions[0] ?? null}
-            />
-            <div className="grid gap-3 md:grid-cols-[0.9fr_1.1fr]">
-              <CustomerEssentialsCard
-                customer={customer}
-                interactionCount={interactions.length}
-              />
-              <ProductPortfolioCard products={customer.products} />
-            </div>
-            <ServiceNoteCard
-              notes={customer.quickInternalNote ?? customer.notes}
             />
             <RecentInteractionsCard interactions={interactions} />
           </div>
@@ -146,7 +126,6 @@ function LoadingState() {
       <div className="h-20 animate-pulse rounded-2xl bg-muted" />
       <div className="h-24 animate-pulse rounded-2xl bg-muted" />
       <div className="h-24 animate-pulse rounded-2xl bg-muted" />
-      <div className="h-28 animate-pulse rounded-2xl bg-muted" />
     </div>
   );
 }
@@ -171,42 +150,84 @@ function ClassificationBadge({
   );
 }
 
-function CustomerIdentityCard({
-  customer,
-  interactionCount,
-}: {
-  customer: Customer;
-  interactionCount: number;
-}) {
+function CustomerIdentityCard({ customer }: { customer: Customer }) {
+  const addressLine = [
+    customer.address?.street,
+    [customer.address?.postalCode, customer.address?.city]
+      .filter(Boolean)
+      .join(" "),
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   return (
     <section className="rounded-2xl border border-border bg-gradient-to-r from-white via-white to-muted/30 p-4 shadow-card">
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full gradient-accent text-sm font-semibold text-white">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full gradient-accent text-base font-semibold text-white shadow-accent">
           {getInitials(customer.name)}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-lg font-semibold text-foreground">
+            <h3 className="truncate font-display text-xl font-semibold text-foreground">
               {customer.name}
             </h3>
             <ClassificationBadge classification={customer.classification} />
           </div>
-          <p className="font-mono-ui mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-            {customer.gender} · Kunde seit{" "}
-            {formatMonthYear(customer.customerSince)}
-            {customer.dateOfBirth
-              ? ` · Geb. ${formatMonthDayYear(customer.dateOfBirth)}`
-              : ""}
-          </p>
-          {customer.customerCode && (
-            <p className="font-mono-ui mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
-              Kundennummer: {customer.customerCode}
-            </p>
+          <div className="mt-2 space-y-1">
+            {customer.dateOfBirth && (
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="2" y="2.5" width="12" height="11" rx="1.5" />
+                  <path d="M2 6h12" />
+                  <path d="M5.5 1v2.5M10.5 1v2.5" />
+                </svg>
+                <span className="text-sm text-foreground">
+                  Geb. {formatDotDate(customer.dateOfBirth)}
+                </span>
+                <span className="text-sm text-muted-foreground">·</span>
+                <span className="text-sm text-foreground">
+                  Kunde seit {formatMonthYear(customer.customerSince)}
+                </span>
+              </div>
+            )}
+            {addressLine && (
+              <div className="flex items-center gap-2">
+                <svg
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M8 1.5a4.5 4.5 0 0 1 4.5 4.5c0 3.5-4.5 8.5-4.5 8.5S3.5 9.5 3.5 6A4.5 4.5 0 0 1 8 1.5Z" />
+                  <circle cx="8" cy="6" r="1.5" />
+                </svg>
+                <span className="text-sm text-foreground">{addressLine}</span>
+              </div>
+            )}
+          </div>
+          {customer.products.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {customer.products.map((product) => (
+                <span
+                  key={product}
+                  className="rounded-md border border-accent/20 bg-accent/5 px-2 py-0.5 text-xs font-medium text-accent"
+                >
+                  {product}
+                </span>
+              ))}
+            </div>
           )}
-          <p className="mt-2 text-sm text-muted-foreground">
-            {interactionCount} historische Interaktion
-            {interactionCount === 1 ? "" : "en"} als Kontext verfügbar
-          </p>
         </div>
       </div>
     </section>
@@ -273,118 +294,16 @@ function RoutingContextCard({
   );
 }
 
-function CustomerEssentialsCard({
-  customer,
-  interactionCount,
-}: {
-  customer: Customer;
-  interactionCount: number;
-}) {
-  return (
-    <section className="rounded-2xl border border-border bg-white p-4 shadow-card">
-      <SectionTitle number="2" title="Kundenübersicht" />
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <FactTile
-          label="Sprache"
-          value={customer.preferredLanguage.toUpperCase()}
-        />
-        <FactTile label="Segment" value={customer.classification} />
-        <FactTile
-          label="Seit"
-          value={formatMonthYear(customer.customerSince)}
-        />
-        <FactTile label="Historie" value={String(interactionCount)} />
-      </div>
-
-      <div className="mt-3 grid gap-2">
-        <FactLine label="E-Mail" value={customer.email ?? "Nicht verfügbar"} />
-        <FactLine label="Telefon" value={customer.phone ?? "Nicht verfügbar"} />
-        <FactLine
-          label="Bevorzugter Kanal"
-          value={customer.preferredContactChannel ?? "Nicht angegeben"}
-        />
-        <FactLine
-          label="Adresse"
-          value={formatAddress(customer) ?? "Nicht verfügbar"}
-        />
-      </div>
-    </section>
-  );
-}
-
-function FactTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-background px-3 py-2">
-      <p className="font-mono-ui text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function FactLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border/60 bg-background px-3 py-2">
-      <p className="font-mono-ui text-[10px] uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 text-sm text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function ProductPortfolioCard({ products }: { products: string[] }) {
-  return (
-    <section className="rounded-2xl border border-border bg-white p-4 shadow-card">
-      <SectionTitle number="3" title="Produktportfolio" />
-      {products.length === 0 ? (
-        <p className="mt-3 text-sm text-muted-foreground">
-          Keine Produkte hinterlegt.
-        </p>
-      ) : (
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {products.map((product) => (
-            <article
-              key={product}
-              className="rounded-xl border border-border/60 bg-background px-3 py-2"
-            >
-              <p className="font-mono-ui text-[10px] uppercase tracking-wide text-muted-foreground">
-                {getProductFamily(product)}
-              </p>
-              <p className="mt-1 text-sm font-medium text-foreground">
-                {product}
-              </p>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function ServiceNoteCard({ notes }: { notes: string | null }) {
-  return (
-    <section className="rounded-2xl border-2 border-warning/40 bg-warning/5 p-4 shadow-card">
-      <SectionTitle number="4" title="Prioritäts-Servicenotiz" />
-      <p className="mt-2 text-sm leading-relaxed text-foreground">
-        {notes ??
-          "Keine Servicenotizen vorhanden. Erwartungen während des Gesprächs explizit klären."}
-      </p>
-    </section>
-  );
-}
-
 function RecentInteractionsCard({
   interactions,
 }: {
   interactions: CustomerInteraction[];
 }) {
-  const recentInteractions = interactions.slice(0, 4);
+  const recentInteractions = interactions.slice(0, 2);
 
   return (
     <section className="rounded-2xl border border-border bg-white p-4 shadow-card">
-      <SectionTitle number="5" title="Letzte Interaktionen" />
+      <SectionTitle number="2" title="Letzte Interaktionen" />
       {recentInteractions.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">
           Keine bisherigen Interaktionen.
@@ -504,79 +423,6 @@ function SectionTitle({ number, title }: { number: string; title: string }) {
   );
 }
 
-function getProductFamily(product: string): string {
-  const normalized = product.toLowerCase();
-
-  if (
-    normalized.includes("family office") ||
-    normalized.includes("wealth") ||
-    normalized.includes("vermögen")
-  ) {
-    return "Vermögensverwaltung";
-  }
-  if (normalized.includes("private banking")) {
-    return "Private Banking";
-  }
-  if (
-    normalized.includes("portfolio") ||
-    normalized.includes("investment") ||
-    normalized.includes("anlage") ||
-    normalized.includes("depot")
-  ) {
-    return "Anlagen";
-  }
-  if (
-    normalized.includes("versicherung") ||
-    normalized.includes("insurance") ||
-    normalized.includes("police") ||
-    normalized.includes("zusatz") ||
-    normalized.includes("rechtsschutz") ||
-    normalized.includes("telemedizin") ||
-    normalized.includes("spital") ||
-    normalized.includes("unfall")
-  ) {
-    return "Versicherungen";
-  }
-  if (
-    normalized.includes("kreditkarte") ||
-    normalized.includes("card") ||
-    normalized.includes("karte")
-  ) {
-    return "Karten & Zahlungen";
-  }
-  if (
-    normalized.includes("mortgage") ||
-    normalized.includes("financing") ||
-    normalized.includes("loan") ||
-    normalized.includes("hypothek") ||
-    normalized.includes("kredit") ||
-    normalized.includes("finanzierung")
-  ) {
-    return "Kredite";
-  }
-  if (
-    normalized.includes("tax") ||
-    normalized.includes("estate") ||
-    normalized.includes("advisory") ||
-    normalized.includes("philanthropy") ||
-    normalized.includes("steuer") ||
-    normalized.includes("beratung")
-  ) {
-    return "Beratung";
-  }
-  if (
-    normalized.includes("account") ||
-    normalized.includes("savings") ||
-    normalized.includes("konto") ||
-    normalized.includes("spar") ||
-    normalized.includes("banking")
-  ) {
-    return "Konten";
-  }
-
-  return "Spezialdienstleistungen";
-}
-
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -600,22 +446,10 @@ function formatMonthDay(value: string): string {
   });
 }
 
-function formatMonthDayYear(value: string): string {
-  return new Date(value).toLocaleDateString("de-DE", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function formatAddress(customer: Customer): string | null {
-  const street = customer.address?.street ?? null;
-  const postalCode = customer.address?.postalCode ?? null;
-  const city = customer.address?.city ?? null;
-  const country = customer.address?.country ?? null;
-
-  const locality = [postalCode, city].filter(Boolean).join(" ");
-  const value = [street, locality, country].filter(Boolean).join(", ");
-
-  return value.length > 0 ? value : null;
+function formatDotDate(value: string): string {
+  const d = new Date(value);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
 }
