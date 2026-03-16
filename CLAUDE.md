@@ -123,8 +123,9 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 **Unified PCC Service** (`services/pcc/`)
 
 - Single listen-only bot with one Daily transport and one Deepgram STT stream
+- Bot subscribes only to customer audio — agent microphone is unsubscribed at the transport level (`update_subscriptions`) when the agent joins, so agent speech never reaches STT
 - Pipeline: `transport.input() → DeepgramSTT → SpeakerLabelingProcessor → ParallelPipeline(...) → transport.output()`
-- Speaker diarization via Daily participant tracking (`on_participant_joined`), maps `TranscriptionFrame.user_id` to `[Kunde]`/`[Berater]` labels
+- Speaker identification via Daily participant tracking (`on_participant_joined`), maps participant IDs to roles using the `owner` flag
 - Parallel branches:
   - Transcript branch emits `transcript_segment`
   - Process branch emits `process_illustration`
@@ -208,11 +209,11 @@ Transcript, process detection, and advice generation run as parallel branches in
 
 ### Listen-Only Bot
 
-The unified PCC service is configured as listen-only (`audio_out_enabled=False`). It does not respond verbally — it only publishes events to guide human agents.
+The unified PCC service is configured as listen-only (`audio_out_enabled=False`). It does not respond verbally — it only publishes events to guide human agents. The bot also unsubscribes from the agent's microphone track at the Daily transport level, so only customer audio is transcribed by STT. This prevents agent speech from interfering with transcription.
 
 ### LLM Branches For Process + Advice
 
-The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT. Both receive speaker-labeled transcript entries (`[Kunde]`/`[Berater]`). The suggestion branch acts as "Process-Pilot" — an invisible AI coach that speaks directly to the agent using German imperatives. Its system prompt includes the matching process definition (steps with descriptions) and knowledge base content for the active scenario. It emits 2–4 advice items per response as `{"advice": ["..."]}` JSON.
+The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT. Both receive customer-only transcript entries (`[Kunde]`), since agent audio is filtered at the transport level. The suggestion branch acts as "Process-Pilot" — an invisible AI coach that speaks directly to the agent using German imperatives. Its system prompt includes the matching process definition (steps with descriptions) and knowledge base content for the active scenario. It emits 2–4 advice items per response as `{"advice": ["..."]}` JSON.
 
 ### RTVI Over Supabase Realtime
 

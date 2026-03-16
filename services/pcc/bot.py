@@ -165,6 +165,18 @@ async def bot(runner_args: RunnerArguments):
         speaker_map[pid] = role
         logger.info("Participant %s mapped to %s (user_name=%s)", pid, role, name)
 
+        # Unsubscribe from agent audio so it never reaches STT
+        if role == "agent":
+            err = await transport.update_subscriptions(
+                participant_settings={
+                    pid: {"media": {"microphone": "unsubscribed"}}
+                }
+            )
+            if err:
+                logger.warning("Failed to unsubscribe from agent audio: %s", err)
+            else:
+                logger.info("Unsubscribed from agent audio (pid=%s)", pid)
+
     @stt.event_handler("on_connection_error")
     async def on_stt_connection_error(_stt, error):
         logger.warning("[session=%s] Deepgram connection error: %s", session_id, error)
