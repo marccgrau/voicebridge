@@ -135,7 +135,7 @@ async def bot(runner_args: RunnerArguments):
             audio_out_enabled=False,
             microphone_out_enabled=False,
             transcription_enabled=False,
-            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
+            vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.5)),
             turn_analyzer=LocalSmartTurnAnalyzerV3(params=SmartTurnParams()),
         ),
     )
@@ -146,9 +146,9 @@ async def bot(runner_args: RunnerArguments):
             model="nova-3-general",
             language="de",
             smart_format=True,
-            endpointing=True,
+            endpointing=300,
             profanity_filter=False,
-            interim_results=True,
+            interim_results=False,
         ),
     )
 
