@@ -15,8 +15,7 @@ import type { TransportState } from "@pipecat-ai/client-js";
  */
 export function useRTVIConnection(
   roomUrl: string | null,
-  roomToken: string | null,
-  options?: { enableMic?: boolean }
+  roomToken: string | null
 ): { transportState: TransportState } {
   const client = usePipecatClient();
   const transportState = usePipecatClientTransportState();
@@ -35,12 +34,6 @@ export function useRTVIConnection(
       });
     };
   }, [client, roomUrl, roomToken]);
-
-  // Manage mic state independently so toggling mic doesn't cause reconnect
-  useEffect(() => {
-    if (!client) return;
-    client.enableMic(options?.enableMic ?? false);
-  }, [client, options?.enableMic]);
 
   return { transportState };
 }

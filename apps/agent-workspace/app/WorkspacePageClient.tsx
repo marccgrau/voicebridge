@@ -121,10 +121,6 @@ function getSessionCustomerId(session: {
 }
 
 export default function WorkspacePageClient() {
-  const isAgentMicEnabledByEnv =
-    (process.env.NEXT_PUBLIC_AGENT_MIC_ENABLED ?? "true").toLowerCase() !==
-    "false";
-
   const {
     sessionId,
     isConnected,
@@ -138,11 +134,7 @@ export default function WorkspacePageClient() {
   } = useSession();
   const { pendingSessions } = usePendingSessions();
 
-  // Whether the current session was accepted (customer-initiated) — enable agent audio
-  const [audioEnabled, setAudioEnabled] = useState(false);
-
   const handleAccept = async (pendingSessionId: string) => {
-    setAudioEnabled(isAgentMicEnabledByEnv);
     try {
       await acceptSession(pendingSessionId);
     } catch (err) {
@@ -204,7 +196,6 @@ export default function WorkspacePageClient() {
           isLoading={isLoading}
           roomUrl={roomUrl}
           roomToken={roomToken}
-          audioEnabled={audioEnabled}
           pendingSessions={pendingSessions}
           onAccept={handleAccept}
           onClearSession={clearSession}
@@ -221,7 +212,6 @@ function WorkspacePanels({
   isLoading,
   roomUrl,
   roomToken,
-  audioEnabled,
   pendingSessions,
   onAccept,
   onClearSession,
@@ -232,7 +222,6 @@ function WorkspacePanels({
   isLoading: boolean;
   roomUrl: string | null;
   roomToken: string | null;
-  audioEnabled: boolean;
   pendingSessions: {
     id: string;
     status: string;
@@ -393,7 +382,7 @@ function WorkspacePanels({
   }, [sessionStatus, onDisconnectRoom]);
 
   // Connect to Daily room via Pipecat React SDK
-  useRTVIConnection(roomUrl, roomToken, { enableMic: audioEnabled });
+  useRTVIConnection(roomUrl, roomToken);
 
   // Subscribe to RTVI messages via PipecatClient context
   useRTVIMessages({

@@ -21,7 +21,7 @@ export function PipecatRTVIProvider({ children }: { children: ReactNode }) {
     setClient(
       new PipecatClient({
         transport: new DailyTransport(),
-        enableMic: false,
+        enableMic: true,
         enableCam: false,
       })
     );
