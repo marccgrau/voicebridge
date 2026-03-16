@@ -38,7 +38,7 @@ from pipecat.turns.user_turn_strategies import UserTurnStrategies
 from src.process_catalog import ProcessCatalog
 from src.process_processors import PROCESS_SYSTEM_PROMPT, ProcessOutputProcessor
 from src.suggestion_processors import SuggestionOutputProcessor, build_suggestion_system_prompt
-from src.transcript_processors import SpeakerLabelingProcessor, TranscriptWriter
+from src.transcript_processors import TranscriptWriter
 
 load_dotenv()
 
@@ -152,21 +152,17 @@ async def bot(runner_args: RunnerArguments):
         ),
     )
 
-    # Speaker diarization: map participant IDs to roles
-    speaker_map: dict[str, str] = {}
-
     @transport.event_handler("on_participant_joined")
     async def on_participant_joined(_transport_ref, participant):
         pid = participant["id"]
         name = participant.get("user_name", "")
         if name == "VoiceBridge":
             return  # skip bot itself
-        role = "agent" if participant.get("owner") else "customer"
-        speaker_map[pid] = role
-        logger.info("Participant %s mapped to %s (user_name=%s)", pid, role, name)
+        is_agent = bool(participant.get("owner"))
+        logger.info("Participant %s joined (user_name=%s, agent=%s)", pid, name, is_agent)
 
         # Unsubscribe from agent audio so it never reaches STT
-        if role == "agent":
+        if is_agent:
             err = await transport.update_subscriptions(
                 participant_settings={
                     pid: {"media": {"microphone": "unsubscribed"}}
@@ -181,8 +177,7 @@ async def bot(runner_args: RunnerArguments):
     async def on_stt_connection_error(_stt, error):
         logger.warning("[session=%s] Deepgram connection error: %s", session_id, error)
 
-    speaker_labeler = SpeakerLabelingProcessor(speaker_map=speaker_map)
-    transcript_writer = TranscriptWriter(session_id=session_id, speaker_map=speaker_map)
+    transcript_writer = TranscriptWriter(session_id=session_id)
 
     process_catalog = ProcessCatalog(process_content_path=str(_resolve_process_content_path()))
     process_catalog.load()
@@ -247,7 +242,6 @@ async def bot(runner_args: RunnerArguments):
         [
             transport.input(),
             stt,
-            speaker_labeler,
             ParallelPipeline(
                 [
                     transcript_writer,

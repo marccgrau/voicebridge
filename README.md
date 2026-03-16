@@ -21,7 +21,7 @@ voicebridge/
 ## High-Level Flow
 
 ```text
-Daily.co WebRTC → Deepgram STT → Speaker Labeling → Pipecat Pipeline (PCC) → RTVI + Supabase Realtime → Next.js UIs
+Daily.co WebRTC → Deepgram STT → Pipecat Pipeline (PCC) → RTVI + Supabase Realtime → Next.js UIs
 ```
 
 Realtime channels:
@@ -156,7 +156,7 @@ SUGGESTION_MODEL=gpt-4.1                           # Override suggestion LLM mod
 `services/pcc/` is a stateless Pipecat Cloud bot:
 
 - `bot.py` — Entry point with full pipeline wiring
-- `src/transcript_processors.py` — Speaker labeling (`SpeakerLabelingProcessor`) + transcript branch RTVI emission
+- `src/transcript_processors.py` — Transcript branch RTVI emission (`TranscriptWriter`)
 - `src/process_processors.py` — Process branch LLM output parsing + RTVI emission (speaker-aware prompt)
 - `src/suggestion_processors.py` — Process-Pilot advice branch: LLM output parsing + RTVI emission (scenario-aware prompt with process definition + KB)
 - `src/process_catalog.py` — Process loading and matching
@@ -227,7 +227,7 @@ pnpm --filter @voicebridge/db test               # DB package only
 - Daily rooms are ephemeral (1-hour expiry at creation).
 - PCC bot is listen-only (`audio_out_enabled=False`) and never speaks.
 - PCC service is stateless — no DB persistence, all data flows through RTVI.
-- Speaker diarization uses Daily participant tracking (`on_participant_joined`) + `user_name` tokens ("Kunde"/"Berater") to map `TranscriptionFrame.user_id` to roles. Transcript entries are prefixed `[Kunde]`/`[Berater]` for both LLM branches.
+- Agent microphone is unsubscribed at the Daily transport level when the agent joins, so only customer audio reaches STT and the LLM branches.
 - Process identification uses an OpenAI model (`PROCESS_MODEL`, default `gpt-4.1-nano`).
 - Advice generation (Process-Pilot) uses OpenAI `gpt-4.1` by default (configurable via `SUGGESTION_MODEL`).
 - Node must be 24+, Python must be 3.13+, pnpm must be 10+.

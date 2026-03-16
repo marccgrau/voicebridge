@@ -99,10 +99,9 @@ intents:
     assert "Step 0 – Empty Step" in prompt
 
 
-def test_process_system_prompt_has_speaker_awareness_rules():
-    assert "[Kunde]" in PROCESS_SYSTEM_PROMPT
-    assert "[Berater]" in PROCESS_SYSTEM_PROMPT
-    assert "Fokussiere auf Kundenäusserungen" in PROCESS_SYSTEM_PROMPT
+def test_process_system_prompt_has_customer_only_transcript_rule():
+    assert "Kundenäusserungen" in PROCESS_SYSTEM_PROMPT
+    assert "nur Kundenaudio wird transkribiert" in PROCESS_SYSTEM_PROMPT
 
 
 def test_bot_uses_stable_deepgram_live_options_import():

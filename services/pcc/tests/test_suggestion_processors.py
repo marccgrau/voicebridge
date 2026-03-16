@@ -190,11 +190,10 @@ def test_build_suggestion_system_prompt_empty():
     assert "Wissensbasis für dieses Szenario:" not in prompt
 
 
-def test_suggestion_prompt_has_speaker_awareness():
+def test_suggestion_prompt_has_customer_only_transcript_rule():
     prompt = build_suggestion_system_prompt()
-    assert "[Kunde]" in prompt
-    assert "[Berater]" in prompt
-    assert "redundanten Hinweise" in prompt
+    assert "Kundenäusserungen" in prompt
+    assert "nur Kundenaudio wird transkribiert" in prompt
 
 
 def test_suggestion_prompt_has_process_pilot_identity():

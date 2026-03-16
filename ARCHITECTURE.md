@@ -138,15 +138,11 @@ transport.input()
 DeepgramSTTService (nova-3-general, streaming)
     │
     ▼
-SpeakerLabelingProcessor
-    Prefixes transcription text with [Kunde]/[Berater] based on
-    Daily participant tracking (on_participant_joined → speaker_map)
-    │
-    ▼
 ParallelPipeline
+    (only customer audio reaches STT — agent mic unsubscribed at transport level)
     ├─ Branch 1: transcript
-    │   TranscriptWriter (strips label prefix, resolves speaker from speaker_map)
-    │   └─ Emits `transcript_segment` RTVI messages with correct speaker field
+    │   TranscriptWriter
+    │   └─ Emits `transcript_segment` RTVI messages (always speaker "customer")
     │
     ├─ Branch 2: process identification
     │   LLMContextAggregatorPair.user()
@@ -183,7 +179,7 @@ Process identification is **catalog-informed + LLM-evaluated**:
 2. Each file has YAML frontmatter with `process_key`, `name`, `domain`, and `intents`
 3. Steps are extracted from `## Step N: Label` headings (with descriptions from step body text)
 4. Catalog summaries with step descriptions are embedded into the process system prompt
-5. Speaker-labeled transcript entries (`[Kunde]`/`[Berater]`) help the LLM focus on customer utterances
+5. All transcript entries are customer speech (agent mic is unsubscribed at the transport level)
 6. `OpenAILLMService` returns strict JSON (`processKey`, `currentStep`)
 7. `ProcessOutputProcessor` validates output and maps step statuses
 8. Valid output is emitted as `process_illustration` with step progress
@@ -416,12 +412,12 @@ The PCC service has no database connection. All data flows through the pipeline 
 
 The `ParallelPipeline` is critical for latency:
 
-- **Speaker labeling**: `SpeakerLabelingProcessor` prefixes text with `[Kunde]`/`[Berater]` before fan-out
+- **Customer-only audio**: Agent mic is unsubscribed at the transport level, so only customer speech reaches STT and the LLM branches
 - **Branch 1 (transcript)**: emits transcript updates with correct `speaker` field, stripping label prefixes
 - **Branch 2 (process LLM)**: identifies process + current step using speaker-aware, step-description-enriched prompts
 - **Branch 3 (suggestion LLM)**: acts as "Process-Pilot", generating 2–4 advice items (German imperatives) using scenario-aware prompts (process definition + KB content)
 
-This ensures transcript updates are delivered in real time while process and advice LLM work runs in parallel. Speaker diarization uses Daily participant tracking (`on_participant_joined` handler) to map participant IDs to roles based on token ownership.
+This ensures transcript updates are delivered in real time while process and advice LLM work runs in parallel. The `on_participant_joined` handler identifies the agent by token ownership and unsubscribes from their microphone, so only customer audio reaches STT.
 
 ### RTVI Over Supabase Realtime
 

@@ -4,20 +4,21 @@ Unified Pipecat service for VoiceBridge.
 
 ## Pipeline
 
-One transport + one STT pipeline, then speaker labeling and fan-out via `ParallelPipeline`:
+One transport + one STT pipeline, then fan-out via `ParallelPipeline`:
 
 ```
-transport.input() → DeepgramSTT → SpeakerLabelingProcessor → ParallelPipeline(…) → transport.output()
+transport.input() → DeepgramSTT → ParallelPipeline(…) → transport.output()
 ```
 
-- **Speaker labeling**: `SpeakerLabelingProcessor` prefixes transcription text with `[Kunde]`/`[Berater]` based on Daily participant tracking (`on_participant_joined` maps participant IDs to roles via token ownership)
-- **Transcript branch**: `TranscriptWriter` strips label prefixes, resolves speaker from speaker map, emits `transcript_segment`
-- **Process branch**: LLM via `PROCESS_MODEL` (default `gpt-4.1-nano`), prompt includes step descriptions and speaker awareness rules
+Only customer audio reaches STT — agent microphone is unsubscribed at the Daily transport level when the agent joins.
+
+- **Transcript branch**: `TranscriptWriter` emits `transcript_segment` (always speaker `"customer"`)
+- **Process branch**: LLM via `PROCESS_MODEL` (default `gpt-4.1-nano`), prompt includes step descriptions
 - **Suggestion branch (Process-Pilot)**: LLM via `SUGGESTION_MODEL` (default `gpt-4.1`), prompt is scenario-aware with matching process definition + KB content; emits 2–4 advice items as German imperatives
 
 Each branch emits RTVI bot-action messages:
 
-- `transcript_segment` — with correct `speaker` field (agent/customer)
+- `transcript_segment`
 - `process_illustration`
 - `agent_guidance`
 
@@ -65,5 +66,5 @@ Supporting knowledge base articles are in `kb_content/` (all in German), one per
 - This PCC service does **not** query Supabase; it remains stateless and runs only on room/session context plus live audio.
 - Process guidance is derived from markdown files in `services/pcc/process_content/` (not from DB rows).
 - Session metadata (`scenario_family`, `customer_id`, `customer_name`) is passed via the `/start` request body and used to select the matching process definition and KB content for scenario-aware prompts.
-- Daily tokens include `user_name` ("Kunde"/"Berater") enabling speaker diarization via participant tracking.
+- Daily tokens include `user_name` ("Kunde"/"Berater") for participant identification; agent mic is unsubscribed at the transport level so only customer audio reaches STT.
 - All LLM system prompts are in German.
