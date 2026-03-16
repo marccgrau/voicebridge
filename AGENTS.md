@@ -4,7 +4,7 @@ This file provides guidance to coding agents working in this repository.
 
 ## Overview
 
-VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes and track progress, and delivers real-time suggestions to agents.
+VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes and track progress, and delivers real-time Process-Pilot advice to agents.
 
 The system consists of:
 
@@ -81,7 +81,7 @@ Always add tests for new behavior and run relevant suites before considering wor
 
 For PCC service work, prioritize tests for:
 
-- Pipeline processor logic (transcript, process LLM output parsing, suggestion LLM output parsing)
+- Pipeline processor logic (transcript, process LLM output parsing, advice LLM output parsing)
 - RTVI bot-action payload shape and validation (`transcript_segment`, `process_illustration`, `agent_guidance`)
 - Process catalog loading and prompt/catalog alignment for process identification
 
@@ -103,7 +103,7 @@ The PCC bot is listen-only (`audio_out_enabled=False`). It never speaks; it emit
 
 Realtime channels:
 
-- RTVI (WebRTC data channel): transcript segments, process illustrations, suggestions
+- RTVI (WebRTC data channel): transcript segments, process illustrations, Process-Pilot advice
 - Supabase Realtime: session lifecycle updates (pending/active/completed) and pending-call notifications
 
 ### Component Responsibilities
@@ -146,7 +146,7 @@ Realtime channels:
 - Parallel branches:
   1. Transcript branch: `TranscriptWriter` emits `transcript_segment`
   2. Process branch: `LLMContextAggregatorPair.user()` -> `OpenAILLMService(PROCESS_MODEL)` -> `ProcessOutputProcessor` emits `process_illustration`
-  3. Suggestion branch: `LLMContextAggregatorPair.user()` -> `OpenAILLMService(SUGGESTION_MODEL)` -> `SuggestionOutputProcessor` emits `agent_guidance`
+  3. Suggestion branch (Process-Pilot): `LLMContextAggregatorPair.user()` -> `OpenAILLMService(SUGGESTION_MODEL)` -> `SuggestionOutputProcessor` emits `agent_guidance` with `advice[]` items
 - Shared STT + parallel branches keep transcript delivery low-latency while LLM branches run concurrently
 
 ## Database Schema
@@ -202,8 +202,8 @@ Process markdown content lives in `services/pcc/process_content/`.
 
 - **Listen-only bot**: No audio output from PCC service.
 - **Stateless PCC**: No database persistence; all data flows through RTVI.
-- **Decoupled flows**: Transcript, process identification, and suggestion generation run as independent branches after shared STT.
-- **Parallel processing**: Suggestions run in a ParallelPipeline branch to avoid blocking transcript delivery.
+- **Decoupled flows**: Transcript, process identification, and advice generation run as independent branches after shared STT.
+- **Parallel processing**: Advice generation runs in a ParallelPipeline branch to avoid blocking transcript delivery.
 - **RTVI-first for live guidance**: Low-latency messages over WebRTC data channel.
 - **Session management in Next.js**: API routes in customer app handle room creation and session insertion.
 

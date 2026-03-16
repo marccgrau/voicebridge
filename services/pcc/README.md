@@ -13,7 +13,7 @@ transport.input() → DeepgramSTT → SpeakerLabelingProcessor → ParallelPipel
 - **Speaker labeling**: `SpeakerLabelingProcessor` prefixes transcription text with `[Kunde]`/`[Berater]` based on Daily participant tracking (`on_participant_joined` maps participant IDs to roles via token ownership)
 - **Transcript branch**: `TranscriptWriter` strips label prefixes, resolves speaker from speaker map, emits `transcript_segment`
 - **Process branch**: LLM via `PROCESS_MODEL` (default `gpt-4.1-nano`), prompt includes step descriptions and speaker awareness rules
-- **Suggestion branch**: LLM via `SUGGESTION_MODEL` (default `gpt-4.1`), prompt is scenario-aware with matching process definition + KB content
+- **Suggestion branch (Process-Pilot)**: LLM via `SUGGESTION_MODEL` (default `gpt-4.1`), prompt is scenario-aware with matching process definition + KB content; emits 2–4 advice items as German imperatives
 
 Each branch emits RTVI bot-action messages:
 

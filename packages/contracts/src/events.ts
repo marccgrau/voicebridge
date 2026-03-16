@@ -29,18 +29,14 @@ export type TranscriptSegmentEvent = z.infer<
 >;
 
 /**
- * Individual suggestion (used in RTVI messages)
+ * Individual advice item from Process-Pilot (used in RTVI messages)
  */
-export const SuggestionSchema = z.object({
+export const AdviceItemSchema = z.object({
   id: z.string().uuid(),
   text: z.string(),
-  type: z.enum(["response", "question", "action", "escalation"]),
-  confidence: z.number().min(0).max(1).optional(),
-  source: z.enum(["template", "llm", "hybrid"]).optional(),
-  metadata: z.record(z.unknown()).optional(),
 });
 
-export type Suggestion = z.infer<typeof SuggestionSchema>;
+export type AdviceItem = z.infer<typeof AdviceItemSchema>;
 
 /**
  * Process step status (used in RTVI messages)
@@ -64,8 +60,8 @@ export type ProcessStep = z.infer<typeof ProcessStepSchema>;
 export const RTVISuggestionMessageSchema = z.object({
   action: z.literal("agent_guidance"),
   data: z.object({
-    suggestions: z.array(SuggestionSchema),
-    serviceType: z.enum(["simple_turn", "tool_agent", "split_flows"]),
+    advice: z.array(AdviceItemSchema),
+    serviceType: z.literal("suggestion_agent"),
     triggerTurn: z.string().optional(),
     latencyMs: z.number().optional(),
     processKey: z.string().optional(),

@@ -1,10 +1,10 @@
 "use client";
 
-import type { Suggestion } from "@voicebridge/contracts";
+import type { AdviceItem } from "@voicebridge/contracts";
 import type { PanelVariant } from "@/lib/use-phase";
 
 interface SuggestionsPanelProps {
-  suggestions: Suggestion[];
+  advice: AdviceItem[];
   isConnected: boolean;
   sessionId: string | null;
   variant?: PanelVariant;
@@ -12,14 +12,12 @@ interface SuggestionsPanelProps {
 }
 
 export function SuggestionsPanel({
-  suggestions,
+  advice,
   isConnected,
   variant = "expanded",
   onToggle,
 }: SuggestionsPanelProps) {
   if (variant === "compact") {
-    const topSuggestion = suggestions[0];
-
     return (
       <button
         onClick={onToggle}
@@ -27,16 +25,11 @@ export function SuggestionsPanel({
       >
         <span className="h-1.5 w-1.5 rounded-full bg-accent" />
         <span className="text-sm font-medium text-muted-foreground">
-          Vorschläge
+          Process-Pilot
         </span>
-        {suggestions.length > 0 && (
+        {advice.length > 0 && (
           <span className="rounded-lg bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-            {suggestions.length}
-          </span>
-        )}
-        {topSuggestion && (
-          <span className="ml-auto rounded-lg bg-muted px-2 py-0.5 text-xs text-muted-foreground capitalize">
-            {topSuggestion.type}
+            {advice.length}
           </span>
         )}
       </button>
@@ -53,89 +46,36 @@ export function SuggestionsPanel({
       >
         <span className="font-mono-ui flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
           <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          Vorgeschlagene Antworten
+          Process-Pilot
         </span>
-        {suggestions.length > 0 && (
-          <span className="rounded-lg bg-accent/10 px-2.5 py-1 text-sm font-medium text-accent">
-            {suggestions.length}
-          </span>
-        )}
       </button>
 
-      {/* Suggestions content */}
+      {/* Advice content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {suggestions.length === 0 ? (
+        {advice.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <p className="text-sm text-muted-foreground">
               {isConnected
-                ? "Vorschläge erscheinen basierend auf dem Gespräch"
-                : "Sitzung starten, um Vorschläge zu erhalten"}
+                ? "Hinweise erscheinen basierend auf dem Gespräch"
+                : "Sitzung starten, um Hinweise zu erhalten"}
             </p>
           </div>
         ) : (
-          suggestions.map((suggestion) => (
-            <SuggestionCard key={suggestion.id} suggestion={suggestion} />
-          ))
+          <div className="rounded-xl border border-border/60 bg-accent/5 border-l-4 border-l-accent p-4 shadow-card">
+            <ul className="space-y-2">
+              {advice.map((item) => (
+                <li
+                  key={item.id}
+                  className="text-sm leading-relaxed text-foreground flex items-start gap-2"
+                >
+                  <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-accent" />
+                  {item.text}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
-    </div>
-  );
-}
-
-interface SuggestionCardProps {
-  suggestion: Suggestion;
-}
-
-function SuggestionCard({ suggestion }: SuggestionCardProps) {
-  const typeConfig: Record<
-    Suggestion["type"],
-    { color: string; bgColor: string; label: string }
-  > = {
-    response: {
-      color: "text-info",
-      bgColor: "bg-info/5 border-l-info",
-      label: "Antwort",
-    },
-    question: {
-      color: "text-warning",
-      bgColor: "bg-warning/5 border-l-warning",
-      label: "Frage",
-    },
-    action: {
-      color: "text-accent",
-      bgColor: "bg-accent/5 border-l-accent",
-      label: "Aktion",
-    },
-    escalation: {
-      color: "text-destructive",
-      bgColor: "bg-destructive/5 border-l-destructive",
-      label: "Eskalation",
-    },
-  };
-
-  const config = typeConfig[suggestion.type];
-
-  return (
-    <div
-      className={`rounded-xl border border-border/60 ${config.bgColor} p-4 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all border-l-4`}
-    >
-      <div className="mb-2.5 flex items-center justify-between">
-        <span
-          className={`font-mono-ui flex items-center gap-1.5 text-xs uppercase tracking-wide ${config.color} font-medium`}
-        >
-          <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          {config.label}
-        </span>
-        {suggestion.confidence && (
-          <span className="font-mono-ui text-xs text-muted-foreground">
-            {Math.round(suggestion.confidence * 100)}%
-          </span>
-        )}
-      </div>
-
-      <p className="text-sm leading-relaxed text-foreground">
-        {suggestion.text}
-      </p>
     </div>
   );
 }

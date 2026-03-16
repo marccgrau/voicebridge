@@ -158,17 +158,17 @@ export const TranscriptEntrySchema = z.object({
 export type TranscriptEntry = z.infer<typeof TranscriptEntrySchema>;
 
 /**
- * Suggestion feedback from agent
+ * Advice feedback from agent
  */
-export const SuggestionFeedbackSchema = z.object({
+export const AdviceFeedbackSchema = z.object({
   sessionId: z.string().uuid(),
-  suggestionId: z.string().uuid(),
+  adviceId: z.string().uuid(),
   action: z.enum(["used", "modified", "dismissed"]),
   modifiedText: z.string().optional(),
   timestamp: z.string().datetime(),
 });
 
-export type SuggestionFeedback = z.infer<typeof SuggestionFeedbackSchema>;
+export type AdviceFeedback = z.infer<typeof AdviceFeedbackSchema>;
 
 /**
  * UI preferences

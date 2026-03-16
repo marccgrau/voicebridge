@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   TranscriptSegmentEventSchema,
-  SuggestionSchema,
+  AdviceItemSchema,
   ProcessStepSchema,
   RTVISuggestionMessageSchema,
   RTVIProcessIllustrationMessageSchema,
@@ -44,28 +44,33 @@ describe("Event Schemas", () => {
     });
   });
 
-  describe("SuggestionSchema", () => {
-    it("validates a valid suggestion", () => {
-      const suggestion = {
+  describe("AdviceItemSchema", () => {
+    it("validates a valid advice item", () => {
+      const item = {
         id: "123e4567-e89b-12d3-a456-426614174002",
-        text: "I can help you with that billing issue.",
-        type: "response" as const,
-        confidence: 0.8,
-        source: "template" as const,
+        text: "Bestätigen Sie das Anliegen des Kunden.",
       };
 
-      const result = SuggestionSchema.safeParse(suggestion);
+      const result = AdviceItemSchema.safeParse(item);
       expect(result.success).toBe(true);
     });
 
-    it("rejects invalid type", () => {
-      const suggestion = {
+    it("rejects missing text", () => {
+      const item = {
         id: "123e4567-e89b-12d3-a456-426614174002",
-        text: "Test",
-        type: "invalid",
       };
 
-      const result = SuggestionSchema.safeParse(suggestion);
+      const result = AdviceItemSchema.safeParse(item);
+      expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid id", () => {
+      const item = {
+        id: "not-a-uuid",
+        text: "Some advice",
+      };
+
+      const result = AdviceItemSchema.safeParse(item);
       expect(result.success).toBe(false);
     });
   });
@@ -84,24 +89,36 @@ describe("Event Schemas", () => {
   });
 
   describe("RTVISuggestionMessageSchema", () => {
-    it("validates a valid RTVI suggestion message", () => {
+    it("validates a valid RTVI suggestion message with advice", () => {
       const message = {
         action: "agent_guidance" as const,
         data: {
-          suggestions: [
+          advice: [
             {
               id: "123e4567-e89b-12d3-a456-426614174002",
-              text: "I can help you with that.",
-              type: "response" as const,
+              text: "Bestätigen Sie das Anliegen des Kunden.",
             },
           ],
-          serviceType: "simple_turn" as const,
+          serviceType: "suggestion_agent" as const,
           latencyMs: 150,
         },
       };
 
       const result = RTVISuggestionMessageSchema.safeParse(message);
       expect(result.success).toBe(true);
+    });
+
+    it("rejects invalid serviceType", () => {
+      const message = {
+        action: "agent_guidance" as const,
+        data: {
+          advice: [],
+          serviceType: "simple_turn",
+        },
+      };
+
+      const result = RTVISuggestionMessageSchema.safeParse(message);
+      expect(result.success).toBe(false);
     });
   });
 
@@ -139,14 +156,13 @@ describe("Event Schemas", () => {
       const suggestionMessage = {
         action: "agent_guidance" as const,
         data: {
-          suggestions: [
+          advice: [
             {
               id: "123e4567-e89b-12d3-a456-426614174002",
-              text: "Test",
-              type: "response" as const,
+              text: "Fragen Sie nach der Transaktionsnummer.",
             },
           ],
-          serviceType: "tool_agent" as const,
+          serviceType: "suggestion_agent" as const,
         },
       };
 

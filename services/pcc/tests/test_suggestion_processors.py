@@ -32,15 +32,36 @@ async def test_output_processor_collects_llm_text_emits_rtvi_message():
 
     await processor.process_frame(LLMFullResponseStartFrame(), FrameDirection.DOWNSTREAM)
     await processor.process_frame(
-        LLMTextFrame(text='{"suggestions": [{"text": "Ask about the issue.", "type": "question"}]}'),
+        LLMTextFrame(text='{"advice": ["Fragen Sie nach der Transaktionsnummer.", "Bestätigen Sie das Anliegen."]}'),
         FrameDirection.DOWNSTREAM,
     )
     await processor.process_frame(LLMFullResponseEndFrame(), FrameDirection.DOWNSTREAM)
 
     msg = _get_single_rtvi_message(processor)
     assert msg["action"] == "agent_guidance"
-    assert msg["data"]["suggestions"][0]["text"] == "Ask about the issue."
-    assert msg["data"]["suggestions"][0]["type"] == "question"
+    assert len(msg["data"]["advice"]) == 2
+    assert msg["data"]["advice"][0]["text"] == "Fragen Sie nach der Transaktionsnummer."
+    assert msg["data"]["advice"][1]["text"] == "Bestätigen Sie das Anliegen."
+
+
+@pytest.mark.asyncio
+async def test_output_processor_advice_items_have_uuid_ids():
+    processor = SuggestionOutputProcessor(session_id="test-session")
+    processor.push_frame = AsyncMock()
+
+    await processor.process_frame(LLMFullResponseStartFrame(), FrameDirection.DOWNSTREAM)
+    await processor.process_frame(
+        LLMTextFrame(text='{"advice": ["Hinweis eins", "Hinweis zwei"]}'),
+        FrameDirection.DOWNSTREAM,
+    )
+    await processor.process_frame(LLMFullResponseEndFrame(), FrameDirection.DOWNSTREAM)
+
+    msg = _get_single_rtvi_message(processor)
+    for item in msg["data"]["advice"]:
+        assert "id" in item
+        assert "text" in item
+        # UUID format check (8-4-4-4-12)
+        assert len(item["id"].split("-")) == 5
 
 
 @pytest.mark.asyncio
@@ -50,7 +71,7 @@ async def test_output_processor_pushes_rtvi_server_message_metadata():
 
     await processor.process_frame(LLMFullResponseStartFrame(), FrameDirection.DOWNSTREAM)
     await processor.process_frame(
-        LLMTextFrame(text='{"suggestions": [{"text": "Help the customer.", "type": "response"}]}'),
+        LLMTextFrame(text='{"advice": ["Bestätigen Sie das Anliegen."]}'),
         FrameDirection.DOWNSTREAM,
     )
     await processor.process_frame(LLMFullResponseEndFrame(), FrameDirection.DOWNSTREAM)
@@ -68,17 +89,17 @@ async def test_output_processor_collects_chunked_response():
 
     await processor.process_frame(LLMFullResponseStartFrame(), FrameDirection.DOWNSTREAM)
     await processor.process_frame(
-        LLMTextFrame(text='{"suggestions": [{"text": "Ack'),
+        LLMTextFrame(text='{"advice": ["Bestätigen Sie das Anl'),
         FrameDirection.DOWNSTREAM,
     )
     await processor.process_frame(
-        LLMTextFrame(text='nowledge the issue.", "type": "response"}]}'),
+        LLMTextFrame(text='iegen des Kunden."]}'),
         FrameDirection.DOWNSTREAM,
     )
     await processor.process_frame(LLMFullResponseEndFrame(), FrameDirection.DOWNSTREAM)
 
     msg = _get_single_rtvi_message(processor)
-    assert msg["data"]["suggestions"][0]["text"] == "Acknowledge the issue."
+    assert msg["data"]["advice"][0]["text"] == "Bestätigen Sie das Anliegen des Kunden."
 
 
 @pytest.mark.asyncio
@@ -94,30 +115,43 @@ async def test_output_processor_fallback_on_invalid_json():
     await processor.process_frame(LLMFullResponseEndFrame(), FrameDirection.DOWNSTREAM)
 
     msg = _get_single_rtvi_message(processor)
-    assert len(msg["data"]["suggestions"]) == 1
-    assert msg["data"]["suggestions"][0]["type"] == "response"
+    assert len(msg["data"]["advice"]) == 1
+    assert "id" in msg["data"]["advice"][0]
+    assert msg["data"]["advice"][0]["text"] == "Anliegen bestätigen und offene Fragen klären"
 
 
 @pytest.mark.asyncio
-async def test_output_processor_limits_to_1_suggestion():
+async def test_output_processor_passes_all_advice_items():
     processor = SuggestionOutputProcessor(session_id="test-session")
     processor.push_frame = AsyncMock()
 
-    json_response = (
-        '{"suggestions": ['
-        '{"text": "One", "type": "response"},'
-        '{"text": "Two", "type": "question"},'
-        '{"text": "Three", "type": "action"}'
-        ']}'
-    )
+    json_response = '{"advice": ["Eins", "Zwei", "Drei", "Vier"]}'
 
     await processor.process_frame(LLMFullResponseStartFrame(), FrameDirection.DOWNSTREAM)
     await processor.process_frame(LLMTextFrame(text=json_response), FrameDirection.DOWNSTREAM)
     await processor.process_frame(LLMFullResponseEndFrame(), FrameDirection.DOWNSTREAM)
 
     msg = _get_single_rtvi_message(processor)
-    assert len(msg["data"]["suggestions"]) == 1
-    assert msg["data"]["suggestions"][0]["text"] == "One"
+    assert len(msg["data"]["advice"]) == 4
+    assert msg["data"]["advice"][0]["text"] == "Eins"
+    assert msg["data"]["advice"][3]["text"] == "Vier"
+
+
+@pytest.mark.asyncio
+async def test_output_processor_skips_empty_strings():
+    processor = SuggestionOutputProcessor(session_id="test-session")
+    processor.push_frame = AsyncMock()
+
+    json_response = '{"advice": ["Valid", "", "  ", "Also valid"]}'
+
+    await processor.process_frame(LLMFullResponseStartFrame(), FrameDirection.DOWNSTREAM)
+    await processor.process_frame(LLMTextFrame(text=json_response), FrameDirection.DOWNSTREAM)
+    await processor.process_frame(LLMFullResponseEndFrame(), FrameDirection.DOWNSTREAM)
+
+    msg = _get_single_rtvi_message(processor)
+    assert len(msg["data"]["advice"]) == 2
+    assert msg["data"]["advice"][0]["text"] == "Valid"
+    assert msg["data"]["advice"][1]["text"] == "Also valid"
 
 
 # --- build_suggestion_system_prompt tests ---
@@ -160,4 +194,10 @@ def test_suggestion_prompt_has_speaker_awareness():
     prompt = build_suggestion_system_prompt()
     assert "[Kunde]" in prompt
     assert "[Berater]" in prompt
-    assert "redundanten Vorschläge" in prompt
+    assert "redundanten Hinweise" in prompt
+
+
+def test_suggestion_prompt_has_process_pilot_identity():
+    prompt = build_suggestion_system_prompt()
+    assert "Process-Pilot" in prompt
+    assert '"advice"' in prompt

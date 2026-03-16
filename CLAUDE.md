@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes, track step progress, and provide real-time suggestions to agents. The system consists of a Customer App, an Agent Workspace, and one unified Pipecat service with three parallel branches (transcript, process, suggestion). All user-facing UI, experiment content (personas, scenarios, process definitions, knowledge base), and LLM prompts are in **German**.
+VoiceBridge is a proactive guidance workspace for live human-human customer service calls. It listens to conversations via WebRTC, uses LLMs to detect processes, track step progress, and provide real-time Process-Pilot advice to agents. The system consists of a Customer App, an Agent Workspace, and one unified Pipecat service with three parallel branches (transcript, process, suggestion). All user-facing UI, experiment content (personas, scenarios, process definitions, knowledge base), and LLM prompts are in **German**.
 
 ## Development Commands
 
@@ -70,7 +70,7 @@ After implementing a feature:
 
 For the PCC service, tests should cover:
 
-- Pipeline processor logic (transcript, process LLM output parsing, suggestion LLM output parsing)
+- Pipeline processor logic (transcript, process LLM output parsing, advice LLM output parsing)
 - RTVI bot-action payload shape and validation (`transcript_segment`, `process_illustration`, `agent_guidance`)
 - Process catalog loading and prompt/catalog alignment for process identification
 
@@ -94,7 +94,7 @@ Supabase Realtime → Agent Workspace (session state only)
 
 The system operates one **listen-only voice pipeline** with three parallel branches after shared STT. Real-time data is delivered via two channels:
 
-- **RTVI (WebRTC data channel)**: Suggestions, process illustrations, and transcript segments (low latency)
+- **RTVI (WebRTC data channel)**: Process-Pilot advice, process illustrations, and transcript segments (low latency)
 - **Supabase Realtime**: Session state changes and pending session notifications (agent workspace only)
 
 ### Component Responsibilities
@@ -104,8 +104,8 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 - **Phase-based procedural UI** that adapts to the current call state, showing only contextually relevant information:
   - **Idle**: Waiting screen for incoming calls
   - **Incoming**: Customer info + accept/reject interface
-  - **Active (Pre-process)**: Customer info + transcript + suggestions (process detection in progress)
-  - **Active (In-process)**: Full 4-panel workspace - customer info, transcript, suggestions, process visualization
+  - **Active (Pre-process)**: Customer info + transcript + Process-Pilot advice (process detection in progress)
+  - **Active (In-process)**: Full 4-panel workspace - customer info, transcript, Process-Pilot advice, process visualization
   - **Postcall Summary**: Transcript review + AI-generated summary editor, auto-returns to idle after save
 - Incoming call notification via Supabase Realtime subscription on `sessions` table (pending status)
 - Connects to Daily.co room via `@pipecat-ai/client-js` RTVI client
@@ -132,7 +132,7 @@ The system operates one **listen-only voice pipeline** with three parallel branc
 
 **Shared Contracts** (`packages/contracts/`)
 
-- Zod schemas for RTVI messages: `RTVISuggestionMessageSchema`, `RTVIProcessIllustrationMessageSchema`, `RTVITranscriptSegmentMessageSchema`
+- Zod schemas for RTVI messages: `RTVISuggestionMessageSchema` (with `AdviceItemSchema`), `RTVIProcessIllustrationMessageSchema`, `RTVITranscriptSegmentMessageSchema`
 - Discriminated union: `RTVIMessageSchema` (on `action` field)
 - Zod schemas for DTOs (session config, process lookup, etc.)
 - Single source of truth for TypeScript types
@@ -201,19 +201,19 @@ Supporting knowledge base articles (in German) are in `services/pcc/kb_content/`
 
 ### Parallel Branches In One Agent
 
-Transcript, process detection, and suggestion generation run as parallel branches in one bot process after a shared STT stage. This removes room orchestration complexity and duplicate STT connections.
+Transcript, process detection, and advice generation run as parallel branches in one bot process after a shared STT stage. This removes room orchestration complexity and duplicate STT connections.
 
 ### Listen-Only Bot
 
 The unified PCC service is configured as listen-only (`audio_out_enabled=False`). It does not respond verbally — it only publishes events to guide human agents.
 
-### LLM Branches For Process + Suggestion
+### LLM Branches For Process + Advice
 
-The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT. Both receive speaker-labeled transcript entries (`[Kunde]`/`[Berater]`). The suggestion branch is scenario-aware — its system prompt includes the matching process definition (steps with descriptions) and knowledge base content for the active scenario.
+The process and suggestion branches each use their own LLM context aggregator and model invocation chain downstream of shared STT. Both receive speaker-labeled transcript entries (`[Kunde]`/`[Berater]`). The suggestion branch acts as "Process-Pilot" — an invisible AI coach that speaks directly to the agent using German imperatives. Its system prompt includes the matching process definition (steps with descriptions) and knowledge base content for the active scenario. It emits 2–4 advice items per response as `{"advice": ["..."]}` JSON.
 
 ### RTVI Over Supabase Realtime
 
-Suggestions, process illustrations, and transcript segments are delivered via RTVI (WebRTC data channel) for sub-second latency. Supabase Realtime is used only for session state changes and pending session notifications.
+Advice, process illustrations, and transcript segments are delivered via RTVI (WebRTC data channel) for sub-second latency. Supabase Realtime is used only for session state changes and pending session notifications.
 
 ### Type Safety Across Languages
 
@@ -236,11 +236,11 @@ TypeScript Zod schemas in `packages/contracts` define the contract. Python code 
 ### RTVI
 
 - Branch processors emit `RTVIServerMessageFrame` payloads as `bot-action` events.
-- The agent workspace receives transcript, process, and suggestion actions from one bot.
+- The agent workspace receives transcript, process, and advice actions from one bot.
 
 ### Design Principle
 
-Always prefer Pipecat abstractions (processors, pipeline, RTVI) over custom transport. Suggestions, process illustrations, and transcripts are sent to the client via RTVI — not written to Supabase for realtime pickup. Supabase Realtime is reserved for session state changes.
+Always prefer Pipecat abstractions (processors, pipeline, RTVI) over custom transport. Advice, process illustrations, and transcripts are sent to the client via RTVI — not written to Supabase for realtime pickup. Supabase Realtime is reserved for session state changes.
 
 ## Environment Variables
 

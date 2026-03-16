@@ -5,11 +5,11 @@ Next.js agent workspace with **phase-based procedural UI** for real-time custome
 ## Features
 
 - **Phase-Based UI**: Adaptive layout that shows only contextually relevant information for the current call state
-- **RTVI Integration**: Low-latency WebRTC data channel for real-time suggestions, transcripts, and process updates
+- **RTVI Integration**: Low-latency WebRTC data channel for real-time Process-Pilot advice, transcripts, and process updates
 - **Multi-Phase Workflow**:
   - **Idle**: Waiting screen for incoming calls
   - **Incoming**: Customer info preview + accept/reject interface
-  - **Active (Pre-process)**: Customer info + transcript + suggestions (process detection in progress)
+  - **Active (Pre-process)**: Customer info + transcript + Process-Pilot advice (process detection in progress)
   - **Active (In-process)**: Full workspace with process visualization
   - **Postcall Summary**: Transcript review + AI-generated summary editor
 - **Auto-Return to Idle**: After saving summary, workspace automatically returns to waiting state
@@ -80,7 +80,7 @@ apps/agent-workspace/
 │   ├── components/
 │   │   └── workspace/          # Phase-based panels
 │   │       ├── InteractionPanel.tsx          # Transcript display
-│   │       ├── SuggestionsPanel.tsx          # Agent guidance
+│   │       ├── SuggestionsPanel.tsx          # Process-Pilot advice panel
 │   │       ├── ProcessLayer.tsx             # Process step visualization
 │   │       ├── CustomerInfoPanel.tsx        # Customer profile
 │   │       ├── IncomingCallNotification.tsx  # Call accept UI
@@ -119,7 +119,7 @@ apps/agent-workspace/
 - Process layer (detecting state)
 - Customer info (expanded, toggleable)
 - Live transcript (compact, toggleable — pulsing indicator when connected)
-- Suggestions panel
+- Process-Pilot advice panel
 
 ### 4. Active (In-Process) Phase
 
@@ -129,7 +129,7 @@ apps/agent-workspace/
 - Process layer (steps + progress)
 - Customer info (expanded, toggleable)
 - Live transcript (compact, toggleable — pulsing indicator when connected)
-- Suggestions panel (process-aware)
+- Process-Pilot advice panel (process-aware)
 
 ### 5. Postcall Summary Phase
 
@@ -166,10 +166,11 @@ The workspace receives real-time updates via RTVI (WebRTC data channel):
 {
   action: "agent_guidance",
   data: {
-    suggestions: Array<{
-      text: string,
-      type: "response" | "question" | "action" | "escalation"
-    }>
+    advice: Array<{
+      id: string,
+      text: string
+    }>,
+    serviceType: "suggestion_agent"
   }
 }
 ```
@@ -218,7 +219,7 @@ Phase-based UI re-renders
 **RTVI (WebRTC data channel)** is used for:
 
 - Live transcript updates
-- Real-time suggestions
+- Real-time Process-Pilot advice
 - Process detection and step tracking
 
 ## Key Hooks
@@ -236,7 +237,7 @@ Manages session lifecycle:
 Connects to RTVI and handles messages:
 
 - `onTranscript` — New transcript segment
-- `onSuggestion` — New agent guidance
+- `onSuggestion` — New Process-Pilot advice
 - `onProcessIllustration` — Process update
 - Options: `{ audioEnabled }` — Enable agent microphone audio
 
