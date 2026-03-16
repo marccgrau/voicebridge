@@ -13,7 +13,7 @@ import logging
 import os
 from pathlib import Path
 
-from deepgram import LiveOptions
+from deepgram.clients.listen.v1.websocket.options import LiveOptions
 from dotenv import load_dotenv
 from pipecat.audio.turn.smart_turn.base_smart_turn import SmartTurnParams
 from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
