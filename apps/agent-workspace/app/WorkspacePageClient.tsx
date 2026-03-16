@@ -10,7 +10,9 @@ import { IncomingCallNotification } from "@/components/workspace/IncomingCallNot
 import { SummaryEditor } from "@/components/workspace/SummaryEditor";
 import { useSession } from "@/lib/session";
 import { usePendingSessions } from "@/lib/pending-sessions";
-import { useRTVI } from "@/lib/rtvi";
+import { PipecatRTVIProvider } from "@/lib/rtvi-provider";
+import { useRTVIConnection } from "@/lib/use-rtvi-connection";
+import { useRTVIMessages } from "@/lib/use-rtvi-messages";
 import { usePhase } from "@/lib/use-phase";
 import { useSummary } from "@/lib/use-summary";
 import { supabase } from "@/lib/supabase";
@@ -154,58 +156,60 @@ export default function WorkspacePageClient() {
   };
 
   return (
-    <div className="flex h-screen flex-col">
-      {/* Header */}
-      <header className="flex h-16 items-center justify-between border-b border-border bg-white px-6">
-        <div className="flex items-center gap-4">
-          <h1 className="font-display text-xl font-semibold gradient-text">
-            VoiceBridge
-          </h1>
-          <Link
-            href={{ pathname: "/admin" }}
-            className="text-sm text-muted-foreground/70 hover:text-foreground transition-colors"
-          >
-            Admin
-          </Link>
-          {sessionId && (
-            <span className="font-mono-ui flex items-center gap-1.5 rounded-xl bg-accent/10 px-3 py-1 text-xs text-accent">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse-dot" />
-              {sessionId.slice(0, 8)}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          {isConnected && (
-            <>
-              <span className="flex items-center gap-2 text-sm text-accent font-medium">
-                <span className="h-2 w-2 rounded-full gradient-accent animate-pulse-dot" />
-                Verbunden
+    <PipecatRTVIProvider>
+      <div className="flex h-screen flex-col">
+        {/* Header */}
+        <header className="flex h-16 items-center justify-between border-b border-border bg-white px-6">
+          <div className="flex items-center gap-4">
+            <h1 className="font-display text-xl font-semibold gradient-text">
+              VoiceBridge
+            </h1>
+            <Link
+              href={{ pathname: "/admin" }}
+              className="text-sm text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              Admin
+            </Link>
+            {sessionId && (
+              <span className="font-mono-ui flex items-center gap-1.5 rounded-xl bg-accent/10 px-3 py-1 text-xs text-accent">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse-dot" />
+                {sessionId.slice(0, 8)}
               </span>
-              <button
-                onClick={stopSession}
-                className="rounded-xl border border-destructive/60 px-4 py-1.5 text-sm font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all hover:-translate-y-0.5"
-              >
-                Sitzung beenden
-              </button>
-            </>
-          )}
-        </div>
-      </header>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {isConnected && (
+              <>
+                <span className="flex items-center gap-2 text-sm text-accent font-medium">
+                  <span className="h-2 w-2 rounded-full gradient-accent animate-pulse-dot" />
+                  Verbunden
+                </span>
+                <button
+                  onClick={stopSession}
+                  className="rounded-xl border border-destructive/60 px-4 py-1.5 text-sm font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-all hover:-translate-y-0.5"
+                >
+                  Sitzung beenden
+                </button>
+              </>
+            )}
+          </div>
+        </header>
 
-      <WorkspacePanels
-        key={sessionId ?? "no-session"}
-        sessionId={sessionId}
-        isConnected={isConnected}
-        isLoading={isLoading}
-        roomUrl={roomUrl}
-        roomToken={roomToken}
-        audioEnabled={audioEnabled}
-        pendingSessions={pendingSessions}
-        onAccept={handleAccept}
-        onClearSession={clearSession}
-        onDisconnectRoom={disconnectRoom}
-      />
-    </div>
+        <WorkspacePanels
+          key={sessionId ?? "no-session"}
+          sessionId={sessionId}
+          isConnected={isConnected}
+          isLoading={isLoading}
+          roomUrl={roomUrl}
+          roomToken={roomToken}
+          audioEnabled={audioEnabled}
+          pendingSessions={pendingSessions}
+          onAccept={handleAccept}
+          onClearSession={clearSession}
+          onDisconnectRoom={disconnectRoom}
+        />
+      </div>
+    </PipecatRTVIProvider>
   );
 }
 
@@ -386,80 +390,78 @@ function WorkspacePanels({
     }
   }, [sessionStatus, onDisconnectRoom]);
 
-  // Subscribe to RTVI messages via WebRTC data channel
-  useRTVI(
-    roomUrl,
-    roomToken,
-    {
-      onTranscript: (message) => {
-        setTranscript((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
+  // Connect to Daily room via Pipecat React SDK
+  useRTVIConnection(roomUrl, roomToken, { enableMic: audioEnabled });
+
+  // Subscribe to RTVI messages via PipecatClient context
+  useRTVIMessages({
+    onTranscript: (message) => {
+      setTranscript((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          speaker: message.data.speaker,
+          text: message.data.text,
+          timestamp: message.data.timestamp,
+          isFinal: message.data.isFinal,
+        },
+      ]);
+
+      if (sessionId && message.data.isFinal) {
+        void supabase
+          .from("transcript_segments")
+          .insert({
+            session_id: sessionId,
             speaker: message.data.speaker,
             text: message.data.text,
-            timestamp: message.data.timestamp,
-            isFinal: message.data.isFinal,
-          },
-        ]);
-
-        if (sessionId && message.data.isFinal) {
-          void supabase
-            .from("transcript_segments")
-            .insert({
-              session_id: sessionId,
-              speaker: message.data.speaker,
-              text: message.data.text,
-              is_final: message.data.isFinal,
-              ts: message.data.timestamp,
-            })
-            .then(({ error }) => {
-              if (error) {
-                console.error("Failed to persist transcript segment:", error);
-              }
-            });
-        }
-      },
-      onSuggestion: (message) => {
-        setAdvice(
-          message.data.advice.map((a) => ({
-            ...a,
-            id: a.id ?? crypto.randomUUID(),
-          }))
-        );
-
-        persistSessionEvent("agent_guidance_received", {
-          advice: message.data.advice,
-          serviceType: message.data.serviceType,
-        });
-      },
-      onProcessIllustration: (message) => {
-        const processSteps = message.data.steps.map((step: ProcessStep) => ({
-          key: step.key,
-          label: step.label,
-          status: step.status,
-        }));
-
-        setProcessKey(message.data.processKey);
-        setProcessName(message.data.processName);
-        setSteps(processSteps);
-        setCurrentStep(
-          message.data.currentStep >= 0 &&
-            message.data.currentStep < processSteps.length
-            ? (processSteps[message.data.currentStep]?.key ?? null)
-            : null
-        );
-
-        persistSessionEvent("process_illustration_received", {
-          processKey: message.data.processKey,
-          processName: message.data.processName,
-          currentStep: message.data.currentStep,
-          steps: message.data.steps,
-        });
-      },
+            is_final: message.data.isFinal,
+            ts: message.data.timestamp,
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error("Failed to persist transcript segment:", error);
+            }
+          });
+      }
     },
-    { audioEnabled }
-  );
+    onSuggestion: (message) => {
+      setAdvice(
+        message.data.advice.map((a: AdviceItem) => ({
+          ...a,
+          id: a.id ?? crypto.randomUUID(),
+        }))
+      );
+
+      persistSessionEvent("agent_guidance_received", {
+        advice: message.data.advice,
+        serviceType: message.data.serviceType,
+      });
+    },
+    onProcessIllustration: (message) => {
+      const processSteps = message.data.steps.map((step: ProcessStep) => ({
+        key: step.key,
+        label: step.label,
+        status: step.status,
+      }));
+
+      setProcessKey(message.data.processKey);
+      setProcessName(message.data.processName);
+      setSteps(processSteps);
+      setCurrentStep(
+        message.data.currentStep >= 0 &&
+          message.data.currentStep < processSteps.length
+          ? (processSteps[message.data.currentStep]?.key ?? null)
+          : null
+      );
+
+      persistSessionEvent("process_illustration_received", {
+        processKey: message.data.processKey,
+        processName: message.data.processName,
+        currentStep: message.data.currentStep,
+        steps: message.data.steps,
+      });
+    },
+  });
 
   const selectedPendingSession =
     (incomingSelectionId
